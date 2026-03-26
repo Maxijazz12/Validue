@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/maxkranstad/Downloads/**)",
+      "Read(//Users/maxkranstad/Desktop/AI/**)",
+      "Bash(npx create-next-app@latest valdate --typescript --tailwind --app --src-dir --no-turbopack --use-npm --yes)",
+      "Bash(mv /Users/maxkranstad/Desktop/AI/Valdate/.agents /tmp/.agents_backup)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --no-turbopack --use-npm --yes)"
+    ]
+  }
+}
