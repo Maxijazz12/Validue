@@ -7,6 +7,7 @@ import { DEFAULTS, safeNumber, safePositive } from "@/lib/defaults";
 import { PLATFORM_FEE_RATE } from "@/lib/plans";
 import { logOps } from "@/lib/ops-logger";
 import { captureError, captureWarning } from "@/lib/sentry";
+import sql from "@/lib/db";
 
 export type PayoutSuggestion = {
   responseId: string;
@@ -252,35 +253,35 @@ export async function allocatePayouts(
     throw new Error("Payouts already allocated (concurrent request).");
   }
 
-  // Create payouts and update responses.
+  // Create payouts and update responses atomically.
   // Platform fee is already deducted in distributable_amount.
   // Payout amount IS the respondent's take-home. platform_fee must be 0.
   try {
-    for (const allocation of allocations) {
-      if (allocation.amount < DEFAULTS.MIN_PAYOUT) continue;
+    const validAllocations = allocations.filter((a) => {
+      return a.amount >= DEFAULTS.MIN_PAYOUT && respondentMap.has(a.responseId);
+    });
 
-      const respondentId = respondentMap.get(allocation.responseId);
-      if (!respondentId) continue;
-
-      await supabase.from("payouts").insert({
-        response_id: allocation.responseId,
-        campaign_id: campaignId,
-        founder_id: user.id,
-        respondent_id: respondentId,
-        amount: allocation.amount,
-        platform_fee: 0,
-        status: "pending",
-      });
-
-      await supabase
-        .from("responses")
-        .update({ payout_amount: allocation.amount })
-        .eq("id", allocation.responseId);
-    }
+    await sql.begin(async (tx) => {
+      for (const allocation of validAllocations) {
+        const respondentId = respondentMap.get(allocation.responseId)!;
+        await tx`
+          INSERT INTO payouts (response_id, campaign_id, founder_id, respondent_id, amount, platform_fee, status)
+          VALUES (${allocation.responseId}, ${campaignId}, ${user.id}, ${respondentId}, ${allocation.amount}, 0, 'pending')
+        `;
+        await tx`
+          UPDATE responses SET payout_amount = ${allocation.amount} WHERE id = ${allocation.responseId}
+        `;
+      }
+    });
   } catch (err) {
-    // CRITICAL: Campaign is already marked allocated but payouts didn't all insert.
-    // Manual intervention required.
-    console.error("[allocatePayouts] Partial failure after lock:", err);
+    // Transaction rolled back automatically — campaign is marked allocated but no payouts inserted.
+    // Reset payout_status so founder can retry.
+    await supabase
+      .from("campaigns")
+      .update({ payout_status: "pending" })
+      .eq("id", campaignId)
+      .eq("creator_id", user.id);
+    console.error("[allocatePayouts] Transaction failed, lock released:", err);
     captureError(err, { campaignId, operation: "payout.allocate", userId: user.id }, "fatal");
     throw new Error(
       "Payout allocation partially failed. Please contact support."

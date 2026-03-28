@@ -82,7 +82,9 @@ export async function publishCampaign(
   const distributableAmount = fundingAmount
     ? Math.round(fundingAmount * (1 - PLATFORM_FEE_RATE) * 100) / 100
     : 0;
-  const keyAssumptions = draft.assumptions.filter((a) => a.trim().length > 0);
+  const keyAssumptions = draft.assumptions
+    .filter((a) => a.trim().length > 0)
+    .map((a) => enforceLength(a, 500).text);
   const initialStatus = fundingAmount > 0 ? "pending_funding" : "active";
 
   // 6. Atomic transaction: profile + campaign + questions

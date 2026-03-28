@@ -188,6 +188,17 @@ export async function getRankingProgress(campaignId: string) {
 
   if (!user) throw new Error("Not authenticated");
 
+  // Verify the user owns this campaign
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select("creator_id")
+    .eq("id", campaignId)
+    .single();
+
+  if (!campaign || campaign.creator_id !== user.id) {
+    throw new Error("Not your campaign");
+  }
+
   const { count: rankedCount } = await supabase
     .from("responses")
     .select("id", { count: "exact", head: true })

@@ -30,7 +30,7 @@ const FLAGGED_TERMS = [
 const SPAM_PATTERNS = [
   /(.)\1{9,}/,                    // 10+ repeated characters (aaaaaaaaaa)
   /[A-Z\s]{50,}/,                 // 50+ chars of ALL CAPS
-  /https?:\/\/\S+.*https?:\/\/\S+/, // Multiple URLs
+  /https?:\/\/\S+\s+https?:\/\/\S+/, // Multiple URLs (non-greedy to prevent ReDoS)
   /(?:buy|sell|discount|click here|free money|earn \$)/i, // Commercial spam
 ];
 

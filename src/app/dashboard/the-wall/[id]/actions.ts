@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
+import sql from "@/lib/db";
 
 export type AnswerMetadata = {
   pasteDetected: boolean;
@@ -11,6 +12,15 @@ export type AnswerMetadata = {
   timeSpentMs: number;
   charCount: number;
 };
+
+function sanitizeMetadata(m: AnswerMetadata): AnswerMetadata {
+  return {
+    pasteDetected: m.pasteDetected === true,
+    pasteCount: Math.max(0, Math.floor(Number(m.pasteCount) || 0)),
+    timeSpentMs: Math.max(0, Math.floor(Number(m.timeSpentMs) || 0)),
+    charCount: Math.max(0, Math.floor(Number(m.charCount) || 0)),
+  };
+}
 
 export async function startResponse(campaignId: string) {
   const supabase = await createClient();
@@ -78,7 +88,8 @@ export async function saveAnswer(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Content moderation + length enforcement
+  // Sanitize metadata + content moderation + length enforcement
+  const safeMetadata = sanitizeMetadata(metadata);
   const { text: safeText } = enforceLength(text, MAX_LENGTHS.ANSWER_TEXT);
   const contentCheck = checkContent(safeText);
   if (!contentCheck.allowed) {
@@ -100,7 +111,7 @@ export async function saveAnswer(
   if (existing) {
     const { error } = await supabase
       .from("answers")
-      .update({ text: safeText, metadata })
+      .update({ text: safeText, metadata: safeMetadata })
       .eq("id", existing.id);
 
     if (error) throw new Error(error.message);
@@ -109,7 +120,7 @@ export async function saveAnswer(
       response_id: responseId,
       question_id: questionId,
       text: safeText,
-      metadata,
+      metadata: safeMetadata,
     });
 
     if (error) throw new Error(error.message);
@@ -163,19 +174,12 @@ export async function submitResponse(responseId: string) {
 
   if (submitError) throw new Error(submitError.message);
 
-  // Increment campaign response count
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("current_responses")
-    .eq("id", response.campaign_id)
-    .single();
-
-  if (campaign) {
-    await supabase
-      .from("campaigns")
-      .update({ current_responses: (campaign.current_responses || 0) + 1 })
-      .eq("id", response.campaign_id);
-  }
+  // Atomically increment campaign response count
+  await sql`
+    UPDATE campaigns
+    SET current_responses = current_responses + 1
+    WHERE id = ${response.campaign_id}
+  `;
 
   // Mark respondent as having responded
   await supabase
