@@ -187,6 +187,26 @@ export async function submitResponse(responseId: string) {
     .update({ has_responded: true })
     .eq("id", user.id);
 
+  // Notify the campaign creator about the new response
+  const { data: campaignForNotif } = await supabase
+    .from("campaigns")
+    .select("title, creator_id, current_responses, target_responses")
+    .eq("id", response.campaign_id)
+    .single();
+
+  if (campaignForNotif) {
+    const count = campaignForNotif.current_responses;
+    const target = campaignForNotif.target_responses;
+    await supabase.from("notifications").insert({
+      user_id: campaignForNotif.creator_id,
+      type: "new_response",
+      title: "New response received",
+      body: `"${campaignForNotif.title}" — ${count}/${target} responses`,
+      campaign_id: response.campaign_id,
+      link: `/dashboard/ideas/${response.campaign_id}/responses`,
+    });
+  }
+
   revalidatePath("/dashboard/the-wall");
 
   return { success: true };
