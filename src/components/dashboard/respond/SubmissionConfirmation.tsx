@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "@/components/ui/Button";
+import type { SuggestedCampaign } from "./ResponseFlow";
 
 type SubmissionConfirmationProps = {
   campaignTitle?: string;
@@ -8,6 +9,7 @@ type SubmissionConfirmationProps = {
   rewardType?: string | null;
   questionCount?: number;
   totalTimeMs?: number;
+  suggestedCampaigns?: SuggestedCampaign[];
 };
 
 function formatTime(ms: number): string {
@@ -24,8 +26,10 @@ export default function SubmissionConfirmation({
   rewardType,
   questionCount,
   totalTimeMs,
+  suggestedCampaigns,
 }: SubmissionConfirmationProps) {
   const hasReward = rewardAmount && rewardAmount > 0;
+  const potentialEarnings = (suggestedCampaigns || []).reduce((sum, c) => sum + c.rewardAmount, 0);
 
   return (
     <div className="flex items-center justify-center py-[48px]">
@@ -87,18 +91,65 @@ export default function SubmissionConfirmation({
             : "Good feedback makes good products. Thanks for being part of it."}
         </p>
 
-        <div className="flex gap-[12px] justify-center max-sm:flex-col max-sm:w-full">
-          <Button href="/dashboard/the-wall" className="px-[24px] py-[12px] text-[14px]">
-            Keep Responding
-          </Button>
-          <Button
-            href="/dashboard/my-responses"
-            variant="outline"
-            className="px-[24px] py-[12px] text-[14px]"
-          >
-            View My Responses
-          </Button>
-        </div>
+        {/* Suggested next campaigns */}
+        {suggestedCampaigns && suggestedCampaigns.length > 0 ? (
+          <div className="text-left">
+            <p className="text-[12px] font-semibold text-[#64748B] mb-[12px]">
+              {potentialEarnings > 0 ? (
+                <>You earned {hasReward ? <span className="font-mono text-[#34D399]">${rewardAmount}</span> : "karma"}. Earn up to <span className="font-mono text-[#34D399]">${potentialEarnings}</span> more from these:</>
+              ) : (
+                <>Keep the momentum going</>
+              )}
+            </p>
+            <div className="flex flex-col gap-[8px] mb-[20px]">
+              {suggestedCampaigns.map((c) => (
+                <a
+                  key={c.id}
+                  href={`/dashboard/the-wall/${c.id}`}
+                  className="flex items-center gap-[12px] p-[12px] rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 no-underline group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-[#111111] truncate group-hover:text-[#E5654E] transition-colors">
+                      {c.title}
+                    </div>
+                    <div className="text-[11px] text-[#94A3B8] mt-[2px]">
+                      {c.creatorName}{c.category ? ` · ${c.category}` : ""} · ~{c.estimatedMinutes}min
+                    </div>
+                  </div>
+                  {c.rewardAmount > 0 && (
+                    <span className="text-[12px] font-mono font-semibold text-[#34D399] bg-[#34D399]/8 px-[8px] py-[3px] rounded-lg shrink-0">
+                      ${c.rewardAmount}
+                    </span>
+                  )}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 group-hover:stroke-[#E5654E] transition-colors">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+            <div className="flex gap-[12px] justify-center">
+              <Button href="/dashboard/the-wall" variant="outline" className="px-[20px] py-[10px] text-[13px]">
+                Browse The Wall
+              </Button>
+              <Button href="/dashboard/my-responses" variant="outline" className="px-[20px] py-[10px] text-[13px]">
+                My Responses
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-[12px] justify-center max-sm:flex-col max-sm:w-full">
+            <Button href="/dashboard/the-wall" className="px-[24px] py-[12px] text-[14px]">
+              Keep Responding
+            </Button>
+            <Button
+              href="/dashboard/my-responses"
+              variant="outline"
+              className="px-[24px] py-[12px] text-[14px]"
+            >
+              View My Responses
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

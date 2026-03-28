@@ -27,6 +27,39 @@ export function computeSignalStrength(draft: CampaignDraft): SignalStrengthResul
     tips.push({ type: "success", message: "Strong question quality — non-leading and specific." });
   }
 
+  // ─── Actionable engagement tips ───
+  // Reward-based tips
+  if (!draft.rewardPool || draft.rewardPool === 0) {
+    tips.push({ type: "warning", message: "Add a reward pool to attract 3x more responses. Even $10 makes a difference." });
+  } else if (draft.rewardPool > 0 && draft.rewardPool < 25) {
+    tips.push({ type: "info", message: "Campaigns with $25+ rewards fill 2x faster. Consider increasing your pool." });
+  } else if (draft.rewardPool >= 50) {
+    tips.push({ type: "success", message: "Strong reward — your campaign will get priority visibility on The Wall." });
+  }
+
+  // Description length
+  if (draft.summary.length < 100) {
+    tips.push({ type: "warning", message: "Your description is under 100 characters — longer descriptions get 40% more responses." });
+  } else if (draft.summary.length >= 200) {
+    tips.push({ type: "success", message: "Detailed description — respondents will understand exactly what you need." });
+  }
+
+  // Targeting tips
+  const hasInterests = draft.audience.interests.length > 0;
+  const hasExpertise = draft.audience.expertise.length > 0;
+  if (!hasInterests && !hasExpertise) {
+    tips.push({ type: "warning", message: "Add audience targeting (interests or expertise) to improve match quality." });
+  } else if (hasInterests && hasExpertise) {
+    tips.push({ type: "success", message: "Strong targeting — you'll reach the right respondents." });
+  }
+
+  // Question count
+  if (draft.questions.length < 3) {
+    tips.push({ type: "info", message: "Consider adding more questions — 4-6 questions is the sweet spot for actionable insights." });
+  } else if (draft.questions.length > 8) {
+    tips.push({ type: "warning", message: "Surveys with 8+ questions see higher drop-off. Consider trimming to your best questions." });
+  }
+
   const score = scores.overall;
 
   let label: string;

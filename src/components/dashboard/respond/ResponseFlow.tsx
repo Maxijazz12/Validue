@@ -7,6 +7,17 @@ import SubmissionConfirmation from "./SubmissionConfirmation";
 import { startResponse } from "@/app/dashboard/the-wall/[id]/actions";
 import type { Question } from "./QuestionStepper";
 
+export type SuggestedCampaign = {
+  id: string;
+  title: string;
+  rewardAmount: number;
+  category: string | null;
+  estimatedMinutes: number;
+  currentResponses: number;
+  targetResponses: number;
+  creatorName: string;
+};
+
 type ResponseFlowProps = {
   campaign: {
     id: string;
@@ -31,6 +42,7 @@ type ResponseFlowProps = {
   isOwnCampaign: boolean;
   isFull: boolean;
   isActive: boolean;
+  suggestedCampaigns?: SuggestedCampaign[];
 };
 
 type Stage = "detail" | "responding" | "submitted";
@@ -43,6 +55,7 @@ export default function ResponseFlow({
   isOwnCampaign,
   isFull,
   isActive,
+  suggestedCampaigns,
 }: ResponseFlowProps) {
   const initialStage: Stage = existingResponse?.status === "submitted"
     ? "submitted"
@@ -127,6 +140,7 @@ export default function ResponseFlow({
           rewardType={campaign.rewardType}
           questionCount={questions.length}
           totalTimeMs={totalTimeMs}
+          suggestedCampaigns={suggestedCampaigns}
         />
       )}
     </div>

@@ -51,10 +51,45 @@ export default async function RespondPage({
     existingAnswers = answers;
   }
 
+  // Fetch suggested next campaigns (for post-response suggestion cards)
+  const { data: suggestedRaw } = await supabase
+    .from("campaigns")
+    .select("id, title, reward_amount, category, estimated_minutes, current_responses, target_responses, creator:profiles!creator_id(full_name)")
+    .eq("status", "active")
+    .neq("id", id)
+    .neq("creator_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(6);
+
+  // Filter out campaigns user already responded to
+  const suggestedIds = (suggestedRaw || []).map((c) => c.id);
+  const { data: userResponses } = suggestedIds.length > 0
+    ? await supabase
+        .from("responses")
+        .select("campaign_id")
+        .eq("respondent_id", user.id)
+        .in("campaign_id", suggestedIds)
+    : { data: [] };
+  const respondedIds = new Set((userResponses || []).map((r) => r.campaign_id));
+  const suggestedCampaigns = (suggestedRaw || [])
+    .filter((c) => !respondedIds.has(c.id))
+    .slice(0, 3)
+    .map((c) => ({
+      id: c.id,
+      title: c.title,
+      rewardAmount: Number(c.reward_amount) || 0,
+      category: c.category as string | null,
+      estimatedMinutes: (c.estimated_minutes as number) || 5,
+      currentResponses: (c.current_responses as number) || 0,
+      targetResponses: (c.target_responses as number) || 50,
+      creatorName: (c.creator as { full_name: string } | null)?.full_name || "Anonymous",
+    }));
+
   const creator = campaign.creator as { full_name: string; avatar_url: string | null } | null;
 
   return (
     <ResponseFlow
+      suggestedCampaigns={suggestedCampaigns}
       campaign={{
         id: campaign.id,
         title: campaign.title,

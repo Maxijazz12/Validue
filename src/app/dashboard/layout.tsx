@@ -21,7 +21,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url")
+    .select("full_name, avatar_url, total_earned")
     .eq("id", user.id)
     .single();
 
@@ -39,8 +39,18 @@ export default async function DashboardLayout({
     .eq("user_id", user.id)
     .is("read_at", null);
 
+  // Check if founder has recent responses on their campaigns (last 24h)
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: newResponseCount } = await supabase
+    .from("responses")
+    .select("*, campaigns!inner(creator_id)", { count: "exact", head: true })
+    .eq("campaigns.creator_id", user.id)
+    .in("status", ["submitted", "ranked"])
+    .gte("created_at", oneDayAgo);
+
   const userName = profile?.full_name || user.email || "User";
   const userAvatar = profile?.avatar_url || null;
+  const totalEarned = Number(profile?.total_earned) || 0;
 
   return (
     <div className="min-h-screen bg-[#FCFCFD] relative overflow-hidden">
@@ -58,6 +68,8 @@ export default async function DashboardLayout({
         campaignsUsed={sub.campaignsUsed}
         campaignLimit={planLimit}
         unreadCount={unreadCount ?? 0}
+        totalEarned={totalEarned}
+        hasNewResponses={(newResponseCount ?? 0) > 0}
       />
       <main className="md:ml-[240px] min-h-screen relative z-10">
         <div className="max-w-[960px] mx-auto px-[32px] py-[40px] max-md:px-[20px] max-md:pt-[72px]">
