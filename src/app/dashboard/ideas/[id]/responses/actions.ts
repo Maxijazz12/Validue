@@ -158,6 +158,16 @@ export async function rankCampaignResponses(campaignId: string) {
       await updateRespondentReputation(rid);
     }
 
+    // Notify founder that ranking is complete
+    await supabase.from("notifications").insert({
+      user_id: user.id,
+      type: "ranking_complete",
+      title: "Ranking complete",
+      body: `${rankedCount} response${rankedCount !== 1 ? "s" : ""} ranked for "${campaign.title}"`,
+      campaign_id: campaignId,
+      link: `/dashboard/ideas/${campaignId}/responses`,
+    });
+
     revalidatePath(`/dashboard/ideas/${campaignId}/responses`);
     revalidatePath(`/dashboard/ideas/${campaignId}`);
 
