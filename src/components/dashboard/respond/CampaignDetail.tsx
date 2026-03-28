@@ -215,12 +215,12 @@ export default function CampaignDetail({
         <div className="text-center p-[20px] rounded-xl bg-[#F3F4F6]">
           <p className="text-[14px] text-[#64748B]">{blockerMessage}</p>
           {hasSubmitted && (
-            <a
+            <Link
               href="/dashboard/my-responses"
               className="inline-block mt-[8px] text-[13px] text-[#111111] font-medium underline"
             >
               View My Responses
-            </a>
+            </Link>
           )}
         </div>
       ) : (
