@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export type Notification = {
   id: string;
-  type: "campaign_completed" | "payout_earned";
+  type: "campaign_completed" | "payout_earned" | "new_response" | "ranking_complete";
   title: string;
   body: string | null;
   campaign_id: string | null;
@@ -28,7 +28,7 @@ export async function getNotifications(): Promise<Notification[]> {
     .select("id, type, title, body, campaign_id, amount, link, read_at, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(50);
 
   return (data as Notification[]) || [];
 }
