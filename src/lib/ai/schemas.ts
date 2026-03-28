@@ -263,6 +263,7 @@ export const IMPROVE_AUDIENCE_TOOL = {
 export const ResponseScoreSchema = z.object({
   score: z.number().min(0).max(100),
   feedback: z.string().max(200),
+  confidence: z.number().min(0).max(1).default(0.7),
   dimensions: z.object({
     depth: z.number().min(0).max(10),
     relevance: z.number().min(0).max(10),
@@ -279,7 +280,7 @@ export const SCORE_RESPONSE_TOOL = {
     "Score a respondent's answers to a validation campaign. Evaluate quality based on depth, relevance, authenticity, and consistency.",
   input_schema: {
     type: "object" as const,
-    required: ["score", "feedback", "dimensions"],
+    required: ["score", "feedback", "confidence", "dimensions"],
     properties: {
       score: {
         type: "number" as const,
@@ -289,6 +290,11 @@ export const SCORE_RESPONSE_TOOL = {
         type: "string" as const,
         description:
           "One-sentence summary of response quality for the campaign creator (max 200 chars)",
+      },
+      confidence: {
+        type: "number" as const,
+        description:
+          "Confidence in the overall score (0.0–1.0). Lower if answers are very short, questions are ambiguous, response is borderline, or anti-gaming signals are contradictory.",
       },
       dimensions: {
         type: "object" as const,

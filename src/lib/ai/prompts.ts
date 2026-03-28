@@ -22,12 +22,21 @@ const MAX_INPUT_LENGTH = 5000;
  * Sanitize user input before injecting into prompts.
  * Prevents delimiter escape, token-stuffing, and null byte injection.
  */
-function sanitizeInput(text: string): string {
-  return text
-    .replace(/\0/g, "")           // strip null bytes
+function sanitizeInput(text: string, maxLen = MAX_INPUT_LENGTH): string {
+  // JSON-encode then strip outer quotes: escapes newlines, tabs, backslashes,
+  // and other control characters that could be used for prompt injection.
+  // The model sees escaped text as data, not instructions.
+  const encoded = JSON.stringify(text);
+  return encoded
+    .slice(1, -1)                  // remove surrounding quotes from JSON.stringify
     .replace(/---/g, "\u2014")    // replace --- with em dash to prevent fence escape
-    .slice(0, MAX_INPUT_LENGTH)   // cap length
+    .slice(0, maxLen)
     .trim();
+}
+
+/** Sanitize short user-provided fields (question text, assumptions, etc.) */
+function sanitizeField(text: string): string {
+  return sanitizeInput(text, 2000);
 }
 
 /* ═══════════════════════════════════════════
@@ -85,7 +94,7 @@ Notice: every question is grounded in behavior. No "Would you like an AI meal pl
    SECTION 3: SYSTEM PROMPT (assembled)
    ═══════════════════════════════════════════ */
 
-export const SYSTEM_PROMPT = `You are a founder validation strategist working inside VLDTA — a platform where founders validate business ideas through structured research campaigns sent to matched respondents.
+export const SYSTEM_PROMPT = `You are a founder validation strategist working inside Validue — a platform where founders validate business ideas through structured research campaigns sent to matched respondents.
 
 Your job: take a founder's rough, messy idea and transform it into a high-signal validation campaign. You are NOT a survey builder. You are a validation engine that helps founders test real assumptions against real people.
 
@@ -171,13 +180,13 @@ export function buildRegenerateQuestionPrompt(
 ): string {
   const otherQuestions = allQuestions
     .filter((q) => q.id !== currentQuestion.id)
-    .map((q) => `- [${q.section}${q.isBaseline ? "/baseline" : ""}] ${q.text}`)
+    .map((q) => `- [${q.section}${q.isBaseline ? "/baseline" : ""}] ${sanitizeField(q.text)}`)
     .join("\n");
 
   const contextBlock = [
-    campaignSummary ? `Campaign summary: ${campaignSummary}` : null,
-    assumptions?.length ? `Assumptions being tested:\n${assumptions.map((a) => `- ${a}`).join("\n")}` : null,
-    audience ? `Target audience: ${audience.interests.join(", ")} | ${audience.expertise.join(", ")} | ${audience.ageRanges.join(", ")}${audience.occupation ? ` | ${audience.occupation}` : ""}` : null,
+    campaignSummary ? `Campaign summary: ${sanitizeField(campaignSummary)}` : null,
+    assumptions?.length ? `Assumptions being tested:\n${assumptions.map((a) => `- ${sanitizeField(a)}`).join("\n")}` : null,
+    audience ? `Target audience: ${audience.interests.join(", ")} | ${audience.expertise.join(", ")} | ${audience.ageRanges.join(", ")}${audience.occupation ? ` | ${sanitizeField(audience.occupation)}` : ""}` : null,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -195,7 +204,7 @@ Current survey questions:
 ${otherQuestions}
 
 The founder wants to REPLACE this ${currentQuestion.section} question:
-"${currentQuestion.text}"
+"${sanitizeField(currentQuestion.text)}"
 
 Generate a better ${currentQuestion.section === "open" ? "open-ended" : "follow-up"} question that:
 - Is different from every existing question
@@ -216,11 +225,11 @@ export function buildImproveAudiencePrompt(
   questions?: DraftQuestion[]
 ): string {
   const assumptionBlock = assumptions?.length
-    ? `\nAssumptions being tested:\n${assumptions.map((a) => `- ${a}`).join("\n")}`
+    ? `\nAssumptions being tested:\n${assumptions.map((a) => `- ${sanitizeField(a)}`).join("\n")}`
     : "";
 
   const questionBlock = questions?.length
-    ? `\nSurvey questions:\n${questions.filter((q) => !q.isBaseline).map((q) => `- ${q.text}`).join("\n")}`
+    ? `\nSurvey questions:\n${questions.filter((q) => !q.isBaseline).map((q) => `- ${sanitizeField(q.text)}`).join("\n")}`
     : "";
 
   const input = sanitizeInput(scribbleText);

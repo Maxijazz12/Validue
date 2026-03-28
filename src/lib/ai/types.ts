@@ -130,9 +130,11 @@ export interface ResponseScoreDimensions {
 }
 
 export interface ResponseScore {
-  score: number;          // 0–100
+  score: number;          // 0–100 (confidence-adjusted in V2)
   feedback: string;       // one-sentence summary
   dimensions: ResponseScoreDimensions;
+  confidence: number;     // 0.0–1.0 — how confident the scoring source is
+  source: "ai" | "ai_low_confidence" | "fallback"; // which scoring system produced this result
 }
 
 export interface AnswerWithMeta {

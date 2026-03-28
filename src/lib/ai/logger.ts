@@ -65,6 +65,7 @@ type ResponseRanked = {
   responseId: string;
   score: number;
   source: "ai" | "fallback";
+  confidence: number;
   latencyMs: number;
 };
 
@@ -88,7 +89,7 @@ export function logGeneration(event: GenerationEvent): void {
   const fullEvent = {
     ...event,
     timestamp: new Date().toISOString(),
-    service: "vldta-generation",
+    service: "validue-generation",
   };
 
   console.log(JSON.stringify(fullEvent));

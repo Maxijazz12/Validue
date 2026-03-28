@@ -61,8 +61,8 @@ export async function getSubscription(
 /* ─── First Month Detection ─── */
 
 /**
- * Checks if the user signed up within the last 30 days.
- * Used for welcome bonus eligibility.
+ * Checks if the user signed up within the welcome bonus window.
+ * V2: 14-day window (down from 30 days) for tighter conversion urgency.
  */
 export async function isFirstMonth(userId: string): Promise<boolean> {
   const rows = await sql`
@@ -71,10 +71,10 @@ export async function isFirstMonth(userId: string): Promise<boolean> {
   if (rows.length === 0) return false;
 
   const createdAt = new Date(rows[0].created_at);
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const bonusWindow = new Date();
+  bonusWindow.setDate(bonusWindow.getDate() - WELCOME_BONUS.expiryDays);
 
-  return createdAt > thirtyDaysAgo;
+  return createdAt > bonusWindow;
 }
 
 /**
@@ -93,7 +93,8 @@ export async function isFirstCampaign(userId: string): Promise<boolean> {
  * Determines whether the user can create a new campaign based on their
  * subscription tier and usage this billing period.
  *
- * Accounts for welcome bonus (3 campaigns in first month for free users).
+ * V2: welcome bonus is 1 campaign (same as normal free limit).
+ * Scale tier has unlimited campaigns (campaignsPerMonth = null).
  */
 export async function canCreateCampaign(
   userId: string
@@ -103,6 +104,19 @@ export async function canCreateCampaign(
 
   // Determine effective campaign limit
   const baseLimit = PLAN_CONFIG[sub.tier].campaignsPerMonth;
+
+  // Scale tier: unlimited campaigns
+  if (baseLimit === null) {
+    return {
+      allowed: true,
+      tier: sub.tier,
+      used: 0,
+      limit: Infinity,
+      isFirstMonth: false,
+    };
+  }
+
+  // V2: welcome bonus no longer increases campaign count (stays at 1)
   const effectiveLimit =
     sub.tier === "free" && firstMonth
       ? WELCOME_BONUS.campaignsFirstMonth
@@ -139,7 +153,7 @@ export async function canCreateCampaign(
     allowed,
     reason: allowed
       ? undefined
-      : `You've used all ${effectiveLimit} campaigns this ${sub.currentPeriodEnd ? "billing period" : "month"}. Upgrade your plan for more.`,
+      : `You've reached your ${effectiveLimit}-campaign limit this ${sub.currentPeriodEnd ? "billing period" : "month"}. Upgrade to unlock more campaigns.`,
     tier: sub.tier,
     used: campaignsUsed,
     limit: effectiveLimit,

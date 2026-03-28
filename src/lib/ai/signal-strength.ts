@@ -36,10 +36,10 @@ export function computeSignalStrength(draft: CampaignDraft): SignalStrengthResul
     color = "#22c55e";
   } else if (score >= 50) {
     label = "Good";
-    color = "#e8b87a";
+    color = "#E8725C";
   } else if (score >= 30) {
     label = "Needs work";
-    color = "#f59e0b";
+    color = "#E8725C";
   } else {
     label = "Weak";
     color = "#ef4444";

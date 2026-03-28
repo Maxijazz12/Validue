@@ -1,4 +1,4 @@
-import type { CampaignDraft, QualityScores, QualityWarning, DraftQuestion } from "./types";
+import type { CampaignDraft, QualityScores, QualityWarning } from "./types";
 
 /* ─── Helpers ─── */
 
@@ -18,7 +18,8 @@ function wordOverlap(a: string, b: string): number {
   if (wa.size === 0 || wb.size === 0) return 0;
   let shared = 0;
   for (const w of wa) if (wb.has(w)) shared++;
-  return shared / Math.min(wa.size, wb.size);
+  // V2: Use max denominator to prevent short questions from falsely matching long ones
+  return shared / Math.max(wa.size, wb.size);
 }
 
 const BEHAVIOR_KEYWORDS =
@@ -85,18 +86,20 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   const questions = draft.questions;
   let score = 100; // start full, deduct for issues
 
-  // Count check
+  // V2: Gentler count penalty — focused short surveys shouldn't be punished
   const total = questions.length;
-  if (total < 5) {
+  if (total < 3) {
     score -= 20;
-    warnings.push({ severity: "medium", dimension: "questions", message: "Too few questions — aim for 5–10 for meaningful signal." });
-  } else if (total > 10) {
+    warnings.push({ severity: "high", dimension: "questions", message: "Too few questions — add at least 3 for meaningful signal." });
+  } else if (total < 5) {
     score -= 10;
-    warnings.push({ severity: "low", dimension: "questions", message: "More than 10 questions risks respondent fatigue — consider trimming." });
-  }
-  if (total > 12) {
-    score -= 10;
+    warnings.push({ severity: "medium", dimension: "questions", message: "Consider adding 1–2 more questions for stronger signal." });
+  } else if (total > 12) {
+    score -= 15;
     warnings.push({ severity: "high", dimension: "questions", message: "Survey is too long — respondent quality drops sharply past 12 questions." });
+  } else if (total > 10) {
+    score -= 5;
+    warnings.push({ severity: "low", dimension: "questions", message: "More than 10 questions risks respondent fatigue — consider trimming." });
   }
 
   // Leading questions
@@ -150,7 +153,6 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   }
 
   // Quant/qual balance
-  const openCount = questions.filter((q) => q.type === "open").length;
   const mcCount = questions.filter((q) => q.type === "multiple_choice").length;
   if (total > 0) {
     const mcRatio = mcCount / total;
