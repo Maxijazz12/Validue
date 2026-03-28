@@ -78,10 +78,10 @@ function QuestionCard({
   }
 
   return (
-    <div className="group flex gap-[12px] p-[16px] rounded-xl border border-[#ebebeb] bg-white hover:border-[#d4d4d4] transition-all">
+    <div className="group flex gap-[12px] p-[16px] rounded-xl border border-[#E2E8F0] bg-white hover:border-[#CBD5E1] transition-all">
       {/* Numbering */}
-      <div className="flex-shrink-0 w-[28px] h-[28px] rounded-full bg-[#f5f2ed] flex items-center justify-center">
-        <span className="text-[12px] font-semibold text-[#555555]">
+      <div className="flex-shrink-0 w-[28px] h-[28px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
+        <span className="text-[12px] font-semibold text-[#64748B]">
           {index + 1}
         </span>
       </div>
@@ -93,7 +93,7 @@ function QuestionCard({
           <span
             className={`text-[10px] font-semibold tracking-[1px] uppercase px-[8px] py-[2px] rounded-full ${
               question.isBaseline
-                ? "bg-[#e8b87a]/15 text-[#b8860b]"
+                ? "bg-[#E5654E]/15 text-[#CC5340]"
                 : question.type === "open"
                   ? "bg-[#dbeafe] text-[#1d4ed8]"
                   : "bg-[#f3e8ff] text-[#7c3aed]"
@@ -106,7 +106,7 @@ function QuestionCard({
                 : "Multiple choice"}
           </span>
           {question.category && (
-            <span className="text-[10px] text-[#999999] tracking-[0.5px]">
+            <span className="text-[10px] text-[#94A3B8] tracking-[0.5px]">
               {question.category}
             </span>
           )}
@@ -120,7 +120,7 @@ function QuestionCard({
               onChange={(e) => setEditText(e.target.value)}
               rows={2}
               autoFocus
-              className="w-full px-[12px] py-[8px] rounded-lg border border-[#d4d4d4] bg-white text-[14px] text-[#111111] font-sans outline-none resize-none focus:shadow-[0_0_0_3px_rgba(232,184,122,0.1)]"
+              className="w-full px-[12px] py-[8px] rounded-lg border border-[#CBD5E1] bg-white text-[14px] text-[#111111] font-sans outline-none resize-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -135,7 +135,7 @@ function QuestionCard({
             <div className="flex gap-[6px]">
               <button
                 onClick={saveEdit}
-                className="text-[12px] font-medium text-[#111111] px-[10px] py-[4px] rounded-md bg-[#f5f2ed] hover:bg-[#ebebeb] transition-colors cursor-pointer border-none"
+                className="text-[12px] font-medium text-[#111111] px-[10px] py-[4px] rounded-md bg-[#F3F4F6] hover:bg-[#E2E8F0] transition-colors cursor-pointer border-none"
               >
                 Save
               </button>
@@ -144,7 +144,7 @@ function QuestionCard({
                   setEditText(question.text);
                   setIsEditing(false);
                 }}
-                className="text-[12px] text-[#999999] px-[10px] py-[4px] rounded-md hover:text-[#555555] transition-colors cursor-pointer border-none bg-transparent"
+                className="text-[12px] text-[#94A3B8] px-[10px] py-[4px] rounded-md hover:text-[#64748B] transition-colors cursor-pointer border-none bg-transparent"
               >
                 Cancel
               </button>
@@ -152,7 +152,7 @@ function QuestionCard({
           </div>
         ) : (
           <p
-            className="text-[14px] text-[#111111] leading-[1.5] cursor-pointer hover:text-[#555555] transition-colors"
+            className="text-[14px] text-[#111111] leading-[1.5] cursor-pointer hover:text-[#64748B] transition-colors"
             onClick={() => {
               setEditText(question.text);
               setIsEditing(true);
@@ -168,7 +168,7 @@ function QuestionCard({
             {question.options.map((opt) => (
               <span
                 key={opt}
-                className="text-[12px] px-[10px] py-[4px] rounded-full border border-[#ebebeb] text-[#555555] bg-[#fafafa]"
+                className="text-[12px] px-[10px] py-[4px] rounded-full border border-[#E2E8F0] text-[#64748B] bg-[#FCFCFD]"
               >
                 {opt}
               </span>
@@ -183,7 +183,7 @@ function QuestionCard({
         <button
           onClick={onMoveUp}
           disabled={index === 0}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#999999] hover:bg-[#f5f2ed] hover:text-[#555555] disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
           title="Move up"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,7 +195,7 @@ function QuestionCard({
         <button
           onClick={onMoveDown}
           disabled={index === total - 1}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#999999] hover:bg-[#f5f2ed] hover:text-[#555555] disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
           title="Move down"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -207,7 +207,7 @@ function QuestionCard({
         {!question.isBaseline && (
           <button
             onClick={onRegenerate}
-            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#999999] hover:bg-[#f5f2ed] hover:text-[#555555] transition-all cursor-pointer border-none bg-transparent"
+            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-all cursor-pointer border-none bg-transparent"
             title="Regenerate from templates (free)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -236,7 +236,7 @@ function QuestionCard({
         {question.isBaseline && (
           <button
             onClick={onSwapBaseline}
-            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#e8b87a] hover:bg-[#e8b87a]/10 transition-all cursor-pointer border-none bg-transparent"
+            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#E5654E] hover:bg-[#E5654E]/10 transition-all cursor-pointer border-none bg-transparent"
             title="Swap baseline question"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -251,7 +251,7 @@ function QuestionCard({
         {/* Delete */}
         <button
           onClick={onDelete}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#999999] hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border-none bg-transparent"
           title="Delete question"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -373,12 +373,12 @@ export default function SurveyEditor({
             <h3 className="text-[14px] font-semibold text-[#111111]">
               {title}
             </h3>
-            <p className="text-[12px] text-[#999999] mt-[2px]">{subtitle}</p>
+            <p className="text-[12px] text-[#94A3B8] mt-[2px]">{subtitle}</p>
           </div>
           {sectionKey !== "baseline" && (
             <button
               onClick={() => addQuestion(sectionKey)}
-              className="text-[12px] font-medium text-[#555555] px-[12px] py-[6px] rounded-lg border border-[#ebebeb] hover:border-[#d4d4d4] hover:text-[#111111] transition-all cursor-pointer bg-transparent"
+              className="text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-lg border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all cursor-pointer bg-transparent"
             >
               + Add question
             </button>
@@ -403,7 +403,7 @@ export default function SurveyEditor({
             />
           ))}
           {sectionQs.length === 0 && (
-            <p className="text-[13px] text-[#999999] py-[16px] text-center">
+            <p className="text-[13px] text-[#94A3B8] py-[16px] text-center">
               No questions in this section.
             </p>
           )}
@@ -413,11 +413,11 @@ export default function SurveyEditor({
   }
 
   return (
-    <div className="bg-white border border-[#ebebeb] rounded-2xl p-[32px]">
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
       <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
         Survey Draft
       </h2>
-      <p className="text-[13px] text-[#555555] mb-[24px]">
+      <p className="text-[13px] text-[#64748B] mb-[24px]">
         Edit, reorder, or regenerate questions. Click any question text to edit
         it.
       </p>

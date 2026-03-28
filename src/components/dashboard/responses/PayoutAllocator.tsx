@@ -32,7 +32,7 @@ export default function PayoutAllocator({
     new Map()
   );
   const [topN, setTopN] = useState(3);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
@@ -41,7 +41,6 @@ export default function PayoutAllocator({
 
   // Load AI suggestions on mount
   useEffect(() => {
-    setIsLoading(true);
     suggestDistribution(campaignId)
       .then((result) => {
         setSuggestions(result.suggestions);
@@ -73,7 +72,7 @@ export default function PayoutAllocator({
     }
 
     // Top N mode
-    return suggestions.slice(0, topN).map((s, i) => {
+    return suggestions.slice(0, topN).map((s) => {
       const weight = Math.pow(s.qualityScore, 2);
       const topSuggestions = suggestions.slice(0, topN);
       const totalWeight = topSuggestions.reduce(
@@ -111,14 +110,14 @@ export default function PayoutAllocator({
 
   if (payoutStatus === "allocated" || success) {
     return (
-      <div className="bg-[#65a30d]/5 border border-[#65a30d]/20 rounded-2xl p-[24px]">
+      <div className="bg-[#22c55e]/5 border border-[#22c55e]/20 rounded-2xl p-[24px]">
         <div className="flex items-center gap-[8px] mb-[8px]">
           <svg
             width="20"
             height="20"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#65a30d"
+            stroke="#22c55e"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -129,7 +128,7 @@ export default function PayoutAllocator({
             Payouts Allocated
           </h3>
         </div>
-        <p className="text-[13px] text-[#555555]">
+        <p className="text-[13px] text-[#64748B]">
           {success
             ? `${success.count} respondent${success.count !== 1 ? "s" : ""} will receive payouts.`
             : "Payouts have been allocated for this campaign."}
@@ -143,20 +142,20 @@ export default function PayoutAllocator({
   if (rankedCount === 0) return null;
 
   return (
-    <div className="bg-white border border-[#e8b87a]/30 rounded-2xl p-[24px]">
+    <div className="bg-white border border-[#E5654E]/30 rounded-2xl p-[24px]">
       <h3 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
         Allocate Rewards
       </h3>
-      <p className="text-[13px] text-[#555555] mb-[16px]">
+      <p className="text-[13px] text-[#64748B] mb-[16px]">
         Distribute ${distributableAmount.toFixed(2)} among your best
         respondents.
-        <span className="text-[#999999]">
+        <span className="text-[#94A3B8]">
           {" "}(${rewardAmount.toFixed(2)} pool minus 15% platform fee)
         </span>
       </p>
 
       {/* Mode tabs */}
-      <div className="flex gap-[4px] mb-[20px] p-[4px] rounded-lg bg-[#f5f2ed]">
+      <div className="flex gap-[4px] mb-[20px] p-[4px] rounded-lg bg-[#F3F4F6]">
         {(
           [
             { key: "ai", label: "AI Recommended" },
@@ -171,7 +170,7 @@ export default function PayoutAllocator({
             className={`flex-1 text-[12px] font-semibold py-[8px] px-[12px] rounded-md transition-all cursor-pointer border-none ${
               mode === tab.key
                 ? "bg-white text-[#111111] shadow-sm"
-                : "bg-transparent text-[#555555] hover:text-[#111111]"
+                : "bg-transparent text-[#64748B] hover:text-[#111111]"
             }`}
           >
             {tab.label}
@@ -180,17 +179,20 @@ export default function PayoutAllocator({
       </div>
 
       {isLoading ? (
-        <div className="text-center py-[24px]">
-          <p className="text-[13px] text-[#999999]">
-            Calculating distribution...
-          </p>
+        <div className="flex flex-col items-center py-[24px]">
+          <div className="flex gap-[4px] justify-center">
+            <span className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-[loadDot_1.4s_ease_infinite]" />
+            <span className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
+            <span className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
+          </div>
+          <p className="text-[12px] text-[#94A3B8] mt-[8px]">Calculating distribution</p>
         </div>
       ) : (
         <>
           {/* Top N slider */}
           {mode === "topn" && (
             <div className="mb-[16px]">
-              <label className="text-[13px] font-medium text-[#555555] block mb-[6px]">
+              <label className="text-[13px] font-medium text-[#64748B] block mb-[6px]">
                 Reward top {topN} response{topN !== 1 ? "s" : ""}
               </label>
               <input
@@ -218,25 +220,25 @@ export default function PayoutAllocator({
                   key={s.responseId}
                   className={`flex items-center gap-[12px] p-[12px] rounded-xl border transition-all ${
                     isIncluded
-                      ? "border-[#65a30d]/20 bg-[#65a30d]/3"
-                      : "border-[#ebebeb] bg-white opacity-60"
+                      ? "border-[#22c55e]/20 bg-[#22c55e]/3"
+                      : "border-[#E2E8F0] bg-white opacity-60"
                   }`}
                 >
-                  <span className="text-[12px] font-bold text-[#555555] w-[24px] shrink-0">
+                  <span className="text-[12px] font-bold text-[#64748B] w-[24px] shrink-0">
                     #{i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     <span className="text-[13px] font-medium text-[#111111] block truncate">
                       {s.respondentName}
                     </span>
-                    <span className="text-[11px] text-[#999999]">
+                    <span className="text-[11px] text-[#94A3B8]">
                       Score: {s.qualityScore}
                     </span>
                   </div>
 
                   {mode === "manual" ? (
                     <div className="relative w-[90px] shrink-0">
-                      <span className="absolute left-[8px] top-1/2 -translate-y-1/2 text-[12px] text-[#999999]">
+                      <span className="absolute left-[8px] top-1/2 -translate-y-1/2 text-[12px] text-[#94A3B8]">
                         $
                       </span>
                       <input
@@ -252,13 +254,13 @@ export default function PayoutAllocator({
                           );
                           setManualAmounts(next);
                         }}
-                        className="w-full pl-[22px] pr-[8px] py-[6px] rounded-lg border border-[#ebebeb] text-[13px] font-mono text-right outline-none focus:border-[#111111]"
+                        className="w-full pl-[22px] pr-[8px] py-[6px] rounded-lg border border-[#E2E8F0] text-[13px] font-mono text-right outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
                       />
                     </div>
                   ) : (
                     <span
                       className={`text-[14px] font-mono font-semibold shrink-0 ${
-                        isIncluded ? "text-[#65a30d]" : "text-[#999999]"
+                        isIncluded ? "text-[#22c55e]" : "text-[#94A3B8]"
                       }`}
                     >
                       ${amount.toFixed(2)}
@@ -270,8 +272,8 @@ export default function PayoutAllocator({
           </div>
 
           {/* Totals */}
-          <div className="flex items-center justify-between p-[12px] rounded-xl bg-[#f5f2ed] mb-[16px]">
-            <span className="text-[13px] text-[#555555]">Total allocated</span>
+          <div className="flex items-center justify-between p-[12px] rounded-xl bg-[#F3F4F6] mb-[16px]">
+            <span className="text-[13px] text-[#64748B]">Total allocated</span>
             <div className="text-right">
               <span
                 className={`text-[16px] font-mono font-bold ${
@@ -280,11 +282,11 @@ export default function PayoutAllocator({
               >
                 ${totalAllocated.toFixed(2)}
               </span>
-              <span className="text-[12px] text-[#999999] ml-[4px]">
+              <span className="text-[12px] text-[#94A3B8] ml-[4px]">
                 / ${distributableAmount.toFixed(2)}
               </span>
               {remaining > 0.01 && (
-                <span className="block text-[11px] text-[#e8b87a]">
+                <span className="block text-[11px] text-[#E5654E]">
                   ${remaining.toFixed(2)} unallocated
                 </span>
               )}

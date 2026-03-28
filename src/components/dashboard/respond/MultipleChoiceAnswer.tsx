@@ -15,7 +15,7 @@ export default function MultipleChoiceAnswer({
   onChange,
   onTimeUpdate,
 }: MultipleChoiceAnswerProps) {
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -28,9 +28,16 @@ export default function MultipleChoiceAnswer({
     };
   }, [onTimeUpdate]);
 
+  // Ensure options is always a string array (DB may return JSON string or object)
+  const safeOptions: string[] = Array.isArray(options)
+    ? options
+    : typeof options === "string"
+      ? (() => { try { return JSON.parse(options); } catch { return []; } })()
+      : [];
+
   return (
     <div className="flex flex-col gap-[8px]">
-      {options.map((option) => {
+      {safeOptions.map((option: string) => {
         const selected = value === option;
         return (
           <button
@@ -40,7 +47,7 @@ export default function MultipleChoiceAnswer({
             className={`w-full text-left px-[16px] py-[14px] rounded-xl border text-[14px] transition-all duration-200 cursor-pointer ${
               selected
                 ? "border-[#111111] bg-[#111111] text-white font-medium"
-                : "border-[#ebebeb] bg-white text-[#111111] hover:border-[#d4d4d4] hover:bg-[#fafafa]"
+                : "border-[#E2E8F0] bg-white text-[#111111] hover:border-[#CBD5E1] hover:bg-[#FCFCFD]"
             }`}
           >
             {option}

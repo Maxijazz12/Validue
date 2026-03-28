@@ -27,8 +27,8 @@ type ResponseCardProps = {
 };
 
 function getScoreColor(score: number): string {
-  if (score >= 70) return "#65a30d";
-  if (score >= 40) return "#e8b87a";
+  if (score >= 70) return "#22c55e";
+  if (score >= 40) return "#E5654E";
   return "#ef4444";
 }
 
@@ -65,22 +65,22 @@ export default function ResponseCard({
 
   return (
     <div
-      className={`bg-white border rounded-xl overflow-hidden transition-all ${
-        isTop ? "border-[#65a30d]/30" : "border-[#ebebeb]"
+      className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
+        isTop ? "border-[#E8C1B0]/40 shadow-[0_2px_12px_rgba(232,193,176,0.08)]" : "border-[#E2E8F0] hover:border-[#CBD5E1]"
       }`}
     >
       {/* Header — always visible */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-[12px] p-[16px] text-left cursor-pointer hover:bg-[#fafafa] transition-colors"
+        className="w-full flex items-center gap-[12px] p-[16px] text-left cursor-pointer hover:bg-[#FCFCFD] transition-colors duration-200"
       >
         {/* Rank */}
         <div
           className={`w-[32px] h-[32px] rounded-full flex items-center justify-center shrink-0 ${
             isTop
-              ? "bg-[#65a30d]/10 text-[#65a30d]"
-              : "bg-[#f5f2ed] text-[#555555]"
+              ? "bg-[#E5654E]/8 text-[#E5654E]"
+              : "bg-[#F3F4F6] text-[#64748B]"
           }`}
         >
           <span className="text-[13px] font-bold">#{rank}</span>
@@ -88,7 +88,7 @@ export default function ResponseCard({
 
         {/* Respondent info */}
         <div className="flex items-center gap-[8px] min-w-0 flex-1">
-          <Avatar name={respondentName} imageUrl={respondentAvatar} size={28} />
+          <Avatar name={respondentName} imageUrl={respondentAvatar} size={20} />
           <div className="min-w-0">
             <span className="flex items-center gap-[6px]">
               <span className="text-[14px] font-medium text-[#111111] truncate">
@@ -96,7 +96,7 @@ export default function ResponseCard({
               </span>
               {respondentTier && <ReputationBadge tier={respondentTier} />}
             </span>
-            <span className="text-[11px] text-[#999999]">
+            <span className="text-[11px] text-[#94A3B8]">
               {formatDate(submittedAt)}
             </span>
           </div>
@@ -104,7 +104,7 @@ export default function ResponseCard({
 
         {/* AI feedback */}
         {aiFeedback && (
-          <p className="text-[12px] text-[#555555] flex-1 hidden md:block truncate">
+          <p className="text-[12px] text-[#64748B] flex-1 hidden md:block truncate">
             {aiFeedback}
           </p>
         )}
@@ -144,10 +144,10 @@ export default function ResponseCard({
 
       {/* Expanded — answers */}
       {expanded && (
-        <div className="border-t border-[#ebebeb] p-[16px]">
+        <div className="border-t border-[#E2E8F0] p-[16px]">
           {/* Mobile feedback */}
           {aiFeedback && (
-            <p className="text-[12px] text-[#555555] mb-[12px] md:hidden italic">
+            <p className="text-[12px] text-[#64748B] mb-[12px] md:hidden italic">
               {aiFeedback}
             </p>
           )}
@@ -156,19 +156,19 @@ export default function ResponseCard({
             {answers.map((answer, i) => (
               <div key={i}>
                 <div className="flex items-center gap-[6px] mb-[4px]">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[6px] py-[1px] rounded-full bg-[#f5f2ed] text-[#555555]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[6px] py-[1px] rounded-full bg-[#F3F4F6] text-[#64748B]">
                     Q{i + 1}
                   </span>
-                  <span className="text-[11px] text-[#999999]">
+                  <span className="text-[11px] text-[#94A3B8]">
                     {answer.questionType === "open" ? "Open-ended" : "Multiple choice"}
                   </span>
                   {answer.timeSpentMs > 0 && (
-                    <span className="text-[10px] text-[#999999]">
+                    <span className="text-[10px] text-[#94A3B8]">
                       · {formatTime(answer.timeSpentMs)}
                     </span>
                   )}
                 </div>
-                <p className="text-[13px] font-medium text-[#555555] mb-[4px]">
+                <p className="text-[13px] font-medium text-[#64748B] mb-[4px]">
                   {answer.questionText}
                 </p>
                 <p className="text-[14px] text-[#111111] leading-[1.5] whitespace-pre-wrap">

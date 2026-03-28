@@ -53,20 +53,20 @@ export default function BaselineQuestionPicker({
       {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] max-w-[560px] w-full max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="p-[24px] pb-[16px] border-b border-[#ebebeb]">
+        <div className="p-[24px] pb-[16px] border-b border-[#E2E8F0]">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-[16px] font-semibold text-[#111111]">
                 Swap Baseline Question
               </h2>
-              <p className="text-[13px] text-[#555555] mt-[2px]">
+              <p className="text-[13px] text-[#64748B] mt-[2px]">
                 Pick from the curated library. These create comparable signal
                 across campaigns.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[#999999] hover:bg-[#f5f2ed] hover:text-[#555555] transition-all cursor-pointer border-none bg-transparent"
+              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-all cursor-pointer border-none bg-transparent"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -96,10 +96,10 @@ export default function BaselineQuestionPicker({
                 disabled={isUsed}
                 className={`text-left p-[16px] rounded-xl border transition-all cursor-pointer ${
                   isCurrent
-                    ? "border-[#e8b87a] bg-[#e8b87a]/5"
+                    ? "border-[#E5654E] bg-[#E5654E]/5"
                     : isUsed
-                      ? "border-[#ebebeb] bg-[#fafafa] opacity-40 cursor-not-allowed"
-                      : "border-[#ebebeb] bg-white hover:border-[#d4d4d4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                      ? "border-[#E2E8F0] bg-[#FCFCFD] opacity-40 cursor-not-allowed"
+                      : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                 }`}
               >
                 <div className="flex items-center gap-[8px] mb-[6px]">
@@ -111,12 +111,12 @@ export default function BaselineQuestionPicker({
                     {CATEGORY_LABELS[bq.category]}
                   </span>
                   {isCurrent && (
-                    <span className="text-[10px] font-medium text-[#e8b87a]">
+                    <span className="text-[10px] font-medium text-[#E5654E]">
                       Current
                     </span>
                   )}
                   {isUsed && !isCurrent && (
-                    <span className="text-[10px] text-[#999999]">
+                    <span className="text-[10px] text-[#94A3B8]">
                       Already in survey
                     </span>
                   )}
@@ -128,13 +128,13 @@ export default function BaselineQuestionPicker({
                   {bq.options.map((opt) => (
                     <span
                       key={opt}
-                      className="text-[11px] px-[8px] py-[2px] rounded-full border border-[#ebebeb] text-[#555555] bg-[#fafafa]"
+                      className="text-[11px] px-[8px] py-[2px] rounded-full border border-[#E2E8F0] text-[#64748B] bg-[#FCFCFD]"
                     >
                       {opt}
                     </span>
                   ))}
                 </div>
-                <p className="text-[11px] text-[#999999] mt-[6px]">
+                <p className="text-[11px] text-[#94A3B8] mt-[6px]">
                   {bq.description}
                 </p>
               </button>

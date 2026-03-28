@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
 import type { CampaignDraft } from "@/lib/ai/types";
 import { generateCampaignDraft } from "@/lib/ai/generate-campaign";
 import { publishCampaign } from "@/app/dashboard/ideas/new/actions";
@@ -39,7 +40,7 @@ export default function CreateIdeaFlow() {
       })
       .catch(() => {
         setError(
-          "Something went wrong generating your campaign. Please try again."
+          "We couldn't generate your campaign this time. Your idea is saved — try again?"
         );
         setStep("scribble");
       });
@@ -76,8 +77,8 @@ export default function CreateIdeaFlow() {
         }
         window.location.href = funding.url;
       } else {
-        // No reward pool — go straight to ideas list
-        window.location.href = "/dashboard/ideas";
+        // No reward pool — show the campaign detail page so founder sees metrics
+        window.location.href = `/dashboard/ideas/${result.id}`;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -89,8 +90,16 @@ export default function CreateIdeaFlow() {
   return (
     <div>
       {error && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
-          {error}
+        <div className="mb-[16px] px-[16px] py-[12px] rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700 flex items-center justify-between gap-[12px]">
+          <span>{error}</span>
+          {error.includes("Upgrade") && (
+            <Link
+              href="/#pricing"
+              className="shrink-0 px-[14px] py-[6px] rounded-lg bg-[#111111] text-white text-[12px] font-semibold no-underline hover:bg-[#222222] transition-colors"
+            >
+              View Plans
+            </Link>
+          )}
         </div>
       )}
 

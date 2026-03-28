@@ -17,13 +17,13 @@ function DimensionBar({
 }) {
   let color: string;
   if (score >= 70) color = "#22c55e";
-  else if (score >= 40) color = "#e8b87a";
+  else if (score >= 40) color = "#E5654E";
   else color = "#ef4444";
 
   return (
     <div className="flex items-center gap-[8px]">
-      <span className="text-[11px] text-[#555555] w-[90px] shrink-0">{label}</span>
-      <div className="flex-1 h-[4px] rounded-full bg-[#f5f2ed] overflow-hidden">
+      <span className="text-[11px] text-[#64748B] w-[90px] shrink-0">{label}</span>
+      <div className="flex-1 h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500 ease-out"
           style={{ width: `${score}%`, background: color }}
@@ -44,15 +44,15 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
   const infos = result.tips.filter((t) => t.type === "info");
 
   return (
-    <div className="bg-white border border-[#e8b87a]/30 rounded-xl p-[20px]">
+    <div className="bg-white border border-[#E5654E]/30 rounded-xl p-[20px]">
       <h3 className="text-[14px] font-semibold text-[#111111] mb-[16px]">
-        Signal Strength
+        Survey Strength
       </h3>
 
       {/* Overall score bar */}
       <div className="mb-[16px]">
         <div className="flex items-center justify-between mb-[6px]">
-          <span className="text-[12px] text-[#555555]">Overall</span>
+          <span className="text-[12px] text-[#64748B]">Overall</span>
           <div className="flex items-center gap-[6px]">
             <span
               className="w-[6px] h-[6px] rounded-full"
@@ -66,7 +66,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
             </span>
           </div>
         </div>
-        <div className="h-[6px] rounded-full bg-[#f5f2ed] overflow-hidden">
+        <div className="h-[6px] rounded-full bg-[#F3F4F6] overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{
@@ -80,7 +80,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Dimension breakdown */}
       {result.dimensions && (
         <div className="flex flex-col gap-[6px] mb-[16px]">
-          <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#999999] mb-[2px]">
+          <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8] mb-[2px]">
             Breakdown
           </span>
           <DimensionBar label="Audience" score={result.dimensions.audienceClarity} />
@@ -93,25 +93,25 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Quick stats */}
       <div className="grid grid-cols-2 gap-[8px] mb-[16px]">
         <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#555555]">Questions</span>
+          <span className="text-[11px] text-[#64748B]">Questions</span>
           <span className="text-[11px] font-semibold text-[#111111]">
             {draft.questions.length}
           </span>
         </div>
         <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#555555]">Assumptions</span>
+          <span className="text-[11px] text-[#64748B]">Assumptions</span>
           <span className="text-[11px] font-semibold text-[#111111]">
             {draft.assumptions.length}
           </span>
         </div>
         <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#555555]">Open-ended</span>
+          <span className="text-[11px] text-[#64748B]">Open-ended</span>
           <span className="text-[11px] font-semibold text-[#111111]">
             {draft.questions.filter((q) => q.type === "open").length}
           </span>
         </div>
         <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#555555]">Quant</span>
+          <span className="text-[11px] text-[#64748B]">Quant</span>
           <span className="text-[11px] font-semibold text-[#111111]">
             {draft.questions.filter((q) => q.type === "multiple_choice").length}
           </span>
@@ -119,8 +119,8 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       </div>
 
       {/* Coaching tips */}
-      <div className="border-t border-[#ebebeb] pt-[14px] flex flex-col gap-[8px]">
-        <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#999999]">
+      <div className="border-t border-[#E2E8F0] pt-[14px] flex flex-col gap-[8px]">
+        <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8]">
           Coaching
         </span>
 
@@ -131,7 +131,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               height="14"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#f59e0b"
+              stroke="#E5654E"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -141,7 +141,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <span className="text-[11px] text-[#555555] leading-[1.4]">
+            <span className="text-[11px] text-[#64748B] leading-[1.4]">
               {tip.message}
             </span>
           </div>
@@ -164,7 +164,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               <line x1="12" y1="16" x2="12" y2="12" />
               <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
-            <span className="text-[11px] text-[#555555] leading-[1.4]">
+            <span className="text-[11px] text-[#64748B] leading-[1.4]">
               {tip.message}
             </span>
           </div>
@@ -186,15 +186,15 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
-            <span className="text-[11px] text-[#555555] leading-[1.4]">
+            <span className="text-[11px] text-[#64748B] leading-[1.4]">
               {tip.message}
             </span>
           </div>
         ))}
 
         {result.tips.length === 0 && (
-          <p className="text-[11px] text-[#999999]">
-            Looking good so far. Keep refining for stronger signal.
+          <p className="text-[11px] text-[#94A3B8]">
+            Looking good. Small improvements to your questions can meaningfully increase response quality.
           </p>
         )}
       </div>

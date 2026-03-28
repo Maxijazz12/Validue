@@ -35,11 +35,11 @@ export default function RankButton({
 
   if (result) {
     return (
-      <div className="flex items-center gap-[8px] p-[12px] rounded-xl bg-[#65a30d]/10">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#65a30d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center gap-[8px] p-[12px] rounded-xl bg-[#22c55e]/10">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        <span className="text-[13px] font-semibold text-[#65a30d]">
+        <span className="text-[13px] font-semibold text-[#22c55e]">
           {result.ranked} response{result.ranked !== 1 ? "s" : ""} ranked
         </span>
       </div>

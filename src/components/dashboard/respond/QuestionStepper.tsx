@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useTransition, useEffect, useRef } from "react";
 import ProgressBar from "./ProgressBar";
 import OpenEndedAnswer, { MIN_CHARS } from "./OpenEndedAnswer";
 import MultipleChoiceAnswer from "./MultipleChoiceAnswer";
@@ -28,7 +28,7 @@ type QuestionStepperProps = {
   questions: Question[];
   responseId: string;
   initialAnswers?: Map<string, StoredAnswer>;
-  onSubmitted: () => void;
+  onSubmitted: (totalTimeMs: number) => void;
 };
 
 function getQuestionLabel(q: Question): string {
@@ -62,11 +62,29 @@ export default function QuestionStepper({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Animation states
+  const [showCheckFlash, setShowCheckFlash] = useState(false);
+  const [slideClass, setSlideClass] = useState("question-enter");
+
+  // Review-before-submit mode
+  const [showReview, setShowReview] = useState(false);
+
+  // Total elapsed time tracking
+  const totalStartRef = useRef(0);
+  const [totalElapsedMs, setTotalElapsedMs] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTotalElapsedMs(Date.now() - totalStartRef.current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const question = questions[currentIndex];
   const isLast = currentIndex === questions.length - 1;
 
   const isValid =
-    question.type === "open"
+    question?.type === "open"
       ? currentText.trim().length >= MIN_CHARS
       : currentText.trim().length > 0;
 
@@ -93,50 +111,61 @@ export default function QuestionStepper({
         setAnswers(updated);
 
         if (isLast) {
-          await submitResponse(responseId);
-          onSubmitted();
+          // Show review before final submit
+          setShowReview(true);
         } else {
-          const nextIndex = currentIndex + 1;
-          const nextQ = questions[nextIndex];
-          setCurrentIndex(nextIndex);
-          setCurrentText(updated.get(nextQ.id)?.text || "");
-          setPasteCount(0);
-          setTimeSpentMs(0);
+          // Celebration animation
+          setShowCheckFlash(true);
+          setSlideClass("question-exit");
+
+          setTimeout(() => {
+            const nextIndex = currentIndex + 1;
+            const nextQ = questions[nextIndex];
+            setCurrentIndex(nextIndex);
+            setCurrentText(updated.get(nextQ.id)?.text || "");
+            setPasteCount(0);
+            setTimeSpentMs(0);
+            setSlideClass("question-enter");
+            setShowCheckFlash(false);
+          }, 300);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setError(err instanceof Error ? err.message : "We couldn't save that answer. Try again?");
       }
     });
   }, [
-    responseId,
-    question,
-    currentText,
-    pasteCount,
-    timeSpentMs,
-    answers,
-    isLast,
-    currentIndex,
-    questions,
-    onSubmitted,
+    responseId, question, currentText, pasteCount, timeSpentMs,
+    answers, isLast, currentIndex, questions,
   ]);
+
+  const handleFinalSubmit = useCallback(() => {
+    startTransition(async () => {
+      try {
+        await submitResponse(responseId);
+        onSubmitted(Date.now() - totalStartRef.current);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Submission failed. Try again?");
+        setShowReview(false);
+      }
+    });
+  }, [responseId, onSubmitted]);
 
   const handleBack = useCallback(() => {
     if (currentIndex === 0) return;
-    // Save current state locally before going back
     const updated = new Map(answers);
-    updated.set(question.id, {
-      text: currentText,
-      pasteCount,
-      timeSpentMs,
-    });
+    updated.set(question.id, { text: currentText, pasteCount, timeSpentMs });
     setAnswers(updated);
 
-    const prevIndex = currentIndex - 1;
-    const prevQ = questions[prevIndex];
-    setCurrentIndex(prevIndex);
-    setCurrentText(updated.get(prevQ.id)?.text || "");
-    setPasteCount(updated.get(prevQ.id)?.pasteCount || 0);
-    setTimeSpentMs(0);
+    setSlideClass("question-exit");
+    setTimeout(() => {
+      const prevIndex = currentIndex - 1;
+      const prevQ = questions[prevIndex];
+      setCurrentIndex(prevIndex);
+      setCurrentText(updated.get(prevQ.id)?.text || "");
+      setPasteCount(updated.get(prevQ.id)?.pasteCount || 0);
+      setTimeSpentMs(0);
+      setSlideClass("question-enter");
+    }, 250);
   }, [currentIndex, answers, question, currentText, pasteCount, timeSpentMs, questions]);
 
   const handleTimeUpdate = useCallback((ms: number) => {
@@ -145,40 +174,108 @@ export default function QuestionStepper({
 
   if (!question) return null;
 
+  // Review screen before final submit
+  if (showReview) {
+    return (
+      <div>
+        <h2 className="text-[18px] font-semibold text-[#111111] mb-[4px]">Review your answers</h2>
+        <p className="text-[13px] text-[#94A3B8] mb-[20px]">Make sure everything looks good before submitting.</p>
+
+        <div className="flex flex-col gap-[12px] mb-[24px]">
+          {questions.map((q, i) => {
+            const answer = answers.get(q.id);
+            return (
+              <div key={q.id} className="bg-white border border-[#E2E8F0] rounded-xl p-[16px]">
+                <div className="flex items-start justify-between gap-[12px]">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-[#94A3B8] mb-[4px]">Question {i + 1}</p>
+                    <p className="text-[14px] font-medium text-[#111111] mb-[6px]">{q.text}</p>
+                    <p className="text-[13px] text-[#64748B] line-clamp-2">
+                      {answer?.text || <span className="italic text-[#CBD5E1]">No answer</span>}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setShowReview(false); setCurrentIndex(i); setCurrentText(answer?.text || ""); }}
+                    className="text-[12px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer shrink-0 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {error && (
+          <div className="text-[13px] text-[#ef4444] mb-[12px] p-[12px] rounded-xl bg-[#ef4444]/5">
+            {error}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-[12px]">
+          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] text-[14px]">
+            Go Back
+          </Button>
+          <Button
+            onClick={handleFinalSubmit}
+            disabled={isPending}
+            className={`px-[24px] py-[12px] text-[14px] ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            {isPending ? "Submitting..." : "Submit Response"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
+      {/* Checkmark flash overlay */}
+      {showCheckFlash && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="check-flash">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+        </div>
+      )}
+
       <ProgressBar
         currentIndex={currentIndex}
         total={questions.length}
         questionLabel={getQuestionLabel(question)}
+        elapsedMs={totalElapsedMs}
       />
 
-      {/* Question text */}
-      <div className="bg-white border border-[#ebebeb] rounded-2xl p-[24px] mb-[16px]">
-        <p className="text-[16px] font-medium text-[#111111] leading-[1.5]">
-          {question.text}
-        </p>
-      </div>
+      {/* Question text with slide animation */}
+      <div className={slideClass}>
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[24px] mb-[16px]">
+          <p className="text-[16px] font-medium text-[#111111] leading-[1.5]">
+            {question.text}
+          </p>
+        </div>
 
-      {/* Answer input */}
-      <div className="mb-[20px]">
-        {question.type === "open" ? (
-          <OpenEndedAnswer
-            key={question.id}
-            value={currentText}
-            onChange={setCurrentText}
-            onPaste={() => setPasteCount((c) => c + 1)}
-            onTimeUpdate={handleTimeUpdate}
-          />
-        ) : (
-          <MultipleChoiceAnswer
-            key={question.id}
-            options={question.options || []}
-            value={currentText}
-            onChange={setCurrentText}
-            onTimeUpdate={handleTimeUpdate}
-          />
-        )}
+        {/* Answer input */}
+        <div className="mb-[20px]">
+          {question.type === "open" ? (
+            <OpenEndedAnswer
+              key={question.id}
+              value={currentText}
+              onChange={setCurrentText}
+              onPaste={() => setPasteCount((c) => c + 1)}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          ) : (
+            <MultipleChoiceAnswer
+              key={question.id}
+              options={question.options || []}
+              value={currentText}
+              onChange={setCurrentText}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          )}
+        </div>
       </div>
 
       {/* Error */}
@@ -210,10 +307,10 @@ export default function QuestionStepper({
         >
           {isPending
             ? isLast
-              ? "Submitting..."
+              ? "Saving..."
               : "Saving..."
             : isLast
-              ? "Submit"
+              ? "Review & Submit"
               : "Next"}
         </Button>
       </div>

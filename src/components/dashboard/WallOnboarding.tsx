@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { dismissOnboarding } from "@/app/dashboard/the-wall/actions";
 
 type WallOnboardingProps = {
@@ -23,7 +23,7 @@ function CheckIcon({ done }: { done: boolean }) {
     );
   }
   return (
-    <div className="w-[24px] h-[24px] rounded-full border-2 border-[#d4d4d4] shrink-0" />
+    <div className="w-[24px] h-[24px] rounded-full border-2 border-[#CBD5E1] shrink-0" />
   );
 }
 
@@ -47,7 +47,7 @@ function ActionCard({
       className={`flex gap-[12px] p-[16px] rounded-xl transition-all ${
         done
           ? "bg-[#22c55e]/5 border border-[#22c55e]/20"
-          : "bg-[#faf8f5] border border-[#ebebeb] hover:border-[#d4d4d4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+          : "bg-[#FCFCFD] border border-[#E2E8F0] hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(232,193,176,0.06)]"
       }`}
     >
       <CheckIcon done={done} />
@@ -55,7 +55,7 @@ function ActionCard({
         <div className={`text-[14px] font-semibold mb-[2px] ${done ? "text-[#22c55e]" : "text-[#111111]"}`}>
           {title}
         </div>
-        <div className="text-[12px] text-[#999999] mb-[8px]">
+        <div className="text-[12px] text-[#94A3B8] mb-[8px]">
           {description}
         </div>
         {!done && (
@@ -109,35 +109,35 @@ export default function WallOnboarding({
 
   // Check localStorage on mount for instant hide (avoids flash)
   useEffect(() => {
-    const stored = localStorage.getItem("vldta-onboarding-dismissed");
-    if (stored === "true") setDismissed(true);
+    const stored = localStorage.getItem("validue-onboarding-dismissed");
+    if (stored === "true") setDismissed(true); // eslint-disable-line react-hooks/set-state-in-effect -- localStorage sync
     setMounted(true);
   }, []);
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+    localStorage.setItem("validue-onboarding-dismissed", "true");
+    startTransition(() => {
+      dismissOnboarding();
+    });
+  }, [startTransition]);
 
   // Auto-dismiss when all actions complete
   useEffect(() => {
     if (allDone && mounted) {
-      handleDismiss();
+      handleDismiss(); // eslint-disable-line react-hooks/set-state-in-effect -- auto-dismiss callback
     }
-  }, [allDone, mounted]);
-
-  function handleDismiss() {
-    setDismissed(true);
-    localStorage.setItem("vldta-onboarding-dismissed", "true");
-    startTransition(() => {
-      dismissOnboarding();
-    });
-  }
+  }, [allDone, mounted, handleDismiss]);
 
   // Don't render until mounted (prevents hydration mismatch with localStorage)
   if (!mounted || dismissed) return null;
 
   return (
-    <div className="bg-white border border-[#ebebeb] rounded-2xl p-[24px] mb-[24px] relative border-l-[3px] border-l-[#e8b87a]">
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[24px] mb-[24px] relative border-l-[3px] border-l-[#E5654E]">
       {/* Dismiss button */}
       <button
         onClick={handleDismiss}
-        className="absolute top-[16px] right-[16px] p-[4px] text-[#999999] hover:text-[#555555] bg-transparent border-none cursor-pointer transition-colors"
+        className="absolute top-[16px] right-[16px] p-[4px] text-[#94A3B8] hover:text-[#64748B] bg-transparent border-none cursor-pointer transition-colors"
         aria-label="Dismiss onboarding"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -150,7 +150,7 @@ export default function WallOnboarding({
         <h2 className="text-[20px] font-bold text-[#111111] tracking-[-0.3px] mb-[4px]">
           Welcome to the Wall, {firstName}
         </h2>
-        <p className="text-[14px] text-[#555555]">
+        <p className="text-[14px] text-[#64748B]">
           {ideaCount > 0 ? (
             <>
               There {ideaCount === 1 ? "is" : "are"}{" "}
@@ -173,13 +173,13 @@ export default function WallOnboarding({
 
       {/* Progress indicator */}
       <div className="flex items-center gap-[8px] mb-[16px]">
-        <div className="flex-1 h-[3px] rounded-full bg-[#f5f2ed] overflow-hidden">
+        <div className="flex-1 h-[3px] rounded-full bg-[#F1F5F9] overflow-hidden">
           <div
-            className="h-full rounded-full bg-[#65a30d] transition-all duration-500"
+            className="h-full rounded-full bg-[#34D399] transition-all duration-500"
             style={{ width: `${(completedCount / 3) * 100}%` }}
           />
         </div>
-        <span className="text-[11px] text-[#999999] font-medium shrink-0">
+        <span className="text-[11px] text-[#94A3B8] font-medium shrink-0">
           {completedCount}/3
         </span>
       </div>

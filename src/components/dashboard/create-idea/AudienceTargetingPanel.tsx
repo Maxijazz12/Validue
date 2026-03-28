@@ -14,7 +14,7 @@ import {
 } from "@/lib/constants";
 
 const selectClass =
-  "text-[14px] px-[16px] py-[12px] rounded-lg border border-[#ebebeb] bg-white text-[#111111] outline-none focus:border-[#d4d4d4] focus:shadow-[0_0_0_3px_rgba(232,184,122,0.1)] transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
+  "text-[14px] px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
 
 interface AudienceTargetingPanelProps {
   audience: DraftAudience;
@@ -59,7 +59,7 @@ export default function AudienceTargetingPanel({
   }
 
   return (
-    <div className="bg-white border border-[#ebebeb] rounded-2xl p-[32px]">
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
       <div className="flex items-center justify-between mb-[4px]">
         <h2 className="text-[16px] font-semibold text-[#111111]">
           Target Audience
@@ -87,7 +87,7 @@ export default function AudienceTargetingPanel({
           </button>
         )}
       </div>
-      <p className="text-[13px] text-[#555555] mb-[24px]">
+      <p className="text-[13px] text-[#64748B] mb-[24px]">
         Who should see and respond to this campaign? These were suggested based
         on your idea — adjust as needed.
       </p>
@@ -145,7 +145,7 @@ export default function AudienceTargetingPanel({
           <div className="flex flex-col gap-[6px]">
             <label
               htmlFor="audience-industry"
-              className="text-[13px] font-medium text-[#555555]"
+              className="text-[13px] font-medium text-[#64748B]"
             >
               Industry
             </label>
@@ -167,7 +167,7 @@ export default function AudienceTargetingPanel({
           <div className="flex flex-col gap-[6px]">
             <label
               htmlFor="audience-experience"
-              className="text-[13px] font-medium text-[#555555]"
+              className="text-[13px] font-medium text-[#64748B]"
             >
               Experience Level
             </label>

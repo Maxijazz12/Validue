@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 
@@ -76,9 +77,9 @@ export default function CampaignDetail({
   return (
     <>
       {/* Back link */}
-      <a
+      <Link
         href="/dashboard/the-wall"
-        className="inline-flex items-center gap-[6px] text-[13px] text-[#999999] hover:text-[#555555] transition-colors no-underline mb-[16px]"
+        className="inline-flex items-center gap-[6px] text-[13px] text-[#94A3B8] hover:text-[#64748B] transition-colors no-underline mb-[16px]"
       >
         <svg
           width="14"
@@ -93,29 +94,30 @@ export default function CampaignDetail({
           <polyline points="15 18 9 12 15 6" />
         </svg>
         Back to The Wall
-      </a>
+      </Link>
 
       {/* Title */}
-      <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px] mb-[8px]">
-        {campaign.title}
-      </h1>
+      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[16px] relative overflow-hidden">
+        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+        <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">{campaign.title}</h1>
+      </div>
 
       {/* Creator */}
       <div className="flex items-center gap-[8px] mb-[20px]">
         <Avatar
           name={campaign.creatorName}
           imageUrl={campaign.creatorAvatar}
-          size={28}
+          size={20}
         />
-        <span className="text-[13px] text-[#555555]">
+        <span className="text-[13px] text-[#64748B]">
           {campaign.creatorName}
         </span>
       </div>
 
       {/* Description */}
       {campaign.description && (
-        <div className="bg-white border border-[#ebebeb] rounded-2xl p-[24px] mb-[16px]">
-          <p className="text-[14px] text-[#555555] leading-[1.6]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[24px] mb-[16px]">
+          <p className="text-[14px] text-[#64748B] leading-[1.6]">
             {campaign.description}
           </p>
           {campaign.tags.length > 0 && (
@@ -123,7 +125,7 @@ export default function CampaignDetail({
               {campaign.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-[11px] px-[8px] py-[3px] rounded-full bg-[#f5f2ed] text-[#555555]"
+                  className="text-[11px] px-[8px] py-[3px] rounded-full bg-[#F3F4F6] text-[#64748B]"
                 >
                   {tag}
                 </span>
@@ -136,21 +138,23 @@ export default function CampaignDetail({
       {/* Info cards */}
       <div className="grid grid-cols-3 gap-[12px] mb-[16px] max-md:grid-cols-1">
         {/* Questions */}
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[16px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
+          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px]">
             Questions
           </span>
           <div className="font-mono text-[20px] font-bold text-[#111111] mt-[4px]">
             {questionCount}
           </div>
-          <div className="text-[11px] text-[#999999] mt-[2px]">
+          <div className="text-[11px] text-[#94A3B8] mt-[2px]">
             {openCount} open · {mcCount} multiple choice
           </div>
         </div>
 
         {/* Time */}
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[16px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
+          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px]">
             Est. Time
           </span>
           <div className="font-mono text-[20px] font-bold text-[#111111] mt-[4px]">
@@ -159,21 +163,22 @@ export default function CampaignDetail({
         </div>
 
         {/* Progress */}
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[16px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
+          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px]">
             Responses
           </span>
           <div className="mt-[4px]">
             <span className="font-mono text-[20px] font-bold text-[#111111]">
               {campaign.currentResponses}
             </span>
-            <span className="text-[13px] text-[#999999]">
+            <span className="text-[13px] text-[#94A3B8]">
               /{campaign.targetResponses}
             </span>
           </div>
-          <div className="h-[4px] rounded-full bg-[#f5f2ed] overflow-hidden mt-[6px]">
+          <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden mt-[6px]">
             <div
-              className="h-full rounded-full bg-[#65a30d]"
+              className="h-full rounded-full bg-[#34D399]"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -182,23 +187,23 @@ export default function CampaignDetail({
 
       {/* Reward section */}
       {hasReward && (
-        <div className="bg-[#faf8f5] border border-[#e8b87a]/20 rounded-xl p-[16px] mb-[24px]">
+        <div className="bg-[#FCFCFD] border border-[#E5654E]/20 rounded-xl p-[16px] mb-[24px]">
           <div className="flex items-center gap-[8px] flex-wrap">
             <span className="font-mono font-semibold text-[14px] text-[#111111]">
               {getRewardLabel(campaign.rewardAmount, campaign.rewardType)}
             </span>
             {campaign.bonusAvailable && (
-              <span className="text-[11px] font-semibold px-[6px] py-[2px] rounded-full bg-[#e8b87a]/12 text-[#c4883a]">
+              <span className="text-[11px] font-semibold px-[6px] py-[2px] rounded-full bg-[#E5654E]/12 text-[#CC5340]">
                 Bonus available
               </span>
             )}
           </div>
-          <p className="text-[12px] text-[#555555] mt-[6px]">
+          <p className="text-[12px] text-[#64748B] mt-[6px]">
             Rewards are allocated by the founder after reviewing ranked
             responses. Higher quality = higher earnings.
           </p>
           {campaign.rewardsTopAnswers && (
-            <p className="text-[12px] text-[#65a30d] italic mt-[4px]">
+            <p className="text-[12px] text-[#22c55e] italic mt-[4px]">
               Thoughtful responses earn more
             </p>
           )}
@@ -207,8 +212,8 @@ export default function CampaignDetail({
 
       {/* Blocker or CTA */}
       {blockerMessage ? (
-        <div className="text-center p-[20px] rounded-xl bg-[#f5f2ed]">
-          <p className="text-[14px] text-[#555555]">{blockerMessage}</p>
+        <div className="text-center p-[20px] rounded-xl bg-[#F3F4F6]">
+          <p className="text-[14px] text-[#64748B]">{blockerMessage}</p>
           {hasSubmitted && (
             <a
               href="/dashboard/my-responses"
@@ -223,7 +228,7 @@ export default function CampaignDetail({
           onClick={onStart}
           disabled={!canStart || isLoading}
           className={`w-full py-[16px] text-[16px] ${
-            !canStart || isLoading ? "opacity-50 cursor-not-allowed" : ""
+            !canStart || isLoading ? "opacity-50 cursor-not-allowed" : "hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)]"
           }`}
         >
           {isLoading ? "Starting..." : "Start Responding"}

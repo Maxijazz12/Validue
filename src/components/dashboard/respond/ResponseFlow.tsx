@@ -44,7 +44,6 @@ export default function ResponseFlow({
   isFull,
   isActive,
 }: ResponseFlowProps) {
-  // Determine initial stage
   const initialStage: Stage = existingResponse?.status === "submitted"
     ? "submitted"
     : existingResponse?.status === "in_progress"
@@ -57,17 +56,13 @@ export default function ResponseFlow({
   );
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [totalTimeMs, setTotalTimeMs] = useState(0);
 
-  // Build initial answers map from existing data
   const initialAnswers = existingAnswers
     ? new Map(
         existingAnswers.map((a) => [
           a.question_id,
-          {
-            text: a.text || "",
-            pasteCount: 0,
-            timeSpentMs: 0,
-          },
+          { text: a.text || "", pasteCount: 0, timeSpentMs: 0 },
         ])
       )
     : undefined;
@@ -88,7 +83,8 @@ export default function ResponseFlow({
     });
   }, [campaign.id]);
 
-  const handleSubmitted = useCallback(() => {
+  const handleSubmitted = useCallback((timeMs: number) => {
+    setTotalTimeMs(timeMs);
     setStage("submitted");
   }, []);
 
@@ -124,7 +120,15 @@ export default function ResponseFlow({
         />
       )}
 
-      {stage === "submitted" && <SubmissionConfirmation />}
+      {stage === "submitted" && (
+        <SubmissionConfirmation
+          campaignTitle={campaign.title}
+          rewardAmount={campaign.rewardAmount}
+          rewardType={campaign.rewardType}
+          questionCount={questions.length}
+          totalTimeMs={totalTimeMs}
+        />
+      )}
     </div>
   );
 }
