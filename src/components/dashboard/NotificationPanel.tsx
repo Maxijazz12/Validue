@@ -15,22 +15,51 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function NotificationIcon() {
+const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
+  payout_earned: {
+    bg: "bg-[#34D399]/10",
+    color: "#34D399",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  campaign_completed: {
+    bg: "bg-[#E5654E]/10",
+    color: "#E5654E",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+      </svg>
+    ),
+  },
+  new_response: {
+    bg: "bg-[#3b82f6]/10",
+    color: "#3b82f6",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+      </svg>
+    ),
+  },
+  ranking_complete: {
+    bg: "bg-[#8b5cf6]/10",
+    color: "#8b5cf6",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+  },
+};
+
+function NotificationIcon({ type }: { type: string }) {
+  const config = NOTIF_ICONS[type] || NOTIF_ICONS.campaign_completed;
   return (
-    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[28px] h-[28px] shrink-0">
-      <defs>
-        <linearGradient id="np-s" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#E5654E" />
-          <stop offset="100%" stopColor="#E8C1B0" />
-        </linearGradient>
-        <linearGradient id="np-f" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#E5654E" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#E8C1B0" stopOpacity="0.06" />
-        </linearGradient>
-      </defs>
-      <ellipse cx="32" cy="32" rx="27" ry="27" fill="url(#np-f)" stroke="url(#np-s)" strokeWidth="3" />
-      <path d="M32 6 Q29 30 32 58" stroke="url(#np-s)" strokeWidth="1.8" fill="none" opacity="0.3" />
-    </svg>
+    <div className={`w-[32px] h-[32px] rounded-full ${config.bg} flex items-center justify-center shrink-0`}>
+      {config.icon}
+    </div>
   );
 }
 
@@ -116,7 +145,7 @@ export default function NotificationPanel() {
                   : "bg-white border-[#E2E8F0] border-l-[3px] border-l-[#E5654E]"
               }`}
             >
-              <NotificationIcon />
+              <NotificationIcon type={notif.type} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-[8px]">
                   <span className={`text-[13px] font-semibold ${notif.read_at ? "text-[#64748B]" : "text-[#111111]"}`}>
