@@ -261,7 +261,8 @@ export async function allocatePayouts(
       return a.amount >= DEFAULTS.MIN_PAYOUT && respondentMap.has(a.responseId);
     });
 
-    await sql.begin(async (tx) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+    await sql.begin(async (tx: any) => {
       for (const allocation of validAllocations) {
         const respondentId = respondentMap.get(allocation.responseId)!;
         await tx`
