@@ -1,7 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+/** API routes that must remain publicly accessible (no auth). */
+const PUBLIC_API_ROUTES = ["/api/webhooks/stripe", "/api/health", "/api/admin"];
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip auth entirely for public API routes
+  if (PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -30,13 +40,17 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
-  // Protect dashboard routes
+  // Protect dashboard routes — redirect to login
   if (pathname.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Protect API routes — return 401 JSON (no redirect for API consumers)
+  if (pathname.startsWith("/api/") && !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Redirect authenticated users away from auth pages
@@ -50,7 +64,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/dashboard/:path*", "/api/:path*", "/auth/:path*"],
 };

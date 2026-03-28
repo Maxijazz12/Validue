@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="peach-stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E5654E"/>
+      <stop offset="100%" stop-color="#E8C1B0"/>
+    </linearGradient>
+    <linearGradient id="peach-fill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E5654E" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#EDD5C8" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="leaf-stroke" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#7CB67C"/>
+      <stop offset="100%" stop-color="#5A9A5A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Peach body — thin stroke with barely-there fill -->
+  <ellipse cx="32" cy="36" rx="24" ry="24" fill="url(#peach-fill)" stroke="url(#peach-stroke)" stroke-width="2"/>
+  <!-- Crease line -->
+  <path d="M32 13 Q29 34 32 59" stroke="url(#peach-stroke)" stroke-width="1.2" fill="none" opacity="0.3"/>
+  <!-- Leaf — outlined -->
+  <path d="M34 13 Q42 0 52 4 Q44 13 36 17 Z" fill="none" stroke="url(#leaf-stroke)" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Leaf vein -->
+  <path d="M37 14 Q44 6 50 5" stroke="url(#leaf-stroke)" stroke-width="0.8" fill="none" opacity="0.4"/>
+  <!-- Stem -->
+  <path d="M33 13 Q33.5 6 35.5 3" stroke="#8B6914" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.6"/>
+</svg>

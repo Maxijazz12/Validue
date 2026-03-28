@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 64" fill="none">
+  <defs>
+    <linearGradient id="peach-stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E5654E"/>
+      <stop offset="100%" stop-color="#E8C1B0"/>
+    </linearGradient>
+    <linearGradient id="peach-fill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E5654E" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#EDD5C8" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="leaf-stroke" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#7CB67C"/>
+      <stop offset="100%" stop-color="#5A9A5A"/>
+    </linearGradient>
+    <linearGradient id="e-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8C1B0"/>
+      <stop offset="100%" stop-color="#EDD5C8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Peach icon — hollow/outline style -->
+  <g transform="translate(8, 8)">
+    <ellipse cx="24" cy="27" rx="20" ry="20" fill="url(#peach-fill)" stroke="url(#peach-stroke)" stroke-width="1.8"/>
+    <path d="M24 8 Q22 24 24 46" stroke="url(#peach-stroke)" stroke-width="1" fill="none" opacity="0.3"/>
+    <path d="M26 9 Q32 -2 40 2 Q34 8 28 11 Z" fill="none" stroke="url(#leaf-stroke)" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M28 9 Q34 4 38 3" stroke="url(#leaf-stroke)" stroke-width="0.7" fill="none" opacity="0.4"/>
+    <path d="M25 9 Q25.5 4 27 2" stroke="#8B6914" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- Text: "Validu" in bold mono -->
+  <text x="62" y="44" font-family="'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700" letter-spacing="4" fill="#111111">Validu</text>
+
+  <!-- Text: "e" in italic with gradient -->
+  <text x="222" y="44" font-family="'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="400" font-style="italic" letter-spacing="4" fill="url(#e-grad)">e</text>
+</svg>
