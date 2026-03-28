@@ -76,9 +76,11 @@ type SidebarProps = {
   campaignsUsed?: number;
   campaignLimit?: number | null;
   unreadCount?: number;
+  totalEarned?: number;
+  hasNewResponses?: boolean;
 };
 
-export default function Sidebar({ userName, userAvatar, ideaCount, planTier, campaignsUsed, campaignLimit, unreadCount = 0 }: SidebarProps) {
+export default function Sidebar({ userName, userAvatar, ideaCount, planTier, campaignsUsed, campaignLimit, unreadCount = 0, totalEarned = 0, hasNewResponses = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -110,6 +112,9 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
   }
 
   function renderNavItem(item: NavItem) {
+    const showEarningsPill = item.icon === "chart" && totalEarned > 0;
+    const showNewResponsesDot = item.icon === "lightbulb" && hasNewResponses;
+
     return (
       <a
         key={item.href}
@@ -121,6 +126,18 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
           {icons[item.icon]}
         </span>
         {item.label}
+
+        {/* Earnings pill */}
+        {showEarningsPill && (
+          <span className="ml-auto text-[11px] font-mono font-semibold text-[#22C55E] bg-[#22C55E]/8 px-[6px] py-[1px] rounded-md">
+            ${totalEarned < 1000 ? totalEarned.toFixed(2) : `${(totalEarned / 1000).toFixed(1)}k`}
+          </span>
+        )}
+
+        {/* New responses pulse dot */}
+        {showNewResponsesDot && (
+          <span className="ml-auto w-[7px] h-[7px] rounded-full bg-[#34D399] animate-[pulse_2.5s_ease_infinite]" />
+        )}
       </a>
     );
   }

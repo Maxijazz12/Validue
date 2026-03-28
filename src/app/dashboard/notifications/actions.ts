@@ -66,24 +66,3 @@ export async function markAllRead() {
 
   revalidatePath("/dashboard");
 }
-
-/** Temporary: insert a fake notification for testing the toast + ka-ching sound. Remove before production. */
-export async function sendTestNotification() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-
-  await supabase.from("notifications").insert({
-    user_id: user.id,
-    type: "payout_earned",
-    title: "You earned money!",
-    body: '$12.00 from "Test Campaign"',
-    amount: 12,
-    link: "/dashboard/earnings",
-  });
-
-  revalidatePath("/dashboard");
-}
