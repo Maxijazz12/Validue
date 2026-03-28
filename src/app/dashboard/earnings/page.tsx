@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import Button from "@/components/ui/Button";
 import ReputationBadge from "@/components/ui/ReputationBadge";
+import StatCard from "@/components/dashboard/StatCard";
 import type { ReputationTier } from "@/lib/reputation-config";
 
 function formatDate(dateStr: string): string {
@@ -58,61 +59,28 @@ export default async function EarningsPage() {
 
   return (
     <>
-      <div className="mb-[32px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px]">
-          Earnings
-        </h1>
-        <p className="text-[15px] text-[#555555] mt-[4px]">
-          Track your earnings from responding to ideas
-        </p>
+      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
+        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+        <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">Earnings</h1>
+        <p className="text-[14px] text-[#64748B] mt-[4px]">Track your earnings from responding to ideas</p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[20px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
-            Total Earned
-          </span>
-          <div className="font-mono text-[28px] font-bold text-[#65a30d] mt-[4px]">
-            ${totalEarned.toFixed(2)}
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[20px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
-            Pending
-          </span>
-          <div className="font-mono text-[28px] font-bold text-[#e8b87a] mt-[4px]">
-            ${pendingAmount.toFixed(2)}
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[20px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
-            Payouts
-          </span>
-          <div className="font-mono text-[28px] font-bold text-[#111111] mt-[4px]">
-            {totalPayouts}
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#ebebeb] rounded-xl p-[20px]">
-          <span className="text-[11px] text-[#999999] uppercase tracking-[1px]">
-            Reputation
-          </span>
-          <div className="flex items-center gap-[8px] mt-[4px]">
-            <span className="font-mono text-[28px] font-bold text-[#111111]">
-              {repScore}
-            </span>
+        <StatCard label="Total Earned" value={`$${totalEarned.toFixed(2)}`} valueColor="#22c55e" />
+        <StatCard label="Pending" value={`$${pendingAmount.toFixed(2)}`} valueColor="#E5654E" />
+        <StatCard label="Payouts" value={totalPayouts} />
+        <StatCard label="Reputation" value={repScore}>
+          <div className="mt-[4px]">
             <ReputationBadge tier={repTier} size="md" />
           </div>
-        </div>
+        </StatCard>
       </div>
 
       {/* Payout notice */}
       {pendingAmount > 0 && (
-        <div className="bg-[#e8b87a]/10 border border-[#e8b87a]/20 rounded-xl p-[16px] mb-[24px]">
-          <p className="text-[13px] text-[#555555]">
+        <div className="bg-[#E5654E]/10 border border-[#E5654E]/20 rounded-xl p-[16px] mb-[24px]">
+          <p className="text-[13px] text-[#64748B]">
             Payouts are tracked and will be processed when the payment system
             goes live. Your earnings are safe.
           </p>
@@ -125,7 +93,7 @@ export default async function EarningsPage() {
           <h2 className="text-[16px] font-semibold text-[#111111] mb-[12px]">
             Payout History
           </h2>
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[12px]">
             {allPayouts.map((payout) => {
               const statusConfig: Record<
                 string,
@@ -133,8 +101,8 @@ export default async function EarningsPage() {
               > = {
                 pending: {
                   label: "Pending",
-                  bg: "bg-[#e8b87a]/10",
-                  text: "text-[#c4883a]",
+                  bg: "bg-[#E5654E]/10",
+                  text: "text-[#CC5340]",
                 },
                 processing: {
                   label: "Processing",
@@ -157,13 +125,13 @@ export default async function EarningsPage() {
               return (
                 <div
                   key={payout.id}
-                  className="bg-white border border-[#ebebeb] rounded-xl p-[16px] flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start"
+                  className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start hover:border-[#CBD5E1] transition-all duration-200"
                 >
                   <div className="min-w-0">
                     <span className="text-[14px] font-medium text-[#111111] block truncate">
                       {payout.campaign?.title || "Unknown Campaign"}
                     </span>
-                    <span className="text-[12px] text-[#999999]">
+                    <span className="text-[12px] text-[#94A3B8]">
                       {formatDate(payout.created_at)}
                     </span>
                   </div>
@@ -183,21 +151,22 @@ export default async function EarningsPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-[#ebebeb] rounded-2xl p-[48px] text-center">
-          <div className="text-[40px] mb-[16px]">&#x1F4B0;</div>
+        <div className="bg-[#FAF9FA] border border-[#E2E8F0] rounded-2xl p-[48px] text-center relative overflow-hidden">
+          <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
+          <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
           <h2 className="text-[20px] font-bold text-[#111111] mb-[8px]">
-            No earnings yet
+            No earnings <span className="italic font-normal text-gradient-warm">yet</span>
           </h2>
-          <p className="text-[14px] text-[#555555] max-w-[360px] mx-auto mb-[28px]">
-            Respond to campaigns on The Wall. Founders reward the best
-            responses — higher quality means higher earnings.
+          <p className="text-[14px] text-[#64748B] max-w-[360px] mx-auto mb-[28px]">
+            Thoughtful feedback pays. Literally. Head to The Wall and share what you know.
           </p>
-          <Link
-            href="/dashboard/the-wall"
-            className="inline-flex items-center justify-center px-[32px] py-[14px] rounded-lg text-[15px] font-medium bg-[#111111] text-white hover:bg-[#222222] transition-all no-underline"
-          >
+          <Button href="/dashboard/the-wall">
             Browse The Wall
-          </Link>
+          </Button>
         </div>
       )}
     </>

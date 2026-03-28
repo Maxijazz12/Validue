@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Avatar from "@/components/ui/Avatar";
 import RespondentProfileForm from "@/components/dashboard/RespondentProfileForm";
+import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
+import { logOps } from "@/lib/ops-logger";
 
 async function updateProfile(formData: FormData) {
   "use server";
@@ -11,7 +13,14 @@ async function updateProfile(formData: FormData) {
 
   if (!user) redirect("/auth/login");
 
-  const fullName = formData.get("fullName") as string;
+  const rawName = formData.get("fullName") as string;
+  const fullName = enforceLength(rawName, MAX_LENGTHS.PROFILE_NAME).text;
+
+  const check = checkContent(fullName);
+  if (!check.allowed) {
+    logOps({ event: "content.flagged", userId: user.id, fieldName: "full_name", action: "blocked", reason: check.reason ?? "", entryPoint: "updateProfile" });
+    redirect("/dashboard/settings?error=content");
+  }
 
   await supabase
     .from("profiles")
@@ -21,7 +30,13 @@ async function updateProfile(formData: FormData) {
   redirect("/dashboard/settings");
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ "complete-profile"?: string }>;
+}) {
+  const params = await searchParams;
+  const showCompletePrompt = params?.["complete-profile"] === "true";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -35,17 +50,27 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <div className="mb-[40px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px]">
-          Settings
-        </h1>
-        <p className="text-[15px] text-[#555555] mt-[4px]">
-          Manage your profile and account
-        </p>
+      {showCompletePrompt && isRespondent && (
+        <div className="mb-[24px] p-[20px_24px] bg-[#F3F4F6] border border-[#E2E8F0] rounded-xl">
+          <p className="text-[15px] font-semibold text-[#111111] mb-[4px]">
+            Complete your matching profile
+          </p>
+          <p className="text-[13px] text-[#64748B]">
+            Select your interests and expertise below so we can show you the most relevant ideas on The Wall.
+          </p>
+        </div>
+      )}
+
+      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
+        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+        <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">Settings</h1>
+        <p className="text-[14px] text-[#64748B] mt-[4px]">Manage your profile and account</p>
       </div>
 
       {/* Profile section */}
-      <div className="bg-white border border-[#ebebeb] rounded-2xl p-[32px] mb-[24px]">
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden mb-[24px]">
+        <div className="h-[8px] rounded-t-2xl" style={{ background: 'linear-gradient(90deg, #E5654E, #E8C1B0, #9BC4C8)' }} />
+        <div className="p-[32px]">
         <h2 className="text-[16px] font-semibold text-[#111111] mb-[24px]">
           Profile
         </h2>
@@ -54,13 +79,13 @@ export default async function SettingsPage() {
           <Avatar
             name={profile?.full_name || "User"}
             imageUrl={profile?.avatar_url}
-            size={56}
+            size={24}
           />
           <div>
             <div className="text-[15px] font-semibold text-[#111111]">
               {profile?.full_name || "Unnamed"}
             </div>
-            <div className="text-[13px] text-[#999999]">
+            <div className="text-[13px] text-[#94A3B8]">
               {user!.email}
             </div>
           </div>
@@ -68,7 +93,7 @@ export default async function SettingsPage() {
 
         <form action={updateProfile} className="flex flex-col gap-[16px] max-w-[400px]">
           <div className="flex flex-col gap-[6px]">
-            <label htmlFor="fullName" className="text-[13px] font-medium text-[#555555]">
+            <label htmlFor="fullName" className="text-[13px] font-medium text-[#64748B]">
               Full name
             </label>
             <input
@@ -76,39 +101,40 @@ export default async function SettingsPage() {
               name="fullName"
               type="text"
               defaultValue={profile?.full_name || ""}
-              className="w-full px-[16px] py-[12px] rounded-lg border border-[#ebebeb] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#d4d4d4] focus:shadow-[0_0_0_3px_rgba(232,184,122,0.1)]"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-300 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
               required
             />
           </div>
 
           <div className="flex flex-col gap-[6px]">
-            <label className="text-[13px] font-medium text-[#555555]">
+            <label className="text-[13px] font-medium text-[#64748B]">
               Email
             </label>
             <input
               type="email"
               value={user!.email || ""}
               disabled
-              className="w-full px-[16px] py-[12px] rounded-lg border border-[#ebebeb] bg-[#fafafa] text-[15px] text-[#999999] font-sans cursor-not-allowed"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-[#FCFCFD] text-[15px] text-[#94A3B8] font-sans cursor-not-allowed"
             />
           </div>
 
           <div className="flex flex-col gap-[6px]">
-            <label className="text-[13px] font-medium text-[#555555]">
+            <label className="text-[13px] font-medium text-[#64748B]">
               Role
             </label>
-            <div className="px-[16px] py-[12px] rounded-lg border border-[#ebebeb] bg-[#fafafa] text-[15px] text-[#555555] capitalize">
+            <div className="px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-[#FCFCFD] text-[15px] text-[#64748B] capitalize">
               {profile?.role || "founder"}
             </div>
           </div>
 
           <button
             type="submit"
-            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-lg text-[14px] font-semibold bg-[#111111] text-white hover:bg-[#222222] transition-all cursor-pointer border-none mt-[8px]"
+            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-semibold bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:bg-[#1a1a1a] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:scale-[1.02] hover:-translate-y-[1px] transition-all duration-300 cursor-pointer border-none mt-[8px]"
           >
             Save Changes
           </button>
         </form>
+        </div>
       </div>
 
       {/* Respondent matching profile */}
@@ -127,7 +153,7 @@ export default async function SettingsPage() {
         <h2 className="text-[16px] font-semibold text-red-600 mb-[8px]">
           Danger zone
         </h2>
-        <p className="text-[13px] text-[#555555] mb-[20px]">
+        <p className="text-[13px] text-[#64748B] mb-[20px]">
           Permanently delete your account and all associated data. This action
           cannot be undone.
         </p>

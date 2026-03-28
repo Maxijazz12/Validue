@@ -3,8 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
-import { getSubscription } from "@/lib/plan-guard";
+import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
 import { validateFunding } from "@/lib/reach";
+import { WELCOME_BONUS } from "@/lib/plans";
 
 export async function createFundingSession(
   campaignId: string
@@ -64,6 +65,25 @@ export async function createFundingSession(
     `;
   }
 
+  // Check welcome credit eligibility (free tier, first month, first campaign, not yet used)
+  let useWelcomeCredit = false;
+  if (sub.tier === "free") {
+    const firstMonth = await isFirstMonth(user.id);
+    if (firstMonth) {
+      const firstCampaign = await isFirstCampaign(user.id);
+      if (firstCampaign) {
+        const [subRow] = await sql`
+          SELECT welcome_credit_used FROM subscriptions WHERE user_id = ${user.id}
+        `;
+        useWelcomeCredit = !subRow || !subRow.welcome_credit_used;
+      }
+    }
+  }
+
+  const fullAmountCents = Math.round(campaign.reward_amount * 100);
+  const creditCents = useWelcomeCredit ? WELCOME_BONUS.fundingCreditCents : 0;
+  const chargeAmountCents = Math.max(50, fullAmountCents - creditCents); // Stripe min $0.50
+
   // Create Checkout Session
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
@@ -72,10 +92,12 @@ export async function createFundingSession(
       {
         price_data: {
           currency: "usd",
-          unit_amount: Math.round(campaign.reward_amount * 100),
+          unit_amount: chargeAmountCents,
           product_data: {
             name: `Campaign: ${campaign.title}`,
-            description: "Reward pool funding for VLDTA campaign",
+            description: useWelcomeCredit
+              ? `Reward pool funding for Validue campaign ($${(creditCents / 100).toFixed(2)} welcome credit applied)`
+              : "Reward pool funding for Validue campaign",
           },
         },
         quantity: 1,
@@ -85,6 +107,7 @@ export async function createFundingSession(
       campaignId: campaign.id,
       userId: user.id,
       type: "campaign_funding",
+      welcomeCredit: useWelcomeCredit ? "true" : "false",
     },
     success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,

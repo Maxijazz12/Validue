@@ -2,6 +2,8 @@ import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 import { isValidTier } from "@/lib/plans";
 import type Stripe from "stripe";
+import { logOps } from "@/lib/ops-logger";
+import { captureError } from "@/lib/sentry";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -21,6 +23,7 @@ export async function POST(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[stripe-webhook] Signature verification failed:", message);
+    captureError(err, { operation: "stripe.webhook.signature" });
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -47,9 +50,45 @@ export async function POST(request: Request) {
           WHERE id = ${campaignId}
             AND status = 'pending_funding'
         `;
-        console.log(`[stripe-webhook] Campaign ${campaignId} funded and activated`);
+
+        // If this was a welcome-credit campaign, mark the credit as used
+        const userId = session.metadata?.userId;
+        const welcomeCreditUsed = session.metadata?.welcomeCredit === "true";
+        if (userId && welcomeCreditUsed) {
+          await sql`
+            UPDATE subscriptions
+            SET welcome_credit_used = true, updated_at = NOW()
+            WHERE user_id = ${userId}
+          `.catch((err) => {
+            console.error("[stripe-webhook] Failed to mark welcome credit used:", err);
+          });
+        }
+
+        logOps({
+          event: "campaign.funded",
+          campaignId,
+          rewardAmount: (session.amount_total ?? 0) / 100,
+          distributableAmount: 0, // Already calculated at campaign creation
+          stripePaymentIntentId: (session.payment_intent as string) || undefined,
+          welcomeCreditUsed,
+        });
+        logOps({
+          event: "campaign.status_changed",
+          campaignId,
+          fromStatus: "pending_funding",
+          toStatus: "active",
+          triggeredBy: "webhook",
+        });
+        logOps({
+          event: "webhook.processed",
+          stripeEventId: event.id,
+          eventType: event.type,
+          result: "success",
+          detail: `Campaign ${campaignId} activated`,
+        });
       } catch (err) {
         console.error("[stripe-webhook] Failed to activate campaign:", err);
+        captureError(err, { campaignId: campaignId!, stripeEventId: event.id, operation: "stripe.campaign.activate" });
         return Response.json({ error: "DB update failed" }, { status: 500 });
       }
       break;
@@ -94,9 +133,10 @@ export async function POST(request: Request) {
             campaigns_used_this_period = 0,
             updated_at = NOW()
         `;
-        console.log(`[stripe-webhook] Subscription created: ${userId} → ${tier}`);
+        logOps({ event: "webhook.processed", stripeEventId: event.id, eventType: event.type, result: "success", detail: `${userId} → ${tier}` });
       } catch (err) {
         console.error("[stripe-webhook] Failed to create subscription:", err);
+        captureError(err, { userId: userId!, stripeEventId: event.id, operation: "stripe.subscription.create" });
         return Response.json({ error: "DB update failed" }, { status: 500 });
       }
       break;
@@ -148,9 +188,10 @@ export async function POST(request: Request) {
             WHERE stripe_subscription_id = ${stripeSubId}
           `;
         }
-        console.log(`[stripe-webhook] Subscription updated: ${stripeSubId}`);
+        logOps({ event: "webhook.processed", stripeEventId: event.id, eventType: event.type, result: "success", detail: `Updated ${stripeSubId}` });
       } catch (err) {
         console.error("[stripe-webhook] Failed to update subscription:", err);
+        captureError(err, { stripeEventId: event.id, operation: "stripe.subscription.update" });
         return Response.json({ error: "DB update failed" }, { status: 500 });
       }
       break;
@@ -170,9 +211,10 @@ export async function POST(request: Request) {
               updated_at = NOW()
           WHERE stripe_subscription_id = ${subscription.id}
         `;
-        console.log(`[stripe-webhook] Subscription canceled: ${subscription.id}`);
+        logOps({ event: "webhook.processed", stripeEventId: event.id, eventType: event.type, result: "success", detail: `Canceled ${subscription.id}` });
       } catch (err) {
         console.error("[stripe-webhook] Failed to cancel subscription:", err);
+        captureError(err, { stripeEventId: event.id, operation: "stripe.subscription.cancel" });
         return Response.json({ error: "DB update failed" }, { status: 500 });
       }
       break;

@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { scoreResponse } from "@/lib/ai/rank-responses";
 import type { AnswerWithMeta } from "@/lib/ai/types";
 import { updateRespondentReputation } from "@/lib/reputation";
+import { logOps } from "@/lib/ops-logger";
+import { captureError } from "@/lib/sentry";
 
 export async function rankCampaignResponses(campaignId: string) {
   const supabase = await createClient();
@@ -26,11 +28,20 @@ export async function rankCampaignResponses(campaignId: string) {
   if (campaign.ranking_status === "ranking")
     throw new Error("Ranking already in progress");
 
-  // Set ranking status
-  await supabase
+  // Atomic lock: only transitions from 'unranked' to 'ranking'.
+  // Prevents concurrent ranking runs via compare-and-swap.
+  const { data: locked } = await supabase
     .from("campaigns")
     .update({ ranking_status: "ranking" })
-    .eq("id", campaignId);
+    .eq("id", campaignId)
+    .eq("ranking_status", "unranked")
+    .select("id");
+
+  if (!locked || locked.length === 0) {
+    throw new Error("Ranking already in progress or completed");
+  }
+
+  let rankedCount = 0;
 
   try {
     // Fetch submitted responses
@@ -59,8 +70,14 @@ export async function rankCampaignResponses(campaignId: string) {
       (questions || []).map((q) => [q.id, q])
     );
 
+    const rankingStart = Date.now();
+    logOps({ event: "ranking.started", campaignId, responseCount: responses.length });
+
     // Score each response sequentially
-    let rankedCount = 0;
+    let aiCount = 0;
+    let fallbackCount = 0;
+    let lowConfCount = 0;
+    let scoreSum = 0;
     for (const response of responses) {
       const { data: answers } = await supabase
         .from("answers")
@@ -92,18 +109,41 @@ export async function rankCampaignResponses(campaignId: string) {
         answersWithMeta
       );
 
+      // Clamp score and confidence to valid DB ranges before write
+      const clampedScore = Math.min(Math.max(result.score, 0), 100);
+      const clampedConfidence = Math.min(Math.max(result.confidence, 0), 1);
+
       await supabase
         .from("responses")
         .update({
-          quality_score: result.score,
+          quality_score: clampedScore,
           ai_feedback: result.feedback,
+          scoring_source: result.source,
+          scoring_confidence: clampedConfidence,
           status: "ranked",
           ranked_at: new Date().toISOString(),
         })
         .eq("id", response.id);
 
       rankedCount++;
+      scoreSum += clampedScore;
+      if (result.source === "ai") aiCount++;
+      else if (result.source === "fallback") fallbackCount++;
+      else if (result.source === "ai_low_confidence") lowConfCount++;
     }
+
+    logOps({
+      event: "ranking.completed",
+      campaignId,
+      rankedCount,
+      aiCount,
+      fallbackCount,
+      lowConfidenceCount: lowConfCount,
+      avgScore: rankedCount > 0 ? Math.round((scoreSum / rankedCount) * 10) / 10 : 0,
+      minScore: 0, // individual scores already logged by ai/logger.ts
+      maxScore: 0,
+      latencyMs: Date.now() - rankingStart,
+    });
 
     // Mark campaign as ranked
     await supabase
@@ -122,6 +162,13 @@ export async function rankCampaignResponses(campaignId: string) {
 
     return { ranked: rankedCount };
   } catch (err) {
+    logOps({
+      event: "ranking.failed",
+      campaignId,
+      error: (err as Error).message,
+      responsesScoredBeforeFailure: rankedCount,
+    });
+    captureError(err, { campaignId, userId: user?.id, operation: "ranking" });
     // Reset ranking status on failure
     await supabase
       .from("campaigns")

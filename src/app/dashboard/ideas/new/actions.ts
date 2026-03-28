@@ -3,9 +3,12 @@
 import { createClient } from "@/lib/supabase/server";
 import sql from "@/lib/db";
 import type { CampaignDraft } from "@/lib/ai/types";
-import { canCreateCampaign, incrementCampaignUsage, isFirstCampaign, isFirstMonth } from "@/lib/plan-guard";
+import { canCreateCampaign, isFirstCampaign } from "@/lib/plan-guard";
 import { calculateReach, validateFunding } from "@/lib/reach";
 import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
+import { logOps } from "@/lib/ops-logger";
+import { captureError } from "@/lib/sentry";
+import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 
 export async function publishCampaign(
   draft: CampaignDraft
@@ -31,22 +34,45 @@ export async function publishCampaign(
     return { error: allowance.reason ?? "Campaign limit reached for this period." };
   }
 
-  // 3. Validate funding amount against tier minimum
+  // 3. Content moderation check
+  const contentFields = [
+    { name: "title", text: draft.title },
+    { name: "summary", text: draft.summary },
+    ...draft.assumptions.map((a, i) => ({ name: `assumption_${i}`, text: a })),
+    ...draft.tags.map((t, i) => ({ name: `tag_${i}`, text: enforceLength(t, MAX_LENGTHS.TAG).text })),
+    ...draft.questions.map((q, i) => ({ name: `question_${i}`, text: q.text })),
+  ];
+  const contentCheck = checkMultipleFields(contentFields);
+  if (!contentCheck.allowed) {
+    logOps({ event: "content.flagged", userId: user.id, fieldName: contentCheck.fieldName ?? "unknown", action: "blocked", reason: contentCheck.reason ?? "", entryPoint: "publishCampaign" });
+    return { error: contentCheck.reason ?? "Content policy violation." };
+  }
+  if (contentCheck.flagged) {
+    logOps({ event: "content.flagged", userId: user.id, fieldName: contentCheck.fieldName ?? "unknown", action: "flagged", reason: contentCheck.reason ?? "", entryPoint: "publishCampaign" });
+  }
+
+  // Enforce tag length limits
+  draft.tags = draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text);
+
+  // 4. Validate funding amount against tier minimum
   const fundingAmount = draft.rewardPool || 0;
   const fundingCheck = validateFunding(allowance.tier, fundingAmount);
   if (!fundingCheck.valid) {
     return { error: fundingCheck.reason ?? "Invalid funding amount." };
   }
 
-  // 4. Calculate reach units
+  // 4. Calculate reach units (with quality modifier)
   const firstMonth = allowance.isFirstMonth;
   const firstCampaign = allowance.tier === "free" && firstMonth
     ? await isFirstCampaign(user.id)
     : false;
 
+  const qualityScore = draft.qualityScores?.overall ?? 70;
+
   const reach = calculateReach(allowance.tier, fundingAmount, {
     isFirstMonth: firstMonth,
     isFirstCampaign: firstCampaign,
+    qualityScore,
   });
 
   const planConfig = PLAN_CONFIG[allowance.tier];
@@ -57,10 +83,12 @@ export async function publishCampaign(
     ? Math.round(fundingAmount * (1 - PLATFORM_FEE_RATE) * 100) / 100
     : 0;
   const keyAssumptions = draft.assumptions.filter((a) => a.trim().length > 0);
+  const initialStatus = fundingAmount > 0 ? "pending_funding" : "active";
 
   // 6. Atomic transaction: profile + campaign + questions
   try {
-    const result = await sql.begin(async (tx) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature via Omit<Sql>
+    const result = await sql.begin(async (tx: any) => {
       // Ensure profile exists (trigger may not have fired)
       await tx`
         INSERT INTO profiles (id, full_name, role)
@@ -77,19 +105,21 @@ export async function publishCampaign(
           target_interests, target_expertise, target_age_ranges, target_location,
           key_assumptions,
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
-          quality_scores,
+          quality_scores, quality_score,
           baseline_reach_units, funded_reach_units, total_reach_units,
+          effective_reach_units, campaign_strength,
           estimated_responses_low, estimated_responses_high, match_priority
         ) VALUES (
-          ${user.id}, ${draft.title}, ${draft.summary}, 'pending_funding',
+          ${user.id}, ${draft.title}, ${draft.summary}, ${initialStatus},
           ${draft.category}, ${draft.tags}, ${estimatedMinutes},
           ${fundingAmount}, ${draft.rewardType || "pool"}, ${!!draft.bonusAvailable}, ${!!draft.rewardsTopAnswers},
           ${distributableAmount},
           ${draft.audience.interests}, ${draft.audience.expertise}, ${draft.audience.ageRanges}, ${draft.audience.location || null},
           ${keyAssumptions},
           ${draft.audience.occupation || null}, ${draft.audience.industry || null}, ${draft.audience.experienceLevel || null}, ${draft.audience.nicheQualifier || null},
-          ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb,
+          ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb, ${qualityScore},
           ${reach.baselineRU}, ${reach.fundedRU}, ${reach.totalRU},
+          ${reach.effectiveReach}, ${reach.campaignStrength},
           ${reach.estimatedResponsesLow}, ${reach.estimatedResponsesHigh}, ${planConfig.matchPriority}
         )
         RETURNING id
@@ -111,16 +141,51 @@ export async function publishCampaign(
         `;
       }
 
+      // Increment usage counter inside the transaction for atomicity
+      const updated = await tx`
+        UPDATE subscriptions
+        SET campaigns_used_this_period = campaigns_used_this_period + 1,
+            updated_at = now()
+        WHERE user_id = ${user.id}
+        RETURNING id
+      `;
+      if (updated.length === 0) {
+        await tx`
+          INSERT INTO subscriptions (user_id, tier, status, campaigns_used_this_period)
+          VALUES (${user.id}, 'free', 'active', 1)
+          ON CONFLICT (user_id) DO UPDATE
+            SET campaigns_used_this_period = subscriptions.campaigns_used_this_period + 1,
+                updated_at = now()
+        `;
+      }
+
       return campaign;
     });
 
-    // Increment usage counter after successful publish
-    await incrementCampaignUsage(user.id);
+    logOps({
+      event: "campaign.published",
+      campaignId: result.id,
+      creatorId: user.id,
+      tier: allowance.tier,
+      fundingAmount,
+      status: initialStatus,
+      qualityScore,
+      effectiveReach: reach.effectiveReach,
+      campaignStrength: reach.campaignStrength,
+    });
+
+    // Mark founder as having posted (for onboarding progress)
+    const supabase = await createClient();
+    await supabase
+      .from("profiles")
+      .update({ has_posted: true })
+      .eq("id", user.id);
 
     return { id: result.id };
   } catch (err) {
     const message = (err as Error).message || "Unknown database error";
     console.error("[publishCampaign] DB error:", message);
+    captureError(err, { userId: user.id, operation: "campaign.publish" });
 
     if (message.includes("password authentication failed") || message.includes("SASL")) {
       return { error: "Database connection failed. Please contact support." };

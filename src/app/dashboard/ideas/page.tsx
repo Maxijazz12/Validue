@@ -3,11 +3,11 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 
 const statusColors: Record<string, string> = {
-  draft: "bg-[#f5f2ed] text-[#999999]",
-  pending_funding: "bg-[#f59e0b]/10 text-[#f59e0b]",
+  draft: "bg-[#F1F5F9] text-[#94A3B8]",
+  pending_funding: "bg-[#E5654E]/10 text-[#E5654E]",
   active: "bg-[#22c55e]/10 text-[#22c55e]",
   completed: "bg-[#3b82f6]/10 text-[#3b82f6]",
-  paused: "bg-[#e8b87a]/10 text-[#e8b87a]",
+  paused: "bg-[#E5654E]/10 text-[#E5654E]",
 };
 
 function getRewardLabel(amount: number, type: string | null): string {
@@ -30,19 +30,19 @@ function getAudienceLabel(idea: {
     (idea.target_expertise && idea.target_expertise.length > 0);
 
   if (!hasTargeting) {
-    return { text: "Open audience", color: "text-[#999999]" };
+    return { text: "Open audience", color: "text-[#94A3B8]" };
   }
 
   const total = idea.current_responses || 0;
   if (total === 0) {
-    return { text: "Awaiting responses", color: "text-[#999999]" };
+    return { text: "Awaiting responses", color: "text-[#94A3B8]" };
   }
 
   const ratio = total > 0 ? idea.matched_responses / total : 0;
   if (ratio >= 0.6) {
     return { text: "Strong audience match", color: "text-[#22c55e]" };
   }
-  return { text: "Building audience", color: "text-[#e8b87a]" };
+  return { text: "Building audience", color: "text-[#E5654E]" };
 }
 
 export default async function IdeasPage() {
@@ -75,18 +75,17 @@ export default async function IdeasPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-[32px] max-md:flex-col max-md:items-start max-md:gap-[16px]">
-        <div>
-          <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px]">
-            My Ideas
-          </h1>
-          <p className="text-[15px] text-[#555555] mt-[4px]">
-            Track validation progress and audience quality
-          </p>
+      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
+        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+        <div className="flex items-center justify-between max-md:flex-col max-md:items-start max-md:gap-[16px]">
+          <div>
+            <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">My Ideas</h1>
+            <p className="text-[14px] text-[#64748B] mt-[4px]">Track validation progress and audience quality</p>
+          </div>
+          <Button variant="primary" href="/dashboard/ideas/new">
+            New Idea
+          </Button>
         </div>
-        <Button variant="primary" href="/dashboard/ideas/new">
-          New Idea
-        </Button>
       </div>
 
       {hasIdeas ? (
@@ -107,7 +106,7 @@ export default async function IdeasPage() {
               <Link
                 key={idea.id}
                 href={`/dashboard/ideas/${idea.id}`}
-                className="block bg-white border border-[#ebebeb] rounded-xl p-[20px] hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-shadow no-underline"
+                className="block bg-white border border-[#E2E8F0] rounded-2xl p-[20px] hover:border-[#CBD5E1] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04),0_1px_3px_rgba(232,193,176,0.06)] transition-all duration-200 no-underline"
               >
                 {/* Top row: title + status */}
                 <div className="flex items-center justify-between gap-[12px] mb-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
@@ -132,14 +131,14 @@ export default async function IdeasPage() {
 
                 {/* Progress bar */}
                 <div className="mb-[12px]">
-                  <div className="h-[4px] rounded-full bg-[#f5f2ed] overflow-hidden">
+                  <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#65a30d] transition-all duration-300"
+                      className="h-full rounded-full bg-[#34D399] transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                   <div className="flex items-center justify-between mt-[6px]">
-                    <span className="text-[12px] text-[#999999]">
+                    <span className="text-[12px] text-[#94A3B8]">
                       <span className="font-mono font-semibold text-[#111111]">
                         {idea.current_responses}
                       </span>
@@ -160,18 +159,18 @@ export default async function IdeasPage() {
                       {audience.text}
                     </span>
                     {idea.matched_responses > 0 && idea.current_responses > 0 && (
-                      <span className="text-[11px] text-[#999999]">
+                      <span className="text-[11px] text-[#94A3B8]">
                         {idea.matched_responses}/{idea.current_responses} from matched profiles
                       </span>
                     )}
                   </div>
                   {targetTags.length > 0 && (
                     <div className="flex items-center gap-[4px] shrink-0 flex-wrap">
-                      <span className="text-[11px] text-[#999999]">Targeting:</span>
+                      <span className="text-[11px] text-[#94A3B8]">Targeting:</span>
                       {targetTags.map((tag) => (
                         <span
                           key={tag}
-                          className="text-[10px] px-[6px] py-[2px] rounded-full bg-[#f5f2ed] text-[#555555]"
+                          className="text-[10px] px-[6px] py-[2px] rounded-full bg-[#F3F4F6] text-[#64748B]"
                         >
                           {tag}
                         </span>
@@ -184,14 +183,18 @@ export default async function IdeasPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#ebebeb] rounded-2xl p-[48px] text-center">
-          <div className="text-[40px] mb-[16px]">&#x1f4cb;</div>
+        <div className="bg-[#FAF9FA] border border-[#E2E8F0] rounded-2xl p-[48px] text-center relative overflow-hidden">
+          <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
+          <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18h6" /><path d="M10 22h4" /><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+            </svg>
+          </div>
           <h2 className="text-[20px] font-bold text-[#111111] mb-[8px]">
-            No ideas yet
+            No ideas <span className="italic font-normal text-gradient-warm">yet</span>
           </h2>
-          <p className="text-[14px] text-[#555555] max-w-[360px] mx-auto mb-[28px]">
-            Create your first idea to start collecting targeted feedback from
-            matched respondents.
+          <p className="text-[14px] text-[#64748B] max-w-[360px] mx-auto mb-[28px]">
+            Every great company started as an unproven idea. Yours deserves real feedback.
           </p>
           <Button variant="primary" href="/dashboard/ideas/new">
             Create Idea

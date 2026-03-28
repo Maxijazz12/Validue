@@ -8,6 +8,9 @@ import { generateCampaignDraftFallback } from "@/lib/ai/generate-campaign-fallba
 import { runQualityPass } from "@/lib/ai/quality-pass";
 import { logGeneration, logQualityScores } from "@/lib/ai/logger";
 import { questionId as uid, type CampaignDraft, type DraftQuestion } from "@/lib/ai/types";
+import { rateLimit } from "@/lib/rate-limit";
+import { checkMultipleFields } from "@/lib/content-filter";
+import { logOps } from "@/lib/ops-logger";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -20,6 +23,15 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // ─── Rate limit: 10 generations per user per hour ───
+  const limit = rateLimit(`generate:${user.id}`, 3600000, 10);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Generation limit reached. Please try again later." },
+      { status: 429, headers: { "X-RateLimit-Remaining": "0" } }
+    );
   }
 
   // ─── Parse request ───
@@ -205,6 +217,20 @@ export async function POST(request: Request) {
     });
 
     logQualityScores(draft.qualityScores!);
+
+    // Content safety check on AI-generated output
+    const contentFields = [
+      { name: "title", text: draft.title },
+      { name: "summary", text: draft.summary },
+      ...draft.questions.map((q, i) => ({ name: `question_${i}`, text: q.text })),
+    ];
+    const contentCheck = checkMultipleFields(contentFields);
+    if (!contentCheck.allowed) {
+      logOps({ event: "content.flagged", userId: user.id, fieldName: contentCheck.fieldName ?? "ai_output", action: "blocked", reason: contentCheck.reason ?? "", entryPoint: "generate_ai" });
+      logGeneration({ event: "generation.fallback", reason: "validation_failed", errorMessage: "AI output blocked by content filter" });
+      return returnFallback(scribbleText, startTime, user.id);
+    }
+
     return NextResponse.json(draft);
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";

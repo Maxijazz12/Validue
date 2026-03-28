@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
+import { logOps } from "@/lib/ops-logger";
 
 export type AnswerMetadata = {
   pasteDetected: boolean;
@@ -76,6 +78,17 @@ export async function saveAnswer(
 
   if (!user) throw new Error("Not authenticated");
 
+  // Content moderation + length enforcement
+  const { text: safeText } = enforceLength(text, MAX_LENGTHS.ANSWER_TEXT);
+  const contentCheck = checkContent(safeText);
+  if (!contentCheck.allowed) {
+    logOps({ event: "content.flagged", userId: user.id, fieldName: "answer", action: "blocked", reason: contentCheck.reason ?? "", entryPoint: "saveAnswer" });
+    throw new Error(contentCheck.reason ?? "Content policy violation.");
+  }
+  if (contentCheck.flagged) {
+    logOps({ event: "content.flagged", userId: user.id, fieldName: "answer", action: "flagged", reason: contentCheck.reason ?? "", entryPoint: "saveAnswer" });
+  }
+
   // Check if answer already exists
   const { data: existing } = await supabase
     .from("answers")
@@ -87,7 +100,7 @@ export async function saveAnswer(
   if (existing) {
     const { error } = await supabase
       .from("answers")
-      .update({ text, metadata })
+      .update({ text: safeText, metadata })
       .eq("id", existing.id);
 
     if (error) throw new Error(error.message);
@@ -95,7 +108,7 @@ export async function saveAnswer(
     const { error } = await supabase.from("answers").insert({
       response_id: responseId,
       question_id: questionId,
-      text,
+      text: safeText,
       metadata,
     });
 

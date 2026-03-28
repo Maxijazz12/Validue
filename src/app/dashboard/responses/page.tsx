@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export default async function ResponsesPage() {
   const supabase = await createClient();
@@ -50,12 +51,7 @@ export default async function ResponsesPage() {
   return (
     <>
       <div className="mb-[32px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px]">
-          Responses
-        </h1>
-        <p className="text-[15px] text-[#555555] mt-[4px]">
-          See feedback on your ideas
-        </p>
+        <SectionHeader size="page" label="All Responses" title="Responses" subtitle="See feedback on your ideas" />
       </div>
 
       {hasCampaigns ? (
@@ -70,7 +66,7 @@ export default async function ResponsesPage() {
               <Link
                 key={c.id}
                 href={`/dashboard/ideas/${c.id}/responses`}
-                className="block bg-white border border-[#ebebeb] rounded-xl p-[20px] hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-shadow no-underline"
+                className="block bg-white border border-[#E2E8F0] rounded-xl p-[20px] hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-shadow no-underline"
               >
                 <div className="flex items-center justify-between gap-[12px] mb-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
                   <span className="text-[15px] font-semibold text-[#111111]">
@@ -83,9 +79,9 @@ export default async function ResponsesPage() {
                         style={{
                           color:
                             c.avgScore >= 70
-                              ? "#65a30d"
+                              ? "#22c55e"
                               : c.avgScore >= 40
-                                ? "#e8b87a"
+                                ? "#E5654E"
                                 : "#ef4444",
                         }}
                       >
@@ -97,8 +93,8 @@ export default async function ResponsesPage() {
                         c.ranking_status === "ranked"
                           ? "bg-[#22c55e]/10 text-[#22c55e]"
                           : c.ranking_status === "ranking"
-                            ? "bg-[#e8b87a]/10 text-[#e8b87a]"
-                            : "bg-[#f5f2ed] text-[#999999]"
+                            ? "bg-[#E5654E]/10 text-[#E5654E]"
+                            : "bg-[#F3F4F6] text-[#94A3B8]"
                       }`}
                     >
                       {c.ranking_status === "ranked"
@@ -112,14 +108,14 @@ export default async function ResponsesPage() {
 
                 {/* Progress */}
                 <div className="mb-[8px]">
-                  <div className="h-[4px] rounded-full bg-[#f5f2ed] overflow-hidden">
+                  <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#65a30d] transition-all"
+                      className="h-full rounded-full bg-[#34D399] transition-all"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                   <div className="flex items-center justify-between mt-[6px]">
-                    <span className="text-[12px] text-[#999999]">
+                    <span className="text-[12px] text-[#94A3B8]">
                       <span className="font-mono font-semibold text-[#111111]">
                         {c.totalResponses}
                       </span>{" "}
@@ -144,12 +140,16 @@ export default async function ResponsesPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#ebebeb] rounded-2xl p-[48px] text-center">
-          <div className="text-[40px] mb-[16px]">&#x1f4ac;</div>
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[48px] text-center">
+          <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+          </div>
           <h2 className="text-[20px] font-bold text-[#111111] mb-[8px]">
             No responses yet
           </h2>
-          <p className="text-[14px] text-[#555555] max-w-[360px] mx-auto">
+          <p className="text-[14px] text-[#64748B] max-w-[360px] mx-auto">
             Once respondents start answering your campaigns, their feedback will
             appear here.
           </p>

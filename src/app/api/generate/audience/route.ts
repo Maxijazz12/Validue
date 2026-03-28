@@ -5,6 +5,7 @@ import { SYSTEM_PROMPT, buildImproveAudiencePrompt } from "@/lib/ai/prompts";
 import { AIImprovedAudienceSchema, IMPROVE_AUDIENCE_TOOL } from "@/lib/ai/schemas";
 import { logGeneration } from "@/lib/ai/logger";
 import type { DraftAudience, ImproveAudienceRequest } from "@/lib/ai/types";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -17,6 +18,15 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // ─── Rate limit: 30 audience improvements per user per hour ───
+  const limit = rateLimit(`generate-audience:${user.id}`, 3600000, 30);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Improvement limit reached. Please try again later." },
+      { status: 429 }
+    );
   }
 
   // ─── Parse request ───

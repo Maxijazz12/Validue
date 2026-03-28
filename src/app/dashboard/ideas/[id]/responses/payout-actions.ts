@@ -3,9 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { updateRespondentReputation } from "@/lib/reputation";
-
-const PLATFORM_FEE_RATE = 0.15;
-const MIN_PAYOUT = 0.5;
+import { DEFAULTS, safeNumber, safePositive } from "@/lib/defaults";
+import { PLATFORM_FEE_RATE } from "@/lib/plans";
+import { logOps } from "@/lib/ops-logger";
+import { captureError, captureWarning } from "@/lib/sentry";
 
 export type PayoutSuggestion = {
   responseId: string;
@@ -13,6 +14,7 @@ export type PayoutSuggestion = {
   respondentName: string;
   qualityScore: number;
   suggestedAmount: number;
+  weight: number;
 };
 
 export async function suggestDistribution(campaignId: string) {
@@ -33,13 +35,24 @@ export async function suggestDistribution(campaignId: string) {
 
   if (!campaign) throw new Error("Campaign not found");
 
-  const distributable = Number(campaign.distributable_amount) || 0;
+  const distributable = safePositive(campaign.distributable_amount);
   if (distributable <= 0) return { suggestions: [], distributable: 0 };
 
-  // Fetch ranked responses
+  // Integrity check: distributable must match reward * (1 - fee)
+  const expectedDistributable =
+    Math.round(safePositive(campaign.reward_amount) * (1 - PLATFORM_FEE_RATE) * 100) / 100;
+  if (Math.abs(distributable - expectedDistributable) > 0.02) {
+    const err = new Error(
+      `Distributable mismatch: stored=${distributable}, expected=${expectedDistributable}. Halting payout.`
+    );
+    captureError(err, { campaignId, operation: "payout.distributable_check", distributable, expected: expectedDistributable }, "fatal");
+    throw err;
+  }
+
+  // Fetch ranked responses with confidence for payout gating
   const { data: responses } = await supabase
     .from("responses")
-    .select("id, respondent_id, quality_score, respondent:profiles!respondent_id(full_name)")
+    .select("id, respondent_id, quality_score, scoring_confidence, respondent:profiles!respondent_id(full_name)")
     .eq("campaign_id", campaignId)
     .eq("status", "ranked")
     .order("quality_score", { ascending: false, nullsFirst: false });
@@ -47,51 +60,112 @@ export async function suggestDistribution(campaignId: string) {
   if (!responses || responses.length === 0)
     return { suggestions: [], distributable };
 
-  // AI-suggested distribution: quadratic weighting
-  const scored = responses
-    .map((r) => {
-      const score = Number(r.quality_score) || 0;
-      const weight = Math.pow(Math.max(score - 20, 0), 2);
+  // Separate high-confidence (weighted) and low-confidence (equal share) responses
+  const highConf = responses.filter(
+    (r) => safeNumber(r.scoring_confidence, 0) >= DEFAULTS.PAYOUT_CONFIDENCE_THRESHOLD
+  );
+  const lowConf = responses.filter(
+    (r) => safeNumber(r.scoring_confidence, 0) < DEFAULTS.PAYOUT_CONFIDENCE_THRESHOLD
+  );
+
+  // Reserve a proportional share for low-confidence responses (equal split)
+  const lowConfShare =
+    lowConf.length > 0
+      ? (lowConf.length / responses.length) * distributable
+      : 0;
+  const highConfPool = distributable - lowConfShare;
+
+  // V2: Softer power-law weighting (exponent 1.5, threshold 25)
+  const scored = highConf.map((r) => {
+    const score = safePositive(r.quality_score);
+    const shifted = Math.max(score - 25, 0);
+    const weight = Math.pow(shifted, 1.5);
+    const respondentRaw = r.respondent as unknown;
+    const respondent = (
+      Array.isArray(respondentRaw) ? respondentRaw[0] : respondentRaw
+    ) as { full_name: string } | null;
+    return {
+      responseId: r.id,
+      respondentId: r.respondent_id,
+      respondentName: respondent?.full_name || "Anonymous",
+      qualityScore: score,
+      weight,
+    };
+  });
+
+  const totalWeight = scored.reduce((sum, r) => sum + r.weight, 0);
+
+  // Zero-weight fallback: if all high-conf responses score ≤ 25, distribute equally
+  const useEqualDistribution = totalWeight === 0;
+
+  let suggestions: PayoutSuggestion[] = [];
+
+  if (useEqualDistribution && scored.length > 0) {
+    const equalShare = Math.round((highConfPool / scored.length) * 100) / 100;
+    suggestions = scored.map((r) => ({
+      ...r,
+      suggestedAmount: equalShare,
+    }));
+  } else if (scored.length > 0) {
+    // Initial proportional allocation
+    const initialSuggestions: PayoutSuggestion[] = scored.map((r) => ({
+      responseId: r.responseId,
+      respondentId: r.respondentId,
+      respondentName: r.respondentName,
+      qualityScore: r.qualityScore,
+      suggestedAmount:
+        Math.round(((r.weight / totalWeight) * highConfPool) * 100) / 100,
+      weight: r.weight,
+    }));
+
+    // Proportional redistribution of sub-minimum amounts
+    const aboveMin = initialSuggestions.filter(
+      (s) => s.suggestedAmount >= DEFAULTS.MIN_PAYOUT
+    );
+    const belowMinTotal = initialSuggestions
+      .filter((s) => s.suggestedAmount < DEFAULTS.MIN_PAYOUT)
+      .reduce((sum, s) => sum + s.suggestedAmount, 0);
+
+    suggestions = aboveMin;
+
+    if (belowMinTotal > 0 && suggestions.length > 0) {
+      const remainingWeight = suggestions.reduce((s, r) => s + r.weight, 0);
+      if (remainingWeight > 0) {
+        for (const s of suggestions) {
+          s.suggestedAmount += (s.weight / remainingWeight) * belowMinTotal;
+          s.suggestedAmount = Math.round(s.suggestedAmount * 100) / 100;
+        }
+      }
+    }
+  }
+
+  // Add low-confidence responses with equal share
+  if (lowConf.length > 0) {
+    const equalLowShare = Math.round((lowConfShare / lowConf.length) * 100) / 100;
+    for (const r of lowConf) {
       const respondentRaw = r.respondent as unknown;
       const respondent = (
         Array.isArray(respondentRaw) ? respondentRaw[0] : respondentRaw
       ) as { full_name: string } | null;
-      return {
+      suggestions.push({
         responseId: r.id,
         respondentId: r.respondent_id,
         respondentName: respondent?.full_name || "Anonymous",
-        qualityScore: score,
-        weight,
-      };
-    })
-    .filter((r) => r.weight > 0);
+        qualityScore: safePositive(r.quality_score),
+        suggestedAmount: equalLowShare,
+        weight: 0,
+      });
+    }
+  }
 
-  const totalWeight = scored.reduce((sum, r) => sum + r.weight, 0);
-
-  if (totalWeight === 0)
-    return { suggestions: [], distributable };
-
-  // Distribute proportionally, apply min payout floor
-  let suggestions: PayoutSuggestion[] = scored.map((r) => ({
-    responseId: r.responseId,
-    respondentId: r.respondentId,
-    respondentName: r.respondentName,
-    qualityScore: r.qualityScore,
-    suggestedAmount: Math.round(
-      ((r.weight / totalWeight) * distributable) * 100
-    ) / 100,
-  }));
-
-  // Filter out amounts below minimum payout
-  suggestions = suggestions.filter((s) => s.suggestedAmount >= MIN_PAYOUT);
-
-  // Redistribute leftover from filtered entries
-  const allocated = suggestions.reduce((s, r) => s + r.suggestedAmount, 0);
-  if (allocated < distributable && suggestions.length > 0) {
-    const leftover = distributable - allocated;
-    // Give leftover to top response
+  // Remainder reconciliation: ensure sum === distributable to the cent
+  const totalAllocated = suggestions.reduce((s, a) => s + a.suggestedAmount, 0);
+  const remainder = Math.round((distributable - totalAllocated) * 100) / 100;
+  if (suggestions.length > 0 && remainder !== 0) {
+    // Sort descending by amount; adjust the top earner
+    suggestions.sort((a, b) => b.suggestedAmount - a.suggestedAmount);
     suggestions[0].suggestedAmount =
-      Math.round((suggestions[0].suggestedAmount + leftover) * 100) / 100;
+      Math.round((suggestions[0].suggestedAmount + remainder) * 100) / 100;
   }
 
   return { suggestions, distributable };
@@ -125,7 +199,15 @@ export async function allocatePayouts(
   if (campaign.payout_status === "allocated")
     throw new Error("Payouts already allocated");
 
-  const distributable = Number(campaign.distributable_amount) || 0;
+  const distributable = safePositive(campaign.distributable_amount);
+
+  // Validate all amounts are non-negative
+  for (const a of allocations) {
+    if (!Number.isFinite(a.amount) || a.amount < 0) {
+      throw new Error(`Invalid payout amount: ${a.amount}`);
+    }
+  }
+
   const totalAllocated = allocations.reduce((s, a) => s + a.amount, 0);
 
   if (totalAllocated > distributable + 0.01)
@@ -148,44 +230,82 @@ export async function allocatePayouts(
     responses.map((r) => [r.id, r.respondent_id])
   );
 
-  // Create payouts and update responses
-  for (const allocation of allocations) {
-    if (allocation.amount < MIN_PAYOUT) continue;
+  // Atomic compare-and-swap: claim payout_status to prevent concurrent allocation.
+  // Only succeeds if payout_status is NOT already 'allocated'.
+  const { data: locked, error: lockError } = await supabase
+    .from("campaigns")
+    .update({ payout_status: "allocated" })
+    .eq("id", campaignId)
+    .eq("creator_id", user.id)
+    .neq("payout_status", "allocated")
+    .select("id");
 
+  if (lockError || !locked || locked.length === 0) {
+    throw new Error("Payouts already allocated (concurrent request).");
+  }
+
+  // Create payouts and update responses.
+  // Platform fee is already deducted in distributable_amount.
+  // Payout amount IS the respondent's take-home. platform_fee must be 0.
+  try {
+    for (const allocation of allocations) {
+      if (allocation.amount < DEFAULTS.MIN_PAYOUT) continue;
+
+      const respondentId = respondentMap.get(allocation.responseId);
+      if (!respondentId) continue;
+
+      await supabase.from("payouts").insert({
+        response_id: allocation.responseId,
+        campaign_id: campaignId,
+        founder_id: user.id,
+        respondent_id: respondentId,
+        amount: allocation.amount,
+        platform_fee: 0,
+        status: "pending",
+      });
+
+      await supabase
+        .from("responses")
+        .update({ payout_amount: allocation.amount })
+        .eq("id", allocation.responseId);
+    }
+  } catch (err) {
+    // CRITICAL: Campaign is already marked allocated but payouts didn't all insert.
+    // Manual intervention required.
+    console.error("[allocatePayouts] Partial failure after lock:", err);
+    captureError(err, { campaignId, operation: "payout.allocate", userId: user.id }, "fatal");
+    throw new Error(
+      "Payout allocation partially failed. Please contact support."
+    );
+  }
+
+  // Notify respondents about their earnings
+  const { data: campaignForNotif } = await supabase
+    .from("campaigns")
+    .select("title")
+    .eq("id", campaignId)
+    .single();
+
+  for (const allocation of allocations) {
+    if (allocation.amount < DEFAULTS.MIN_PAYOUT) continue;
     const respondentId = respondentMap.get(allocation.responseId);
     if (!respondentId) continue;
 
-    const platformFee =
-      Math.round(allocation.amount * PLATFORM_FEE_RATE * 100) / 100;
-
-    // Create payout record
-    await supabase.from("payouts").insert({
-      response_id: allocation.responseId,
+    await supabase.from("notifications").insert({
+      user_id: respondentId,
+      type: "payout_earned",
+      title: "You earned money!",
+      body: `$${allocation.amount} from "${campaignForNotif?.title || "a campaign"}"`,
       campaign_id: campaignId,
-      founder_id: user.id,
-      respondent_id: respondentId,
       amount: allocation.amount,
-      platform_fee: platformFee,
-      status: "pending",
+      link: "/dashboard/earnings",
     });
-
-    // Update response payout_amount
-    await supabase
-      .from("responses")
-      .update({ payout_amount: allocation.amount })
-      .eq("id", allocation.responseId);
   }
-
-  // Mark campaign as allocated
-  await supabase
-    .from("campaigns")
-    .update({ payout_status: "allocated" })
-    .eq("id", campaignId);
 
   // Update reputation for all paid respondents
   const paidRespondentIds = new Set(
     allocations
-      .filter((a) => a.amount >= MIN_PAYOUT)
+      .filter((a) => a.amount >= DEFAULTS.MIN_PAYOUT)
       .map((a) => respondentMap.get(a.responseId))
       .filter(Boolean) as string[]
   );
@@ -193,9 +313,37 @@ export async function allocatePayouts(
     await updateRespondentReputation(rid);
   }
 
+  const paidAllocations = allocations.filter((a) => a.amount >= DEFAULTS.MIN_PAYOUT);
+  const amounts = paidAllocations.map((a) => a.amount);
+
+  logOps({
+    event: "payout.allocated",
+    campaignId,
+    distributable,
+    totalDistributed: Math.round(totalAllocated * 100) / 100,
+    respondentCount: paidAllocations.length,
+    avgPayout: amounts.length > 0 ? Math.round((amounts.reduce((a, b) => a + b, 0) / amounts.length) * 100) / 100 : 0,
+    minPayout: amounts.length > 0 ? Math.min(...amounts) : 0,
+    maxPayout: amounts.length > 0 ? Math.max(...amounts) : 0,
+  });
+
+  // Check for payout anomalies
+  const delta = Math.round((distributable - totalAllocated) * 100) / 100;
+  if (Math.abs(delta) > 0.01) {
+    logOps({
+      event: "payout.anomaly",
+      campaignId,
+      anomalyType: "sum_mismatch",
+      distributable,
+      totalAllocated: Math.round(totalAllocated * 100) / 100,
+      delta,
+    });
+    captureWarning(`Payout sum mismatch: delta=$${delta}`, { campaignId, operation: "payout.anomaly", distributable, totalAllocated: Math.round(totalAllocated * 100) / 100 });
+  }
+
   revalidatePath(`/dashboard/ideas/${campaignId}/responses`);
   revalidatePath("/dashboard/my-responses");
   revalidatePath("/dashboard/earnings");
 
-  return { success: true, count: allocations.filter((a) => a.amount >= MIN_PAYOUT).length };
+  return { success: true, count: paidAllocations.length };
 }
