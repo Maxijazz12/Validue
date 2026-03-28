@@ -1,25 +1,47 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #faf8f5;
-  --color-bg-elevated: #f5f2ed;
-  --color-bg-hero: #f7f4ef;
+  /* ─── Core palette ─── */
+  --color-bg: #FFFFFF;
+  --color-bg-elevated: #F3F4F6;
+  --color-bg-hero: #FAFAFA;
   --color-bg-card: #ffffff;
-  --color-border: #ebebeb;
-  --color-border-hover: #d4d4d4;
+  --color-border: #E2E8F0;
+  --color-border-hover: #CBD5E1;
   --color-text-primary: #111111;
-  --color-text-secondary: #555555;
-  --color-text-muted: #999999;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
   --color-accent: #111111;
-  --color-accent-warm: #e8b87a;
-  --color-accent-soft: rgba(232, 184, 122, 0.12);
-  --color-accent-glow: rgba(232, 184, 122, 0.18);
-  --color-accent-dim: rgba(232, 184, 122, 0.06);
 
-  --font-sans: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ─── Brand accent (peach) ─── */
+  --color-accent-warm: #E8C1B0;
+  --color-accent-warm-dark: #D4A494;
+  --color-accent-warm-light: #FBF8F8;
+  --color-accent-warm-vivid: #E8C1B0;
+  --color-accent-soft: rgba(232, 193, 176, 0.10);
+  --color-accent-glow: rgba(232, 193, 176, 0.15);
+  --color-accent-dim: rgba(232, 193, 176, 0.05);
+
+  /* ─── Brand accent (cool blue) ─── */
+  --color-accent-blue: #4F7BE8;
+  --color-accent-blue-dark: #3B6BD9;
+  --color-accent-blue-soft: rgba(79, 123, 232, 0.08);
+  --color-accent-blue-glow: rgba(79, 123, 232, 0.12);
+
+  /* ─── Surface tints ─── */
+  --color-surface-warm: #FAF9FA;
+  --color-surface-cool: #F6F7FA;
+  --color-surface-glass: rgba(255, 255, 255, 0.85);
+  --color-surface-glass-border: rgba(0, 0, 0, 0.06);
+
+  /* ─── Fonts ─── */
+  --font-sans: var(--font-dm-sans), "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-display: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
 
+  /* ─── Animations ─── */
   --animate-fade-up: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-up: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-pulse-dot: pulse 2.5s ease infinite;
   --animate-ticker: ticker 60s linear infinite;
   --animate-load-dot: loadDot 1.4s ease infinite;
@@ -44,7 +66,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -56,60 +78,77 @@ body {
   border-radius: 3px;
 }
 
-/* Solid button – replaces gradient-btn */
+/* ─── CTA Button (solid black, accent glow on hover) ─── */
 .gradient-btn {
   background: #111111;
   color: #ffffff;
   border: none;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
 .gradient-btn:hover {
-  background: #222222;
+  background: #1a1a1a;
+  box-shadow: 0 4px 20px rgba(232, 193, 176, 0.15), 0 1px 4px rgba(232, 193, 176, 0.08);
+}
+.gradient-btn:active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Keyframes */
+/* ─── Glass surface ─── */
+.glass {
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-surface-glass-border);
+}
+
+/* ─── Card warm hover glow (matches landing page cards) ─── */
+.card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(232, 193, 176, 0.06);
+  border-color: #CBD5E1;
+}
+
+/* ─── Gradient text (coral → peach, matches logo/avatar stroke) ─── */
+.text-gradient-warm {
+  background: linear-gradient(135deg, #E5654E 0%, #E8C1B0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Focus ring ─── */
+.focus-glow:focus-within {
+  border-color: #CBD5E1;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ─── Keyframes ─── */
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @keyframes ticker {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 @keyframes loadDot {
-  0%,
-  80%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.2); }
 }
 
 @keyframes floatA {
@@ -125,4 +164,179 @@ body {
 @keyframes indeterminate {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(350%); }
+}
+
+/* ─── Wall feed: shimmer for high-reward badges ─── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.wall-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ─── Wall feed: scroll entrance transition ─── */
+.wall-card-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wall-card-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Wall feed: progress ring stroke animation ─── */
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Wall feed: trending row scrollbar hide ─── */
+.trending-row {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.trending-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Wall feed: sticky collapsible header ─── */
+.wall-header-collapsible {
+  max-height: 300px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease,
+              padding 0.3s ease,
+              margin 0.3s ease;
+}
+.wall-header-collapsed .wall-header-collapsible {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.wall-header-collapsed {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+/* ─── Wall feed: bookmark bounce ─── */
+@keyframes bookmarkBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.bookmark-bounce {
+  animation: bookmarkBounce 0.3s ease;
+}
+
+/* ─── Wall feed: peek expansion ─── */
+.wall-card-peek {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease;
+}
+.wall-card-peek-open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+/* ─── Wall feed: mobile snap scroll ─── */
+@media (max-width: 768px) {
+  html:has(#wall-feed) {
+    scroll-snap-type: y proximity;
+  }
+  .wall-card-enter {
+    scroll-snap-align: start;
+    scroll-margin-top: 64px;
+  }
+}
+
+/* ─── Wall feed: keyboard focus ring ─── */
+.wall-card-focused {
+  box-shadow: 0 0 0 2px #111111, 0 0 0 4px rgba(17, 17, 17, 0.1) !important;
+  border-color: #111111 !important;
+}
+
+/* ─── Wall feed: achievement banner slide-in ─── */
+@keyframes slideInFromTop {
+  0% { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.achievement-enter {
+  animation: slideInFromTop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Wall feed: keyboard hint auto-fade ─── */
+@keyframes hintFade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.keyboard-hint {
+  animation: hintFade 5s ease forwards;
+  pointer-events: none;
+}
+
+/* ─── Wall feed: stats bar collapse ─── */
+.wall-header-collapsed .wall-stats-bar {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.wall-stats-bar {
+  transition: max-height 0.3s ease, opacity 0.2s ease, margin 0.3s ease, padding 0.3s ease;
+}
+
+/* ─── Wall feed: comment input expand on focus ─── */
+.wall-comment-input {
+  transition: height 0.2s ease;
+}
+.wall-comment-input:focus {
+  height: 72px;
+}
+
+/* ─── Response flow: question slide transitions ─── */
+@keyframes slideOutLeft {
+  to { transform: translateX(-20px); opacity: 0; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.question-exit { animation: slideOutLeft 0.25s ease forwards; }
+.question-enter { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ─── Response flow: checkmark flash between questions ─── */
+@keyframes checkFlash {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+.check-flash { animation: checkFlash 0.6s ease forwards; }
+
+/* ─── Response flow: step dot pulse for current question ─── */
+@keyframes stepPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 101, 78, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(229, 101, 78, 0); }
+}
+.step-current { animation: stepPulse 2s ease infinite; }
+
+/* ─── Response flow: confetti particles on confirmation ─── */
+@keyframes confettiDrift {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(40px) rotate(180deg); }
 }

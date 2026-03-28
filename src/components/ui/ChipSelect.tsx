@@ -25,7 +25,7 @@ export default function ChipSelect({
 
   return (
     <div className="flex flex-col gap-[8px]">
-      <label className="text-[13px] font-medium text-[#555555]">{label}</label>
+      <label className="text-[12px] font-medium text-[#64748B]">{label}</label>
       <div className="flex flex-wrap gap-[8px]">
         {options.map((opt) => {
           const isSelected = selected.includes(opt);
@@ -37,7 +37,7 @@ export default function ChipSelect({
               className={`text-[13px] px-[12px] py-[7px] rounded-full border transition-all cursor-pointer ${
                 isSelected
                   ? "border-[#111111] bg-[#111111] text-white font-medium"
-                  : "border-[#ebebeb] bg-white text-[#555555] hover:border-[#d4d4d4]"
+                  : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#CBD5E1]"
               }`}
             >
               {opt}
