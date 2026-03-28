@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import ResponseCard from "@/components/dashboard/responses/ResponseCard";
 import RankButton from "@/components/dashboard/responses/RankButton";
-import PayoutAllocator from "@/components/dashboard/responses/PayoutAllocator";
+import ResponseSection from "@/components/dashboard/responses/ResponseSection";
+import type { ResponseItem } from "@/components/dashboard/responses/ResponseList";
 import { safeNumber } from "@/lib/defaults";
 
 export default async function CampaignResponsesPage({
@@ -40,10 +40,10 @@ export default async function CampaignResponsesPage({
     (questions || []).map((q) => [q.id, q])
   );
 
-  // Fetch responses with respondent profiles
+  // Fetch responses with respondent profiles + scoring fields
   const { data: responses } = await supabase
     .from("responses")
-    .select("id, status, quality_score, ai_feedback, created_at, ranked_at, respondent:profiles!respondent_id(full_name, avatar_url, reputation_tier)")
+    .select("id, status, quality_score, ai_feedback, scoring_source, scoring_confidence, scoring_dimensions, created_at, ranked_at, respondent:profiles!respondent_id(full_name, avatar_url, reputation_tier)")
     .eq("campaign_id", id)
     .in("status", ["submitted", "ranked"])
     .order("quality_score", { ascending: false, nullsFirst: false });
@@ -85,6 +85,63 @@ export default async function CampaignResponsesPage({
     campaign.target_responses > 0
       ? Math.min((campaign.current_responses / campaign.target_responses) * 100, 100)
       : 0;
+
+  // Build response items for client components
+  const responseItems: ResponseItem[] = (responses || []).map((response, index) => {
+    const respondentRaw = response.respondent as unknown;
+    const respondent = (
+      Array.isArray(respondentRaw) ? respondentRaw[0] : respondentRaw
+    ) as { full_name: string; avatar_url: string | null; reputation_tier: string | null } | null;
+
+    const responseAnswers = answersByResponse.get(response.id) || [];
+
+    const sortedAnswers = [...responseAnswers].sort((a, b) => {
+      const qa = questionMap.get(a.question_id);
+      const qb = questionMap.get(b.question_id);
+      return (qa?.sort_order ?? 0) - (qb?.sort_order ?? 0);
+    });
+
+    const formattedAnswers = sortedAnswers.map((a) => {
+      const q = questionMap.get(a.question_id);
+      const meta = (a.metadata as Record<string, unknown>) || {};
+      return {
+        questionText: q?.text || "Unknown question",
+        questionType: q?.type || "open",
+        answerText: a.text || "",
+        charCount: (meta.charCount as number) || 0,
+        timeSpentMs: (meta.timeSpentMs as number) || 0,
+      };
+    });
+
+    const dimensions = response.scoring_dimensions as {
+      depth: number;
+      relevance: number;
+      authenticity: number;
+      consistency: number;
+    } | null;
+
+    return {
+      responseId: response.id,
+      rank: index + 1,
+      respondentName: respondent?.full_name || "Anonymous",
+      respondentAvatar: respondent?.avatar_url || null,
+      respondentTier: (respondent?.reputation_tier || "new") as "new" | "bronze" | "silver" | "gold" | "platinum",
+      qualityScore:
+        response.quality_score !== null
+          ? Number(response.quality_score)
+          : null,
+      aiFeedback: response.ai_feedback,
+      status: response.status,
+      submittedAt: response.created_at,
+      answers: formattedAnswers,
+      isTop: index < 3 && response.status === "ranked",
+      scoringSource: response.scoring_source ?? undefined,
+      scoringConfidence: response.scoring_confidence
+        ? Number(response.scoring_confidence)
+        : undefined,
+      dimensions,
+    };
+  });
 
   return (
     <>
@@ -161,7 +218,7 @@ export default async function CampaignResponsesPage({
                       : "#999999",
             }}
           >
-            {avgScore > 0 ? avgScore : "—"}
+            {avgScore > 0 ? avgScore : "\u2014"}
           </div>
         </div>
 
@@ -183,7 +240,7 @@ export default async function CampaignResponsesPage({
                       : "#999999",
             }}
           >
-            {topScore > 0 ? topScore : "—"}
+            {topScore > 0 ? topScore : "\u2014"}
           </div>
         </div>
       </div>
@@ -199,92 +256,16 @@ export default async function CampaignResponsesPage({
         </div>
       )}
 
-      {/* Payout allocator */}
-      {rankedResponses.length > 0 && safeNumber(campaign.reward_amount) > 0 && (
-        <div className="mb-[24px]">
-          <PayoutAllocator
-            campaignId={id}
-            rewardAmount={safeNumber(campaign.reward_amount)}
-            distributableAmount={safeNumber(campaign.distributable_amount, safeNumber(campaign.reward_amount) * 0.85)}
-            payoutStatus={campaign.payout_status || "none"}
-            rankedCount={rankedResponses.length}
-          />
-        </div>
-      )}
-
-      {/* Response list */}
-      {totalResponses === 0 ? (
-        <div className="bg-[#FAF9FA] border border-[#E2E8F0] rounded-2xl p-[48px] text-center relative overflow-hidden">
-          <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-          <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-            </svg>
-          </div>
-          <h2 className="text-[20px] font-bold text-[#111111] mb-[8px]">
-            No responses <span className="italic font-normal text-gradient-warm">yet</span>
-          </h2>
-          <p className="text-[14px] text-[#64748B] max-w-[360px] mx-auto">
-            Your campaign is live. Great responses are on their way.
-          </p>
-        </div>
-      ) : (
-        <>
-        <div className="flex items-center justify-between mb-[12px]">
-          <h2 className="text-[14px] font-semibold text-[#111111]">All Responses</h2>
-          <span className="text-[12px] text-[#94A3B8]">Sorted by quality score</span>
-        </div>
-        <div className="flex flex-col gap-[12px]">
-          {(responses || []).map((response, index) => {
-            const respondentRaw = response.respondent as unknown;
-            const respondent = (
-              Array.isArray(respondentRaw) ? respondentRaw[0] : respondentRaw
-            ) as { full_name: string; avatar_url: string | null; reputation_tier: string | null } | null;
-
-            const responseAnswers = answersByResponse.get(response.id) || [];
-
-            // Sort answers by question sort_order
-            const sortedAnswers = [...responseAnswers].sort((a, b) => {
-              const qa = questionMap.get(a.question_id);
-              const qb = questionMap.get(b.question_id);
-              return (qa?.sort_order ?? 0) - (qb?.sort_order ?? 0);
-            });
-
-            const formattedAnswers = sortedAnswers.map((a) => {
-              const q = questionMap.get(a.question_id);
-              const meta = (a.metadata as Record<string, unknown>) || {};
-              return {
-                questionText: q?.text || "Unknown question",
-                questionType: q?.type || "open",
-                answerText: a.text || "",
-                charCount: (meta.charCount as number) || 0,
-                timeSpentMs: (meta.timeSpentMs as number) || 0,
-              };
-            });
-
-            return (
-              <ResponseCard
-                key={response.id}
-                rank={index + 1}
-                respondentName={respondent?.full_name || "Anonymous"}
-                respondentAvatar={respondent?.avatar_url || null}
-                respondentTier={(respondent?.reputation_tier || "new") as "new" | "bronze" | "silver" | "gold" | "platinum"}
-                qualityScore={
-                  response.quality_score !== null
-                    ? Number(response.quality_score)
-                    : null
-                }
-                aiFeedback={response.ai_feedback}
-                status={response.status}
-                submittedAt={response.created_at}
-                answers={formattedAnswers}
-                isTop={index < 3 && response.status === "ranked"}
-              />
-            );
-          })}
-        </div>
-        </>
-      )}
+      {/* Response section: allocator + filterable response list */}
+      <ResponseSection
+        campaignId={id}
+        rewardAmount={safeNumber(campaign.reward_amount)}
+        distributableAmount={safeNumber(campaign.distributable_amount, safeNumber(campaign.reward_amount) * 0.85)}
+        payoutStatus={campaign.payout_status || "none"}
+        rankedCount={rankedResponses.length}
+        showAllocator={rankedResponses.length > 0 && safeNumber(campaign.reward_amount) > 0}
+        responses={responseItems}
+      />
     </>
   );
 }

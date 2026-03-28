@@ -13,7 +13,15 @@ type Answer = {
   timeSpentMs: number;
 };
 
+type Dimensions = {
+  depth: number;
+  relevance: number;
+  authenticity: number;
+  consistency: number;
+};
+
 type ResponseCardProps = {
+  responseId: string;
   rank: number;
   respondentName: string;
   respondentAvatar: string | null;
@@ -24,11 +32,21 @@ type ResponseCardProps = {
   submittedAt: string;
   answers: Answer[];
   isTop: boolean;
+  scoringSource?: string;
+  scoringConfidence?: number;
+  dimensions?: Dimensions | null;
+  highlighted?: boolean;
 };
 
 function getScoreColor(score: number): string {
   if (score >= 70) return "#22c55e";
   if (score >= 40) return "#E5654E";
+  return "#ef4444";
+}
+
+function getDimensionColor(value: number): string {
+  if (value >= 7) return "#22c55e";
+  if (value >= 4) return "#E5654E";
   return "#ef4444";
 }
 
@@ -47,7 +65,45 @@ function formatTime(ms: number): string {
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
+function ScoringSourcePill({ source, confidence }: { source?: string; confidence?: number }) {
+  if (!source) return null;
+
+  if (source === "fallback") {
+    return (
+      <span className="text-[10px] px-[6px] py-[1px] rounded-full bg-[#FEF3C7] text-[#92400E] font-medium">
+        Heuristic
+      </span>
+    );
+  }
+
+  if (source === "ai_low_confidence") {
+    return (
+      <span className="text-[10px] px-[6px] py-[1px] rounded-full bg-[#FEF3C7] text-[#92400E] font-medium">
+        Low conf
+      </span>
+    );
+  }
+
+  if (source === "ai" && confidence !== undefined && confidence < 0.7) {
+    return (
+      <span className="text-[10px] px-[6px] py-[1px] rounded-full bg-[#F3F4F6] text-[#64748B] font-medium font-mono">
+        {confidence.toFixed(1)}
+      </span>
+    );
+  }
+
+  return null;
+}
+
+const DIMENSION_CONFIG = [
+  { key: "depth" as const, label: "Depth", weight: "30%" },
+  { key: "relevance" as const, label: "Relevance", weight: "25%" },
+  { key: "authenticity" as const, label: "Authenticity", weight: "25%" },
+  { key: "consistency" as const, label: "Consistency", weight: "20%" },
+];
+
 export default function ResponseCard({
+  responseId,
   rank,
   respondentName,
   respondentAvatar,
@@ -58,6 +114,10 @@ export default function ResponseCard({
   submittedAt,
   answers,
   isTop,
+  scoringSource,
+  scoringConfidence,
+  dimensions,
+  highlighted,
 }: ResponseCardProps) {
   const [expanded, setExpanded] = useState(false);
   const hasScore = qualityScore !== null && status === "ranked";
@@ -65,7 +125,10 @@ export default function ResponseCard({
 
   return (
     <div
+      id={`response-${responseId}`}
       className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
+        highlighted ? "ring-2 ring-[#E5654E]/40 ring-offset-2" : ""
+      } ${
         isTop ? "border-[#E8C1B0]/40 shadow-[0_2px_12px_rgba(232,193,176,0.08)]" : "border-[#E2E8F0] hover:border-[#CBD5E1]"
       }`}
     >
@@ -109,22 +172,25 @@ export default function ResponseCard({
           </p>
         )}
 
-        {/* Score badge */}
-        {hasScore ? (
-          <div
-            className="px-[10px] py-[4px] rounded-full text-[13px] font-bold font-mono shrink-0"
-            style={{
-              color: scoreColor,
-              background: `${scoreColor}15`,
-            }}
-          >
-            {qualityScore}
-          </div>
-        ) : (
-          <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#3b82f6]/10 text-[#3b82f6] shrink-0">
-            {status}
-          </span>
-        )}
+        {/* Score badge + source indicator */}
+        <div className="flex items-center gap-[4px] shrink-0">
+          <ScoringSourcePill source={scoringSource} confidence={scoringConfidence} />
+          {hasScore ? (
+            <div
+              className="px-[10px] py-[4px] rounded-full text-[13px] font-bold font-mono"
+              style={{
+                color: scoreColor,
+                background: `${scoreColor}15`,
+              }}
+            >
+              {qualityScore}
+            </div>
+          ) : (
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#3b82f6]/10 text-[#3b82f6]">
+              {status}
+            </span>
+          )}
+        </div>
 
         {/* Chevron */}
         <svg
@@ -142,7 +208,7 @@ export default function ResponseCard({
         </svg>
       </button>
 
-      {/* Expanded — answers */}
+      {/* Expanded — dimensions + answers */}
       {expanded && (
         <div className="border-t border-[#E2E8F0] p-[16px]">
           {/* Mobile feedback */}
@@ -150,6 +216,37 @@ export default function ResponseCard({
             <p className="text-[12px] text-[#64748B] mb-[12px] md:hidden italic">
               {aiFeedback}
             </p>
+          )}
+
+          {/* Dimension bars */}
+          {dimensions && (
+            <div className="grid grid-cols-2 gap-[8px] mb-[16px] p-[12px] rounded-xl bg-[#F8FAFC]">
+              {DIMENSION_CONFIG.map((d) => {
+                const value = dimensions[d.key];
+                return (
+                  <div key={d.key}>
+                    <div className="flex items-center justify-between mb-[2px]">
+                      <span className="text-[11px] text-[#64748B]">
+                        {d.label}
+                        <span className="text-[#CBD5E1] ml-[3px]">{d.weight}</span>
+                      </span>
+                      <span className="text-[11px] font-mono font-semibold text-[#111111]">
+                        {value}/10
+                      </span>
+                    </div>
+                    <div className="h-[4px] rounded-full bg-[#E2E8F0] overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${value * 10}%`,
+                          backgroundColor: getDimensionColor(value),
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           <div className="flex flex-col gap-[16px]">

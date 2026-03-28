@@ -15,6 +15,7 @@ type PayoutAllocatorProps = {
   distributableAmount: number;
   payoutStatus: string;
   rankedCount: number;
+  onScrollToResponse?: (responseId: string) => void;
 };
 
 type AllocationMode = "ai" | "manual" | "topn";
@@ -25,6 +26,7 @@ export default function PayoutAllocator({
   distributableAmount,
   payoutStatus,
   rankedCount,
+  onScrollToResponse,
 }: PayoutAllocatorProps) {
   const [mode, setMode] = useState<AllocationMode>("ai");
   const [suggestions, setSuggestions] = useState<PayoutSuggestion[]>([]);
@@ -38,6 +40,7 @@ export default function PayoutAllocator({
   const [success, setSuccess] = useState<{
     count: number;
   } | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Load AI suggestions on mount
   useEffect(() => {
@@ -98,6 +101,7 @@ export default function PayoutAllocator({
 
   function handleConfirm() {
     setError(null);
+    setShowConfirm(false);
     startTransition(async () => {
       try {
         const result = await allocatePayouts(campaignId, getAllocations());
@@ -106,6 +110,20 @@ export default function PayoutAllocator({
         setError(err instanceof Error ? err.message : "Allocation failed");
       }
     });
+  }
+
+  function handleDistributeRemaining() {
+    const nonZero = [...manualAmounts.entries()].filter(([, v]) => v > 0);
+    if (nonZero.length === 0 || remaining <= 0.01) return;
+    const total = nonZero.reduce((s, [, v]) => s + v, 0);
+    const next = new Map(manualAmounts);
+    for (const [id, amt] of nonZero) {
+      next.set(
+        id,
+        Math.round((amt + (amt / total) * remaining) * 100) / 100
+      );
+    }
+    setManualAmounts(next);
   }
 
   if (payoutStatus === "allocated" || success) {
@@ -141,8 +159,10 @@ export default function PayoutAllocator({
   if (rewardAmount <= 0) return null;
   if (rankedCount === 0) return null;
 
+  const recipientCount = getAllocations().filter((a) => a.amount >= 0.5).length;
+
   return (
-    <div className="bg-white border border-[#E5654E]/30 rounded-2xl p-[24px]">
+    <div className="bg-white border border-[#E5654E]/30 rounded-2xl p-[24px] relative">
       <h3 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
         Allocate Rewards
       </h3>
@@ -214,6 +234,10 @@ export default function PayoutAllocator({
               );
               const amount = currentAllocation?.amount ?? 0;
               const isIncluded = amount > 0;
+              const isLowConf =
+                s.scoringSource === "fallback" ||
+                s.scoringSource === "ai_low_confidence" ||
+                s.scoringConfidence < 0.5;
 
               return (
                 <div
@@ -228,11 +252,26 @@ export default function PayoutAllocator({
                     #{i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[13px] font-medium text-[#111111] block truncate">
-                      {s.respondentName}
-                    </span>
-                    <span className="text-[11px] text-[#94A3B8]">
+                    {onScrollToResponse ? (
+                      <button
+                        type="button"
+                        onClick={() => onScrollToResponse(s.responseId)}
+                        className="text-[13px] font-medium text-[#111111] hover:text-[#E5654E] underline-offset-2 hover:underline truncate text-left block max-w-full cursor-pointer bg-transparent border-none p-0"
+                      >
+                        {s.respondentName}
+                      </button>
+                    ) : (
+                      <span className="text-[13px] font-medium text-[#111111] block truncate">
+                        {s.respondentName}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-[#94A3B8] flex items-center gap-[4px]">
                       Score: {s.qualityScore}
+                      {isLowConf && (
+                        <span className="text-[10px] px-[5px] py-[0.5px] rounded-full bg-[#FEF3C7] text-[#92400E] font-medium">
+                          {s.scoringSource === "fallback" ? "Heuristic" : "Low conf"}
+                        </span>
+                      )}
                     </span>
                   </div>
 
@@ -293,6 +332,19 @@ export default function PayoutAllocator({
             </div>
           </div>
 
+          {/* Distribute remaining (manual mode only) */}
+          {mode === "manual" && remaining > 0.01 && (
+            <div className="mb-[16px]">
+              <button
+                type="button"
+                onClick={handleDistributeRemaining}
+                className="text-[12px] text-[#E5654E] font-medium cursor-pointer bg-transparent border-none p-0 hover:underline"
+              >
+                Distribute remaining ${remaining.toFixed(2)}
+              </button>
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div className="text-[12px] text-[#ef4444] mb-[12px] p-[10px] rounded-xl bg-[#ef4444]/5">
@@ -300,20 +352,80 @@ export default function PayoutAllocator({
             </div>
           )}
 
-          {/* Confirm */}
-          <Button
-            onClick={handleConfirm}
-            disabled={isPending || totalAllocated <= 0 || remaining < -0.01}
-            className={`w-full py-[14px] text-[15px] ${
-              isPending || totalAllocated <= 0 || remaining < -0.01
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            {isPending
-              ? "Allocating..."
-              : `Confirm Payouts (${getAllocations().filter((a) => a.amount >= 0.5).length} recipients)`}
-          </Button>
+          {/* Confirm button or confirmation panel */}
+          {showConfirm ? (
+            <div className="border border-[#E5654E]/20 rounded-xl p-[16px] bg-[#FFF7ED]">
+              <h4 className="text-[14px] font-semibold text-[#111111] mb-[8px]">
+                Confirm Payout Allocation
+              </h4>
+              <div className="text-[13px] text-[#64748B] mb-[12px] space-y-[4px]">
+                <p>
+                  <span className="font-mono font-semibold text-[#111111]">
+                    ${totalAllocated.toFixed(2)}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-[#111111]">
+                    {recipientCount} respondent{recipientCount !== 1 ? "s" : ""}
+                  </span>
+                </p>
+                {/* Top 3 preview */}
+                <div className="text-[12px] text-[#94A3B8] pl-[8px] border-l-2 border-[#E2E8F0]">
+                  {getAllocations()
+                    .filter((a) => a.amount >= 0.5)
+                    .slice(0, 3)
+                    .map((a) => {
+                      const s = suggestions.find(
+                        (sg) => sg.responseId === a.responseId
+                      );
+                      return (
+                        <div key={a.responseId}>
+                          {s?.respondentName || "Anonymous"} — ${a.amount.toFixed(2)}
+                        </div>
+                      );
+                    })}
+                  {recipientCount > 3 && (
+                    <div>+{recipientCount - 3} more</div>
+                  )}
+                </div>
+              </div>
+              <p className="text-[11px] text-[#E5654E] mb-[12px]">
+                This action is irreversible. Respondents will be notified.
+              </p>
+              <div className="flex gap-[8px]">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 py-[10px] text-[13px] font-semibold text-[#64748B] bg-white border border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-[#F9FAFB] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={isPending}
+                  className={`flex-1 py-[10px] text-[13px] font-semibold text-white bg-[#E5654E] rounded-lg cursor-pointer hover:bg-[#D4544D] transition-colors border-none ${
+                    isPending ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {isPending ? "Allocating..." : `Yes, Allocate $${totalAllocated.toFixed(2)}`}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setShowConfirm(true)}
+              disabled={isPending || totalAllocated <= 0 || remaining < -0.01}
+              className={`w-full py-[14px] text-[15px] ${
+                isPending || totalAllocated <= 0 || remaining < -0.01
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+            >
+              {isPending
+                ? "Allocating..."
+                : `Confirm Payouts (${recipientCount} recipients)`}
+            </Button>
+          )}
         </>
       )}
     </div>

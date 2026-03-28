@@ -1,8 +1,11 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef, useEffect, useCallback } from "react";
 import Button from "@/components/ui/Button";
-import { rankCampaignResponses } from "@/app/dashboard/ideas/[id]/responses/actions";
+import {
+  rankCampaignResponses,
+  getRankingProgress,
+} from "@/app/dashboard/ideas/[id]/responses/actions";
 
 type RankButtonProps = {
   campaignId: string;
@@ -18,17 +21,51 @@ export default function RankButton({
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ranked: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{
+    ranked: number;
+    total: number;
+  } | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isRanking = isPending || rankingStatus === "ranking";
 
+  const clearPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Clean up polling on unmount
+  useEffect(() => clearPolling, [clearPolling]);
+
+  function startPolling() {
+    clearPolling();
+    intervalRef.current = setInterval(async () => {
+      try {
+        const p = await getRankingProgress(campaignId);
+        setProgress(p);
+      } catch {
+        // Polling failure is non-critical — ignore
+      }
+    }, 2000);
+  }
+
   function handleRank() {
     setError(null);
+    setProgress(null);
+
+    // Start polling after a short delay to let the first response start scoring
+    setTimeout(startPolling, 1500);
+
     startTransition(async () => {
       try {
         const res = await rankCampaignResponses(campaignId);
         setResult(res);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ranking failed");
+      } finally {
+        clearPolling();
       }
     });
   }
@@ -46,6 +83,11 @@ export default function RankButton({
     );
   }
 
+  const progressPct =
+    progress && progress.total > 0
+      ? Math.round((progress.ranked / progress.total) * 100)
+      : 0;
+
   return (
     <div>
       <Button
@@ -56,9 +98,22 @@ export default function RankButton({
         }`}
       >
         {isRanking
-          ? "Ranking responses..."
+          ? progress && progress.total > 0
+            ? `Ranking ${progress.ranked} of ${progress.total}...`
+            : "Ranking responses..."
           : `Rank ${unrankedCount} Response${unrankedCount !== 1 ? "s" : ""}`}
       </Button>
+
+      {/* Progress bar */}
+      {isRanking && progress && progress.total > 0 && (
+        <div className="mt-[8px] h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-[#34D399] transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      )}
+
       {error && (
         <p className="text-[12px] text-[#ef4444] mt-[8px]">{error}</p>
       )}

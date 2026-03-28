@@ -15,6 +15,8 @@ export type PayoutSuggestion = {
   qualityScore: number;
   suggestedAmount: number;
   weight: number;
+  scoringSource: string;
+  scoringConfidence: number;
 };
 
 export async function suggestDistribution(campaignId: string) {
@@ -52,7 +54,7 @@ export async function suggestDistribution(campaignId: string) {
   // Fetch ranked responses with confidence for payout gating
   const { data: responses } = await supabase
     .from("responses")
-    .select("id, respondent_id, quality_score, scoring_confidence, respondent:profiles!respondent_id(full_name)")
+    .select("id, respondent_id, quality_score, scoring_confidence, scoring_source, respondent:profiles!respondent_id(full_name)")
     .eq("campaign_id", campaignId)
     .eq("status", "ranked")
     .order("quality_score", { ascending: false, nullsFirst: false });
@@ -90,6 +92,8 @@ export async function suggestDistribution(campaignId: string) {
       respondentName: respondent?.full_name || "Anonymous",
       qualityScore: score,
       weight,
+      scoringSource: (r.scoring_source as string) || "ai",
+      scoringConfidence: safeNumber(r.scoring_confidence, 0.7),
     };
   });
 
@@ -116,6 +120,8 @@ export async function suggestDistribution(campaignId: string) {
       suggestedAmount:
         Math.round(((r.weight / totalWeight) * highConfPool) * 100) / 100,
       weight: r.weight,
+      scoringSource: r.scoringSource,
+      scoringConfidence: r.scoringConfidence,
     }));
 
     // Proportional redistribution of sub-minimum amounts
@@ -154,6 +160,8 @@ export async function suggestDistribution(campaignId: string) {
         qualityScore: safePositive(r.quality_score),
         suggestedAmount: equalLowShare,
         weight: 0,
+        scoringSource: (r.scoring_source as string) || "fallback",
+        scoringConfidence: safeNumber(r.scoring_confidence, 0),
       });
     }
   }

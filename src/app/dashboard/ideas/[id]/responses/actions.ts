@@ -120,6 +120,7 @@ export async function rankCampaignResponses(campaignId: string) {
           ai_feedback: result.feedback,
           scoring_source: result.source,
           scoring_confidence: clampedConfidence,
+          scoring_dimensions: result.dimensions,
           status: "ranked",
           ranked_at: new Date().toISOString(),
         })
@@ -176,4 +177,28 @@ export async function rankCampaignResponses(campaignId: string) {
       .eq("id", campaignId);
     throw err;
   }
+}
+
+/** Lightweight progress check for polling during ranking */
+export async function getRankingProgress(campaignId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { count: rankedCount } = await supabase
+    .from("responses")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId)
+    .eq("status", "ranked");
+
+  const { count: totalCount } = await supabase
+    .from("responses")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId)
+    .in("status", ["submitted", "ranked"]);
+
+  return { ranked: rankedCount ?? 0, total: totalCount ?? 0 };
 }
