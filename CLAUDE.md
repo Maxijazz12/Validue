@@ -43,6 +43,12 @@ INTELLIGENCE.md contains accumulated product lessons, evidence hierarchy, and si
 - Tag all results as [SIMULATED] — hypotheses only
 - Use to narrow options and generate better real-world tests
 
+**Periodic regression simulations:**
+- After any major iteration (new question design, new response flow, new brief format), re-run the full simulation battery: 3+ variants × 2+ ideas × 4 personas
+- Compare against previous simulation results to detect improvement or regression
+- Log delta in INTELLIGENCE.md: "After [change], simulated trust/actionability/WTP moved [direction]"
+- This is not validation — it's a regression test for product quality across iterations
+
 **After real outcomes arrive:**
 - Update INTELLIGENCE.md lessons with actual data (Tier 1-2)
 - Supersede any simulated hypotheses that real data contradicts
