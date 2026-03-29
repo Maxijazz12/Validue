@@ -277,6 +277,9 @@ export default function WallCard({
   // Bookmark bounce state
   const [justSaved, setJustSaved] = useState(false);
 
+  // Quick-respond inline state
+  const [inlineAnswer, setInlineAnswer] = useState("");
+
   const handleSave = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave?.(id);
@@ -405,9 +408,9 @@ export default function WallCard({
 
         {/* Row 1: Reward + Progress + Avatar stack + Social signals */}
         <div className="flex items-center justify-between gap-[10px]">
-          {/* Left: reward badge */}
+          {/* Left: reward badge + drain bar */}
           {hasReward && (
-            <div className="flex items-center gap-[6px] min-w-0">
+            <div className="flex flex-col gap-[3px] min-w-0">
               <span
                 className={`font-mono font-bold text-[12px] px-[8px] py-[3px] rounded-full relative overflow-hidden ${
                   isHighReward
@@ -415,7 +418,7 @@ export default function WallCard({
                     : rewardAmount >= 25
                       ? ""
                       : "text-[#111111]"
-                }`}
+                } ${showClosingSoon && spotsLeft !== null && spotsLeft <= 5 ? "animate-[pulse_2s_ease_infinite]" : ""}`}
                 style={{
                   backgroundColor: isHighReward ? theme.accent : `${theme.accent}12`,
                   color: isHighReward ? "#fff" : rewardAmount >= 25 ? theme.accent : undefined,
@@ -427,6 +430,18 @@ export default function WallCard({
                   {bonusAvailable && "+"}
                 </span>
               </span>
+              {/* Reward pool drain bar for closing-soon cards */}
+              {showClosingSoon && (
+                <div className="h-[2px] w-full rounded-full bg-[#F3F4F6] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700 ease-out"
+                    style={{
+                      width: `${Math.max(100 - progress, 0)}%`,
+                      background: progress >= 80 ? "#E5654E" : progress >= 50 ? "#F59E0B" : theme.accent,
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -495,7 +510,7 @@ export default function WallCard({
             ~{estimatedMinutes} minutes to complete
           </p>
 
-          {/* Quick-respond preview */}
+          {/* Quick-respond inline */}
           {firstQuestion && (
             <div className="mb-[14px] pt-[12px] border-t border-[#F1F5F9]">
               <p className="text-[12px] font-semibold text-[#64748B] mb-[6px]">First question:</p>
@@ -513,9 +528,17 @@ export default function WallCard({
                 </div>
               )}
               {firstQuestion.type === "open" && (
-                <div className="h-[36px] rounded-lg bg-[#F3F4F6] border border-[#E2E8F0] flex items-center px-[12px] opacity-60">
-                  <span className="text-[12px] text-[#94A3B8] italic">Your thoughts...</span>
-                </div>
+                <textarea
+                  value={inlineAnswer}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setInlineAnswer(e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  placeholder="Start typing your thoughts..."
+                  className="w-full min-h-[48px] rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#CBD5E1] focus:shadow-[0_0_0_2px_rgba(232,193,176,0.15)] px-[12px] py-[8px] text-[13px] text-[#111111] placeholder:text-[#94A3B8] outline-none resize-none transition-all duration-200"
+                />
               )}
             </div>
           )}
@@ -524,11 +547,15 @@ export default function WallCard({
           {/* CTAs */}
           <div className="flex items-center gap-[10px] mt-[12px]">
             <a
-              href={`/dashboard/the-wall/${id}`}
+              href={
+                inlineAnswer.trim().length > 0
+                  ? `/dashboard/the-wall/${id}?prefill=${encodeURIComponent(inlineAnswer.trim())}&qid=${firstQuestion?.id || ""}`
+                  : `/dashboard/the-wall/${id}`
+              }
               onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-[6px] px-[20px] py-[10px] bg-[#111111] text-white text-[13px] font-medium rounded-xl no-underline hover:bg-[#1a1a1a] transition-colors"
             >
-              Answer Now
+              {inlineAnswer.trim().length > 0 ? "Continue" : "Answer Now"}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>

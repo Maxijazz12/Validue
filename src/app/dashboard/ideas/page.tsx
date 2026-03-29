@@ -1,23 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
 import Button from "@/components/ui/Button";
-
-const statusColors: Record<string, string> = {
-  draft: "bg-[#F1F5F9] text-[#94A3B8]",
-  pending_funding: "bg-[#E5654E]/10 text-[#E5654E]",
-  active: "bg-[#22c55e]/10 text-[#22c55e]",
-  completed: "bg-[#3b82f6]/10 text-[#3b82f6]",
-  paused: "bg-[#E5654E]/10 text-[#E5654E]",
-};
-
-function getRewardLabel(amount: number, type: string | null): string {
-  switch (type) {
-    case "fixed": return `$${amount} per response`;
-    case "pool": return `$${amount} reward pool`;
-    case "top_only": return `$${amount} for top answers`;
-    default: return `$${amount} reward`;
-  }
-}
+import IdeasList, { type IdeaItem } from "@/components/dashboard/IdeasList";
 
 function getAudienceLabel(idea: {
   target_interests: string[] | null;
@@ -71,7 +54,25 @@ export default async function IdeasPage() {
     })
   );
 
-  const hasIdeas = ideasWithMatches.length > 0;
+  const ideaItems: IdeaItem[] = ideasWithMatches.map((idea) => {
+    const audience = getAudienceLabel(idea);
+    return {
+      id: idea.id,
+      title: idea.title,
+      status: idea.status,
+      reward_amount: Number(idea.reward_amount) || 0,
+      reward_type: idea.reward_type,
+      current_responses: idea.current_responses,
+      target_responses: idea.target_responses,
+      target_interests: idea.target_interests,
+      target_expertise: idea.target_expertise,
+      matched_responses: idea.matched_responses,
+      audienceText: audience.text,
+      audienceColor: audience.color,
+    };
+  });
+
+  const hasIdeas = ideaItems.length > 0;
 
   return (
     <>
@@ -89,99 +90,7 @@ export default async function IdeasPage() {
       </div>
 
       {hasIdeas ? (
-        <div className="flex flex-col gap-[12px]">
-          {ideasWithMatches.map((idea) => {
-            const progress =
-              idea.target_responses > 0
-                ? Math.min((idea.current_responses / idea.target_responses) * 100, 100)
-                : 0;
-            const hasReward = Number(idea.reward_amount) > 0;
-            const audience = getAudienceLabel(idea);
-            const targetTags = [
-              ...(idea.target_interests || []),
-              ...(idea.target_expertise || []),
-            ].slice(0, 4);
-
-            return (
-              <Link
-                key={idea.id}
-                href={`/dashboard/ideas/${idea.id}`}
-                className="block bg-white border border-[#E2E8F0] rounded-2xl p-[20px] hover:border-[#CBD5E1] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04),0_1px_3px_rgba(232,193,176,0.06)] transition-all duration-200 no-underline"
-              >
-                {/* Top row: title + status */}
-                <div className="flex items-center justify-between gap-[12px] mb-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-                  <div className="text-[15px] font-semibold text-[#111111]">
-                    {idea.title}
-                  </div>
-                  <div className="flex items-center gap-[8px] shrink-0">
-                    {hasReward && (
-                      <span className="text-[12px] font-mono font-medium text-[#111111]">
-                        {getRewardLabel(Number(idea.reward_amount), idea.reward_type)}
-                      </span>
-                    )}
-                    <span
-                      className={`px-[10px] py-[4px] rounded-full text-[11px] font-semibold uppercase tracking-[0.5px] ${
-                        statusColors[idea.status] || statusColors.draft
-                      }`}
-                    >
-                      {idea.status === "pending_funding" ? "Pending Funding" : idea.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="mb-[12px]">
-                  <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[#34D399] transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-[6px]">
-                    <span className="text-[12px] text-[#94A3B8]">
-                      <span className="font-mono font-semibold text-[#111111]">
-                        {idea.current_responses}
-                      </span>
-                      /{idea.target_responses} responses
-                    </span>
-                    {idea.status === "active" && idea.current_responses > 0 && (
-                      <span className="text-[11px] text-[#22c55e] font-medium">
-                        Collecting
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Audience quality + targeting tags */}
-                <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-                  <div className="flex items-center gap-[8px] min-w-0">
-                    <span className={`text-[12px] font-semibold ${audience.color}`}>
-                      {audience.text}
-                    </span>
-                    {idea.matched_responses > 0 && idea.current_responses > 0 && (
-                      <span className="text-[11px] text-[#94A3B8]">
-                        {idea.matched_responses}/{idea.current_responses} from matched profiles
-                      </span>
-                    )}
-                  </div>
-                  {targetTags.length > 0 && (
-                    <div className="flex items-center gap-[4px] shrink-0 flex-wrap">
-                      <span className="text-[11px] text-[#94A3B8]">Targeting:</span>
-                      {targetTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[10px] px-[6px] py-[2px] rounded-full bg-[#F3F4F6] text-[#64748B]"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <IdeasList ideas={ideaItems} />
       ) : (
         <div className="bg-[#FAF9FA] border border-[#E2E8F0] rounded-2xl p-[48px] text-center relative overflow-hidden">
           <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />

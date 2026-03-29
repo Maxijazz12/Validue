@@ -52,6 +52,15 @@ const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.React
       </svg>
     ),
   },
+  quality_feedback: {
+    bg: "bg-[#f59e0b]/10",
+    color: "#f59e0b",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 20h.01" /><path d="M7 20v-4" /><path d="M12 20v-8" /><path d="M17 20V8" /><path d="M22 4v16" />
+      </svg>
+    ),
+  },
 };
 
 function NotificationIcon({ type }: { type: string }) {

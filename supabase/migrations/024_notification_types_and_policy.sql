@@ -4,7 +4,7 @@
 -- Drop and recreate the CHECK constraint to allow new types
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_type_check
-  CHECK (type IN ('campaign_completed', 'payout_earned', 'new_response', 'ranking_complete'));
+  CHECK (type IN ('campaign_completed', 'payout_earned', 'new_response', 'ranking_complete', 'quality_feedback'));
 
 -- Allow authenticated users to insert notifications for any user.
 -- This is needed because server actions (e.g. submitResponse, allocatePayouts)

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import SectionHeader from "@/components/ui/SectionHeader";
+import ResponsesOverviewList, { type CampaignWithStats } from "@/components/dashboard/ResponsesOverviewList";
 
 export default async function ResponsesPage() {
   const supabase = await createClient();
@@ -20,7 +20,7 @@ export default async function ResponsesPage() {
     .order("created_at", { ascending: false });
 
   // For each campaign, count ranked responses and avg score
-  const campaignsWithStats = await Promise.all(
+  const campaignsWithStats: CampaignWithStats[] = await Promise.all(
     (campaigns || []).map(async (c) => {
       const { data: responses } = await supabase
         .from("responses")
@@ -38,7 +38,11 @@ export default async function ResponsesPage() {
           : null;
 
       return {
-        ...c,
+        id: c.id,
+        title: c.title,
+        current_responses: c.current_responses,
+        target_responses: c.target_responses,
+        ranking_status: c.ranking_status || "unranked",
         totalResponses: responses?.length || 0,
         rankedCount: ranked.length,
         avgScore,
@@ -55,90 +59,7 @@ export default async function ResponsesPage() {
       </div>
 
       {hasCampaigns ? (
-        <div className="flex flex-col gap-[12px]">
-          {campaignsWithStats.map((c) => {
-            const progress =
-              c.target_responses > 0
-                ? Math.min((c.current_responses / c.target_responses) * 100, 100)
-                : 0;
-
-            return (
-              <Link
-                key={c.id}
-                href={`/dashboard/ideas/${c.id}/responses`}
-                className="block bg-white border border-[#E2E8F0] rounded-xl p-[20px] hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-shadow no-underline"
-              >
-                <div className="flex items-center justify-between gap-[12px] mb-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-                  <span className="text-[15px] font-semibold text-[#111111]">
-                    {c.title}
-                  </span>
-                  <div className="flex items-center gap-[8px] shrink-0">
-                    {c.avgScore !== null && (
-                      <span
-                        className="text-[12px] font-mono font-semibold"
-                        style={{
-                          color:
-                            c.avgScore >= 70
-                              ? "#22c55e"
-                              : c.avgScore >= 40
-                                ? "#E5654E"
-                                : "#ef4444",
-                        }}
-                      >
-                        Avg: {c.avgScore}
-                      </span>
-                    )}
-                    <span
-                      className={`px-[10px] py-[4px] rounded-full text-[11px] font-semibold uppercase tracking-[0.5px] ${
-                        c.ranking_status === "ranked"
-                          ? "bg-[#22c55e]/10 text-[#22c55e]"
-                          : c.ranking_status === "ranking"
-                            ? "bg-[#E5654E]/10 text-[#E5654E]"
-                            : "bg-[#F3F4F6] text-[#94A3B8]"
-                      }`}
-                    >
-                      {c.ranking_status === "ranked"
-                        ? "Ranked"
-                        : c.ranking_status === "ranking"
-                          ? "Ranking..."
-                          : "Unranked"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress */}
-                <div className="mb-[8px]">
-                  <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[#34D399] transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-[6px]">
-                    <span className="text-[12px] text-[#94A3B8]">
-                      <span className="font-mono font-semibold text-[#111111]">
-                        {c.totalResponses}
-                      </span>{" "}
-                      responses · {c.rankedCount} ranked
-                    </span>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#999999"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <ResponsesOverviewList campaigns={campaignsWithStats} />
       ) : (
         <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[48px] text-center">
           <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">

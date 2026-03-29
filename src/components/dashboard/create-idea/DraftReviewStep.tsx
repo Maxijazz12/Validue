@@ -7,6 +7,7 @@ import type { BaselineQuestion } from "@/lib/baseline-questions";
 import SurveyEditor from "./SurveyEditor";
 import BaselineQuestionPicker from "./BaselineQuestionPicker";
 import SignalStrengthMeter from "./SignalStrengthMeter";
+import WallCard from "@/components/dashboard/WallCard";
 import AudienceTargetingPanel from "./AudienceTargetingPanel";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
 import CampaignStrengthMeter from "@/components/dashboard/CampaignStrengthMeter";
@@ -561,8 +562,37 @@ export default function DraftReviewStep({
 
         {/* Right column — Survey Quality Score (sticky) */}
         <div className="max-lg:order-first">
-          <div className="sticky top-[24px]">
+          <div className="sticky top-[24px] flex flex-col gap-[16px]">
             <SignalStrengthMeter draft={draft} />
+
+            {/* Live preview of how the card will appear on The Wall */}
+            <div>
+              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8] mb-[8px]">
+                Wall Preview
+              </p>
+              <div className="pointer-events-none opacity-90 scale-[0.92] origin-top-left">
+                <WallCard
+                  id="preview"
+                  title={draft.title || "Your Idea Title"}
+                  description={draft.summary || "Your idea description will appear here..."}
+                  category={draft.category || null}
+                  tags={draft.tags.slice(0, 3)}
+                  estimatedMinutes={5}
+                  rewardAmount={draft.rewardPool ?? 0}
+                  currentResponses={0}
+                  targetResponses={50}
+                  createdAt={new Date().toISOString()}
+                  deadline={null}
+                  creatorName="You"
+                  creatorAvatar={null}
+                  bonusAvailable={!!draft.bonusAvailable}
+                  rewardsTopAnswers={!!draft.rewardsTopAnswers}
+                  rewardType={draft.rewardType ?? "pool"}
+                  matchScore={85}
+                  isVisible
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

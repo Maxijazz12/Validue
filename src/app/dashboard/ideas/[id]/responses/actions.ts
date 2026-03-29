@@ -126,6 +126,23 @@ export async function rankCampaignResponses(campaignId: string) {
         })
         .eq("id", response.id);
 
+      // Notify respondent about their quality score
+      const dims = result.dimensions as { depth?: number; relevance?: number; authenticity?: number; consistency?: number } | null;
+      const bestDim = dims
+        ? Object.entries(dims).sort(([, a], [, b]) => (b as number) - (a as number))[0]
+        : null;
+      const tipText = clampedScore >= 70
+        ? bestDim ? `Strength: ${bestDim[0]}.` : "Great work!"
+        : bestDim ? `Tip: Focus on improving ${Object.entries(dims || {}).sort(([, a], [, b]) => (a as number) - (b as number))[0]?.[0] || "depth"} for higher scores.` : "";
+
+      await supabase.from("notifications").insert({
+        user_id: response.respondent_id,
+        type: "quality_feedback",
+        title: `Your response scored ${clampedScore}/100`,
+        body: `"${campaign.title}" — ${tipText}`,
+        campaign_id: campaignId,
+      });
+
       rankedCount++;
       scoreSum += clampedScore;
       if (result.source === "ai") aiCount++;

@@ -53,6 +53,53 @@ function playKaChing() {
   }
 }
 
+function ToastIcon({ type }: { type: string }) {
+  if (type === "payout_earned") {
+    return (
+      <div className="w-[28px] h-[28px] rounded-full bg-[#34D399]/10 flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      </div>
+    );
+  }
+  if (type === "new_response") {
+    return (
+      <div className="w-[28px] h-[28px] rounded-full bg-[#3b82f6]/10 flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+      </div>
+    );
+  }
+  if (type === "ranking_complete") {
+    return (
+      <div className="w-[28px] h-[28px] rounded-full bg-[#8b5cf6]/10 flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      </div>
+    );
+  }
+  if (type === "quality_feedback") {
+    return (
+      <div className="w-[28px] h-[28px] rounded-full bg-[#f59e0b]/10 flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 20h.01" /><path d="M7 20v-4" /><path d="M12 20v-8" /><path d="M17 20V8" /><path d="M22 4v16" />
+        </svg>
+      </div>
+    );
+  }
+  // Default: campaign_completed or unknown
+  return (
+    <div className="w-[28px] h-[28px] rounded-full bg-[#E5654E]/10 flex items-center justify-center shrink-0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+      </svg>
+    </div>
+  );
+}
+
 export default function NotificationToast({ userId }: { userId: string }) {
   const [toast, setToast] = useState<ToastData | null>(null);
   const [visible, setVisible] = useState(false);
@@ -123,21 +170,8 @@ export default function NotificationToast({ userId }: { userId: string }) {
         }}
         className="w-full text-left flex items-center gap-[10px] bg-white/90 backdrop-blur-xl rounded-2xl px-[16px] py-[12px] shadow-[0_4px_20px_rgba(0,0,0,0.08),0_1px_4px_rgba(232,193,176,0.1)] border border-[#E2E8F0]/40 cursor-pointer hover:shadow-[0_6px_24px_rgba(0,0,0,0.1)] transition-all"
       >
-        {/* Validue peach icon — matches FloatingCard on landing page */}
-        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[24px] h-[24px] shrink-0">
-          <defs>
-            <linearGradient id="notif-s" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#E5654E" />
-              <stop offset="100%" stopColor="#E8C1B0" />
-            </linearGradient>
-            <linearGradient id="notif-f" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#E5654E" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#E8C1B0" stopOpacity="0.06" />
-            </linearGradient>
-          </defs>
-          <ellipse cx="32" cy="32" rx="27" ry="27" fill="url(#notif-f)" stroke="url(#notif-s)" strokeWidth="3" />
-          <path d="M32 6 Q29 30 32 58" stroke="url(#notif-s)" strokeWidth="1.8" fill="none" opacity="0.3" />
-        </svg>
+        {/* Type-specific icon */}
+        <ToastIcon type={toast.type} />
 
         {/* Content */}
         <div className="flex-1 min-w-0">

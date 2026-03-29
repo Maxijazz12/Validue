@@ -4,10 +4,13 @@ import ResponseFlow from "@/components/dashboard/respond/ResponseFlow";
 
 export default async function RespondPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ prefill?: string; qid?: string }>;
 }) {
   const { id } = await params;
+  const { prefill, qid } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -82,7 +85,7 @@ export default async function RespondPage({
       estimatedMinutes: (c.estimated_minutes as number) || 5,
       currentResponses: (c.current_responses as number) || 0,
       targetResponses: (c.target_responses as number) || 50,
-      creatorName: (c.creator as { full_name: string } | null)?.full_name || "Anonymous",
+      creatorName: ((Array.isArray(c.creator) ? c.creator[0] : c.creator) as { full_name: string } | null)?.full_name || "Anonymous",
     }));
 
   const creator = campaign.creator as { full_name: string; avatar_url: string | null } | null;
@@ -121,6 +124,7 @@ export default async function RespondPage({
       isOwnCampaign={campaign.creator_id === user.id}
       isFull={(campaign.current_responses || 0) >= (campaign.target_responses || 50)}
       isActive={campaign.status === "active"}
+      prefill={prefill && qid ? { questionId: qid, text: prefill } : undefined}
     />
   );
 }

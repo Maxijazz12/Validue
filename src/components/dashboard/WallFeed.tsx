@@ -7,6 +7,8 @@ import TrendingRow from "@/components/dashboard/TrendingRow";
 import FeedInterstitial from "@/components/dashboard/FeedInterstitial";
 import RespondentStatsBar from "@/components/dashboard/RespondentStatsBar";
 import AchievementBanner, { type Achievement } from "@/components/dashboard/AchievementBanner";
+import ActivityTicker, { type ActivityItem } from "@/components/dashboard/ActivityTicker";
+import WeeklyDigestBanner, { type WeeklyDigest } from "@/components/dashboard/WeeklyDigestBanner";
 import KeyboardHint from "@/components/dashboard/KeyboardHint";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
 
@@ -218,9 +220,13 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
 export default function WallFeed({
   ideas,
   userProfile,
+  activityItems = [],
+  weeklyDigest,
 }: {
   ideas: WallCardProps[];
   userProfile: WallUserProfile;
+  activityItems?: ActivityItem[];
+  weeklyDigest?: WeeklyDigest;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("Best Matches");
   const [query, setQuery] = useState("");
@@ -422,6 +428,12 @@ export default function WallFeed({
           onDismiss={() => dismissAchievement(currentAchievement.key)}
         />
       )}
+
+      {/* ─── Weekly Digest Banner ─── */}
+      {weeklyDigest && <WeeklyDigestBanner digest={weeklyDigest} />}
+
+      {/* ─── Activity Ticker ─── */}
+      <ActivityTicker items={activityItems} />
 
       {/* ─── Stats Bar ─── */}
       <RespondentStatsBar userProfile={userProfile} matchCount={matchCount} />

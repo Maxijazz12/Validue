@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { startupQuotes } from "@/lib/constants";
 
 const PROGRESS_STAGES = [
-  "Reading your idea…",
-  "Crafting questions for your audience…",
-  "Building audience profile…",
-  "Making sure every question earns its place…",
-  "Polishing the final details…",
-];
+  { label: "Reading your idea", icon: "read" },
+  { label: "Crafting questions", icon: "questions" },
+  { label: "Building audience profile", icon: "audience" },
+  { label: "Quality check", icon: "quality" },
+  { label: "Final polish", icon: "polish" },
+] as const;
 
 export default function GeneratingStep() {
   const [factIndex, setFactIndex] = useState(() =>
@@ -50,6 +50,7 @@ export default function GeneratingStep() {
   }, [showNext]);
 
   const quote = startupQuotes[factIndex];
+  const progressPercent = ((stageIndex + 1) / PROGRESS_STAGES.length) * 100;
 
   return (
     <div
@@ -57,24 +58,78 @@ export default function GeneratingStep() {
         mounted ? "opacity-100" : "opacity-0"
       }`}
     >
-      {/* Progress bar */}
-      <div className="w-full max-w-[400px] h-[3px] rounded-full bg-[#F3F4F6] overflow-hidden mb-[48px]">
-        <div
-          className="h-full rounded-full bg-[#E5654E] animate-[indeterminate_1.5s_ease-in-out_infinite]"
-          style={{ width: "40%" }}
-        />
+      {/* Stage stepper */}
+      <div className="w-full max-w-[480px] mb-[40px]">
+        <div className="flex items-center justify-between mb-[12px]">
+          {PROGRESS_STAGES.map((stage, i) => {
+            const isComplete = i < stageIndex;
+            const isCurrent = i === stageIndex;
+            return (
+              <div key={i} className="flex flex-col items-center gap-[6px] flex-1">
+                <div
+                  className={`w-[28px] h-[28px] rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isComplete
+                      ? "bg-[#22C55E] text-white"
+                      : isCurrent
+                        ? "bg-[#E5654E] text-white animate-[stepPulse_2s_ease_infinite]"
+                        : "bg-[#F3F4F6] text-[#CBD5E1]"
+                  }`}
+                >
+                  {isComplete ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="text-[11px] font-bold">{i + 1}</span>
+                  )}
+                </div>
+                <span className={`text-[10px] font-medium text-center leading-tight transition-colors duration-200 ${
+                  isComplete ? "text-[#22C55E]" : isCurrent ? "text-[#111111]" : "text-[#CBD5E1]"
+                }`}>
+                  {stage.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {/* Progress bar */}
+        <div className="h-[3px] rounded-full bg-[#F3F4F6] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#E5654E] to-[#E8C1B0] transition-all duration-1000 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
       </div>
 
-      {/* Heading */}
-      <div className="flex items-center gap-[10px] mb-[40px]">
-        <span className="flex gap-[4px]">
-          <span className="w-[6px] h-[6px] rounded-full bg-[#E5654E] animate-[loadDot_1.4s_ease_infinite]" />
-          <span className="w-[6px] h-[6px] rounded-full bg-[#E5654E] animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
-          <span className="w-[6px] h-[6px] rounded-full bg-[#E5654E] animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
-        </span>
-        <span className="text-[15px] font-medium text-[#64748B]">
-          {PROGRESS_STAGES[stageIndex]}
-        </span>
+      {/* Skeleton card preview */}
+      <div className="w-full max-w-[400px] mb-[40px] rounded-2xl border border-[#E2E8F0] p-[20px] bg-white">
+        {/* Title skeleton */}
+        <div className={`h-[16px] rounded-md mb-[8px] transition-all duration-500 ${
+          stageIndex >= 0 ? "bg-[#111111]/10 w-[70%]" : "bg-[#F3F4F6] w-[70%]"
+        }`} />
+        {/* Description skeleton */}
+        <div className={`h-[12px] rounded-md mb-[4px] transition-all duration-500 delay-100 ${
+          stageIndex >= 1 ? "bg-[#94A3B8]/15 w-full" : "bg-[#F3F4F6] w-full"
+        }`} />
+        <div className={`h-[12px] rounded-md mb-[12px] transition-all duration-500 delay-200 ${
+          stageIndex >= 1 ? "bg-[#94A3B8]/15 w-[60%]" : "bg-[#F3F4F6] w-[60%]"
+        }`} />
+        {/* Question skeletons */}
+        <div className="flex flex-col gap-[6px] mb-[12px] pt-[12px] border-t border-[#F1F5F9]">
+          {[0, 1, 2].map((qi) => (
+            <div key={qi} className={`h-[10px] rounded-md transition-all duration-500 ${
+              stageIndex >= 2 ? "bg-[#E5654E]/10" : "bg-[#F3F4F6]"
+            }`} style={{ width: `${80 - qi * 15}%`, transitionDelay: `${qi * 150}ms` }} />
+          ))}
+        </div>
+        {/* Tags skeleton */}
+        <div className="flex gap-[6px]">
+          {[0, 1].map((ti) => (
+            <div key={ti} className={`h-[20px] rounded-full transition-all duration-500 ${
+              stageIndex >= 3 ? "bg-[#E8C1B0]/15" : "bg-[#F3F4F6]"
+            }`} style={{ width: `${60 + ti * 20}px`, transitionDelay: `${ti * 100}ms` }} />
+          ))}
+        </div>
       </div>
 
       {/* Fact card */}

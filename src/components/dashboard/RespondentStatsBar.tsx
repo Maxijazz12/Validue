@@ -9,6 +9,7 @@ export type WallUserProfile = {
   interests: string[];
   expertise: string[];
   has_responded: boolean;
+  current_streak?: number;
 };
 
 function getActivityLevel(count: number): { label: string; color: string } {
@@ -18,10 +19,37 @@ function getActivityLevel(count: number): { label: string; color: string } {
   return { label: "Getting Started", color: "#94A3B8" };
 }
 
-function getQualityTrend(score: number): { icon: string; color: string } {
-  if (score >= 60) return { icon: "↑", color: "#22C55E" };
-  if (score >= 40) return { icon: "→", color: "#F59E0B" };
-  return { icon: "↓", color: "#EF4444" };
+function getQualityTrend(score: number): { direction: "up" | "flat" | "down"; color: string } {
+  if (score >= 60) return { direction: "up", color: "#22C55E" };
+  if (score >= 40) return { direction: "flat", color: "#F59E0B" };
+  return { direction: "down", color: "#94A3B8" };
+}
+
+function QualityIcon({ direction, color }: { direction: "up" | "flat" | "down"; color: string }) {
+  if (direction === "up") return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+  if (direction === "flat") return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function StreakIcon({ pulse }: { pulse: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round" className={pulse ? "animate-[pulse_2.5s_ease_infinite]" : ""}>
+      <path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z" fill="#E8C1B0" stroke="#D4A494" strokeWidth="1.5" />
+      <path d="M12 10c0 2-1.5 3-1.5 5a1.5 1.5 0 0 0 3 0c0-2-1.5-3-1.5-5z" fill="#E5654E" stroke="#CC5340" strokeWidth="1" />
+    </svg>
+  );
 }
 
 export default function RespondentStatsBar({
@@ -52,19 +80,25 @@ export default function RespondentStatsBar({
         <span className="text-[12px] text-[#64748B]">{activity.label}</span>
       </div>
 
+      {/* Streak */}
+      {(userProfile.current_streak ?? 0) > 0 && (
+        <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
+          <StreakIcon pulse={(userProfile.current_streak ?? 0) >= 3} />
+          <span className="text-[12px] text-[#64748B]">{userProfile.current_streak}-day</span>
+        </div>
+      )}
+
       {/* Quality */}
       <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
-        <span className="text-[14px] font-bold" style={{ color: quality.color }}>{quality.icon}</span>
+        <QualityIcon direction={quality.direction} color={quality.color} />
         <span className="text-[12px] text-[#64748B]">Quality</span>
-        <span className="text-[11px] font-mono text-[#111111]">{Math.round(userProfile.average_quality_score)}</span>
+        <span className="text-[11px] text-[#94A3B8]">{Math.round(userProfile.average_quality_score)}</span>
       </div>
 
       {/* Earnings */}
       <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-        </svg>
-        <span className="text-[12px] font-mono font-semibold text-[#111111]">${Math.round(userProfile.total_earned)}</span>
+        <span className="text-[12px] text-[#64748B]">Earned</span>
+        <span className="text-[12px] text-[#111111]">${Math.round(userProfile.total_earned)}</span>
       </div>
 
       {/* Matches */}

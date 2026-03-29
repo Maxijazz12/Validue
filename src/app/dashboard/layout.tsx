@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import MobileTabBar from "@/components/dashboard/MobileTabBar";
+import CommandPalette from "@/components/dashboard/CommandPalette";
 import SubscriptionBanner from "@/components/dashboard/SubscriptionBanner";
 import NotificationToast from "@/components/dashboard/NotificationToast";
 import { getSubscription } from "@/lib/plan-guard";
@@ -71,8 +73,10 @@ export default async function DashboardLayout({
         totalEarned={totalEarned}
         hasNewResponses={(newResponseCount ?? 0) > 0}
       />
+      <MobileTabBar />
+      <CommandPalette />
       <main className="md:ml-[240px] min-h-screen relative z-10">
-        <div className="max-w-[960px] mx-auto px-[32px] py-[40px] max-md:px-[20px] max-md:pt-[72px]">
+        <div className="max-w-[960px] mx-auto px-[32px] py-[40px] max-md:px-[20px] max-md:pt-[72px] max-md:pb-[80px]">
           <Suspense>
             <SubscriptionBanner />
           </Suspense>

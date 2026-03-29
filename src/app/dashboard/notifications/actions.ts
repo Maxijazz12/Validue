@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export type Notification = {
   id: string;
-  type: "campaign_completed" | "payout_earned" | "new_response" | "ranking_complete";
+  type: "campaign_completed" | "payout_earned" | "new_response" | "ranking_complete" | "quality_feedback";
   title: string;
   body: string | null;
   campaign_id: string | null;

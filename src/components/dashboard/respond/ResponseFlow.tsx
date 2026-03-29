@@ -43,6 +43,7 @@ type ResponseFlowProps = {
   isFull: boolean;
   isActive: boolean;
   suggestedCampaigns?: SuggestedCampaign[];
+  prefill?: { questionId: string; text: string };
 };
 
 type Stage = "detail" | "responding" | "submitted";
@@ -56,6 +57,7 @@ export default function ResponseFlow({
   isFull,
   isActive,
   suggestedCampaigns,
+  prefill,
 }: ResponseFlowProps) {
   const initialStage: Stage = existingResponse?.status === "submitted"
     ? "submitted"
@@ -71,14 +73,23 @@ export default function ResponseFlow({
   const [error, setError] = useState<string | null>(null);
   const [totalTimeMs, setTotalTimeMs] = useState(0);
 
-  const initialAnswers = existingAnswers
-    ? new Map(
-        existingAnswers.map((a) => [
-          a.question_id,
-          { text: a.text || "", pasteCount: 0, timeSpentMs: 0 },
-        ])
-      )
-    : undefined;
+  const initialAnswers = (() => {
+    const map = existingAnswers
+      ? new Map(
+          existingAnswers.map((a) => [
+            a.question_id,
+            { text: a.text || "", pasteCount: 0, timeSpentMs: 0 },
+          ])
+        )
+      : new Map<string, { text: string; pasteCount: number; timeSpentMs: number }>();
+
+    // Merge in prefilled answer from inline quick-respond on WallCard
+    if (prefill) {
+      map.set(prefill.questionId, { text: prefill.text, pasteCount: 0, timeSpentMs: 0 });
+    }
+
+    return map.size > 0 ? map : undefined;
+  })();
 
   const openCount = questions.filter((q) => q.type === "open").length;
   const mcCount = questions.filter((q) => q.type === "multiple_choice").length;

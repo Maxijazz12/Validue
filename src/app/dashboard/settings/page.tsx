@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Avatar from "@/components/ui/Avatar";
 import RespondentProfileForm from "@/components/dashboard/RespondentProfileForm";
+import AvatarUpload from "@/components/dashboard/settings/AvatarUpload";
+import PasswordChangeForm from "@/components/dashboard/settings/PasswordChangeForm";
+import NotificationPreferences from "@/components/dashboard/settings/NotificationPreferences";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
 
@@ -75,20 +77,12 @@ export default async function SettingsPage({
           Profile
         </h2>
 
-        <div className="flex items-center gap-[16px] mb-[32px]">
-          <Avatar
+        <div className="mb-[32px]">
+          <AvatarUpload
+            userId={user!.id}
             name={profile?.full_name || "User"}
-            imageUrl={profile?.avatar_url}
-            size={24}
+            currentUrl={profile?.avatar_url || null}
           />
-          <div>
-            <div className="text-[15px] font-semibold text-[#111111]">
-              {profile?.full_name || "Unnamed"}
-            </div>
-            <div className="text-[13px] text-[#94A3B8]">
-              {user!.email}
-            </div>
-          </div>
         </div>
 
         <form action={updateProfile} className="flex flex-col gap-[16px] max-w-[400px]">
