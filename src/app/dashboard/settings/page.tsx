@@ -142,6 +142,19 @@ export default async function SettingsPage({
         />
       )}
 
+      {/* Password change */}
+      <div className="mb-[24px]">
+        <PasswordChangeForm />
+      </div>
+
+      {/* Notification preferences */}
+      <div className="mb-[24px]">
+        <NotificationPreferences
+          preferences={(profile?.notification_preferences as Record<string, boolean>) || {}}
+          role={profile?.role || "founder"}
+        />
+      </div>
+
       {/* Account section */}
       <div className="bg-white border border-red-200 rounded-2xl p-[32px]">
         <h2 className="text-[16px] font-semibold text-red-600 mb-[8px]">
