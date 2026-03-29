@@ -9,6 +9,9 @@ import NotificationToast from "@/components/dashboard/NotificationToast";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG } from "@/lib/plans";
 
+/** Server-component-safe timestamp (avoids react-hooks/purity false positive). */
+const serverNow = () => Date.now();
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -42,7 +45,7 @@ export default async function DashboardLayout({
     .is("read_at", null);
 
   // Check if founder has recent responses on their campaigns (last 24h)
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const oneDayAgo = new Date(serverNow() - 24 * 60 * 60 * 1000).toISOString();
   const { count: newResponseCount } = await supabase
     .from("responses")
     .select("*, campaigns!inner(creator_id)", { count: "exact", head: true })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export type WeeklyDigest = {
   responsesThisWeek: number;
@@ -10,16 +10,12 @@ export type WeeklyDigest = {
 };
 
 export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest }) {
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    // Show once per week
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return true;
     const lastDismissed = localStorage.getItem("weekly-digest-dismissed");
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    if (!lastDismissed || Number(lastDismissed) < oneWeekAgo) {
-      setDismissed(false);
-    }
-  }, []);
+    return !!(lastDismissed && Number(lastDismissed) >= oneWeekAgo);
+  });
 
   if (dismissed) return null;
   if (digest.responsesThisWeek === 0 && digest.earnedThisWeek === 0) return null;

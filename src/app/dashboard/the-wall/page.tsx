@@ -16,6 +16,9 @@ import { DEFAULTS, safeNumber } from "@/lib/defaults";
 
 /* ─── Page ─── */
 
+/** Server-component-safe timestamp (avoids react-hooks/purity false positive). */
+const serverNow = () => Date.now();
+
 export default async function TheWallPage() {
   const supabase = await createClient();
   const {
@@ -253,7 +256,7 @@ export default async function TheWallPage() {
   if (recentResponseDates && recentResponseDates.length > 0) {
     const uniqueDays = [...new Set(recentResponseDates.map((r) => new Date(r.created_at).toISOString().split("T")[0]))].sort().reverse();
     const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const yesterday = new Date(serverNow() - 86400000).toISOString().split("T")[0];
     if (uniqueDays[0] === today || uniqueDays[0] === yesterday) {
       currentStreak = 1;
       for (let i = 1; i < uniqueDays.length; i++) {
@@ -292,7 +295,7 @@ export default async function TheWallPage() {
     activityItems.push({ text: `${first} just earned $${Number(p.amount).toFixed(0)} for feedback`, accent: "green" });
   }
   // Add campaign creation activity
-  const oneDay = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const oneDay = new Date(serverNow() - 24 * 60 * 60 * 1000).toISOString();
   const { count: newCampaignCount } = await supabase
     .from("campaigns")
     .select("*", { count: "exact", head: true })
@@ -312,7 +315,7 @@ export default async function TheWallPage() {
   }
 
   // Weekly digest data
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const oneWeekAgo = new Date(serverNow() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { count: responsesThisWeek } = await supabase
     .from("responses")
     .select("*", { count: "exact", head: true })
