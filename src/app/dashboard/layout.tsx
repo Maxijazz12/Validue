@@ -59,6 +59,9 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#FCFCFD] dark:bg-[#0F1117] relative overflow-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-[8px] focus:left-[8px] focus:px-[16px] focus:py-[8px] focus:bg-[#111111] focus:text-white focus:rounded-lg focus:text-[14px] focus:font-medium">
+        Skip to main content
+      </a>
       {/* Ambient color washes (matches landing page depth) */}
       <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
         <div className="absolute" style={{ top: '10%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,193,176,0.09) 0%, transparent 70%)' }} />
@@ -78,7 +81,7 @@ export default async function DashboardLayout({
       />
       <MobileTabBar />
       <CommandPalette />
-      <main className="md:ml-[240px] min-h-screen relative z-10">
+      <main id="main-content" className="md:ml-[240px] min-h-screen relative z-10">
         <div className="max-w-[960px] mx-auto px-[32px] py-[40px] max-md:px-[20px] max-md:pt-[72px] max-md:pb-[80px]">
           <Suspense>
             <SubscriptionBanner />

@@ -114,6 +114,8 @@ export default function WallReactionBar({
           <button
             key={r.type}
             onClick={(e) => { e.stopPropagation(); handleReaction(r.type); }}
+            aria-label={r.label}
+            aria-pressed={isActive}
             title={r.label}
             className={`flex items-center gap-[3px] px-[6px] py-[3px] rounded-full border transition-all duration-150 cursor-pointer ${
               isActive

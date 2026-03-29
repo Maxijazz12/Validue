@@ -153,7 +153,7 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
             Validue
           </span>
         </Link>
-        <a href="/dashboard/notifications" className="relative p-[6px] rounded-lg text-[#94A3B8] hover:text-[#111111] hover:bg-[#F3F4F6] transition-all no-underline">
+        <a href="/dashboard/notifications" className="relative p-[6px] rounded-lg text-[#94A3B8] hover:text-[#111111] hover:bg-[#F3F4F6] transition-all no-underline" aria-label="Notifications">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
