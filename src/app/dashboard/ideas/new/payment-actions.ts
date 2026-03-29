@@ -20,12 +20,18 @@ export async function createFundingSession(
   // Verify the user owns this campaign and it needs funding
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, creator_id, title, reward_amount, status")
+    .select("id, creator_id, title, reward_amount, status, is_subsidized")
     .eq("id", campaignId)
     .eq("creator_id", user.id)
     .single();
 
   if (!campaign) return { error: "Campaign not found." };
+
+  // V2: Subsidized campaigns skip Stripe entirely
+  if (campaign.is_subsidized) {
+    return { error: "This campaign is sponsored — no payment needed." };
+  }
+
   if (campaign.status !== "pending_funding") {
     return { error: "Campaign does not need funding." };
   }
@@ -80,9 +86,25 @@ export async function createFundingSession(
     }
   }
 
+  // V2: Check for platform credit (zero-qualifier auto-credit)
+  let platformCreditCents = 0;
+  {
+    const [creditRow] = await sql`
+      SELECT platform_credit_cents, platform_credit_expires_at
+      FROM profiles WHERE id = ${user.id}
+    `;
+    if (creditRow && creditRow.platform_credit_cents > 0) {
+      const expires = creditRow.platform_credit_expires_at ? new Date(creditRow.platform_credit_expires_at) : null;
+      if (!expires || expires > new Date()) {
+        platformCreditCents = creditRow.platform_credit_cents;
+      }
+    }
+  }
+
   const fullAmountCents = Math.round(campaign.reward_amount * 100);
-  const creditCents = useWelcomeCredit ? WELCOME_BONUS.fundingCreditCents : 0;
-  const chargeAmountCents = Math.max(50, fullAmountCents - creditCents); // Stripe min $0.50
+  const welcomeCreditCents = useWelcomeCredit ? WELCOME_BONUS.fundingCreditCents : 0;
+  const totalCreditCents = welcomeCreditCents + platformCreditCents;
+  const chargeAmountCents = Math.max(50, fullAmountCents - totalCreditCents); // Stripe min $0.50
 
   // Create Checkout Session
   const session = await stripe.checkout.sessions.create({
@@ -95,8 +117,8 @@ export async function createFundingSession(
           unit_amount: chargeAmountCents,
           product_data: {
             name: `Campaign: ${campaign.title}`,
-            description: useWelcomeCredit
-              ? `Reward pool funding for Validue campaign ($${(creditCents / 100).toFixed(2)} welcome credit applied)`
+            description: totalCreditCents > 0
+              ? `Reward pool funding ($${(totalCreditCents / 100).toFixed(2)} credit applied)`
               : "Reward pool funding for Validue campaign",
           },
         },
@@ -108,6 +130,7 @@ export async function createFundingSession(
       userId: user.id,
       type: "campaign_funding",
       welcomeCredit: useWelcomeCredit ? "true" : "false",
+      platformCreditCents: platformCreditCents > 0 ? String(platformCreditCents) : "0",
     },
     success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,

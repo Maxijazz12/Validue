@@ -253,9 +253,13 @@ function selectQuestions(
  * Deterministic fallback generator.
  * Used when AI is unavailable or API calls fail.
  * Produces a respectable draft with quality scoring.
+ *
+ * @param format - 'quick' (1 open + 1 MC + 1 followup) or 'standard' (2 open + 2 MC + 1 followup).
+ *                 Defaults to 'quick'.
  */
 export async function generateCampaignDraftFallback(
-  scribbleText: string
+  scribbleText: string,
+  format: "quick" | "standard" = "quick"
 ): Promise<CampaignDraft> {
   const title = extractTitle(scribbleText);
   const summary = buildSummary(scribbleText);
@@ -264,12 +268,17 @@ export async function generateCampaignDraftFallback(
   const assumptions = generateAssumptions(scribbleText);
   const audience = inferAudience(scribbleText);
 
-  const openQuestions = selectQuestions(OPEN_TEMPLATES, scribbleText, 3);
-  const followupQuestions = selectQuestions(FOLLOWUP_TEMPLATES, scribbleText, 2);
+  // Format-aware question counts
+  const openCount = format === "quick" ? 1 : 2;
+  const followupCount = 1;
+  const baselineCount = format === "quick" ? 1 : 2;
+
+  const openQuestions = selectQuestions(OPEN_TEMPLATES, scribbleText, openCount);
+  const followupQuestions = selectQuestions(FOLLOWUP_TEMPLATES, scribbleText, followupCount);
 
   // Baseline questions from the curated library
   const baselineRecs = recommendBaseline(scribbleText);
-  const baselineQuestions: DraftQuestion[] = baselineRecs.map((bq) => ({
+  const baselineQuestions: DraftQuestion[] = baselineRecs.slice(0, baselineCount).map((bq) => ({
     id: uid(),
     text: bq.text,
     type: "multiple_choice" as const,
@@ -286,6 +295,7 @@ export async function generateCampaignDraftFallback(
     category,
     tags,
     assumptions,
+    format,
     questions: [...openQuestions, ...followupQuestions, ...baselineQuestions],
     audience,
   };

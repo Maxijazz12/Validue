@@ -18,6 +18,9 @@ type CampaignPublished = {
   qualityScore: number;
   effectiveReach: number;
   campaignStrength: number;
+  format?: string;
+  economicsVersion?: number;
+  targetResponses?: number;
 };
 
 type CampaignFunded = {
@@ -34,7 +37,7 @@ type CampaignStatusChanged = {
   campaignId: string;
   fromStatus: string;
   toStatus: string;
-  triggeredBy: "user" | "webhook" | "auto";
+  triggeredBy: "user" | "webhook" | "auto" | "expiration_cron";
 };
 
 type RankingStarted = {

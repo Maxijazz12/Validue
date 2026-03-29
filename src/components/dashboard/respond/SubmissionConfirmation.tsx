@@ -63,16 +63,23 @@ export default function SubmissionConfirmation({
           </p>
         )}
 
-        {/* Reward callout */}
+        {/* V2 money state callout */}
         {hasReward && (
-          <div className="inline-flex items-center gap-[6px] px-[14px] py-[8px] rounded-xl bg-[#34D399]/8 border border-[#34D399]/15 mb-[12px]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-            </svg>
-            <span className="text-[13px] font-semibold text-[#111111]">
-              You&apos;re in the running for <span className="font-mono text-[#34D399]">${rewardAmount}</span>
-              {rewardType === "top_only" && " (top answers)"}
-            </span>
+          <div className="text-left bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-[16px] mb-[16px]">
+            <div className="flex items-center gap-[8px] mb-[8px]">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span className="text-[13px] font-semibold text-[#111111]">Base status: Pending qualification</span>
+            </div>
+            <p className="text-[12px] text-[#64748B] leading-[1.5]">
+              If qualified, your base payout will move to <span className="font-semibold">Locked</span>.
+              Locked payouts become <span className="font-semibold">Available</span> when the campaign closes.
+              This can take up to 7 days.
+            </p>
+            <p className="text-[12px] text-[#94A3B8] mt-[6px]">
+              Bonus status: Pending until campaign closes
+            </p>
           </div>
         )}
 
@@ -87,7 +94,7 @@ export default function SubmissionConfirmation({
 
         <p className="text-[13px] text-[#94A3B8] mb-[32px]">
           {hasReward
-            ? "Quality responses are ranked by the founder — thoughtful feedback earns more."
+            ? "Higher quality responses earn more. Take your time and share real experiences."
             : "Good feedback makes good products. Thanks for being part of it."}
         </p>
 

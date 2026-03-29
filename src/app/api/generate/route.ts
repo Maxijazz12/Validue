@@ -189,6 +189,7 @@ export async function POST(request: Request) {
       category: raw.category,
       tags: raw.tags,
       assumptions: raw.assumptions,
+      format: "quick",
       questions: [...openQuestions, ...followupQuestions, ...baselineQuestions],
       audience: {
         interests: raw.audience.interests,

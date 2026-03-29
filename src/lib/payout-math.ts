@@ -136,3 +136,252 @@ export function distributePayouts(
 
   return allocations;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * V2 Economics — base + bonus model
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+export type CampaignFormat = "quick" | "standard";
+
+export type ResponseMetadata = {
+  totalTimeMs: number;
+  openAnswers: { charCount: number }[];
+  spamFlagged?: boolean;
+};
+
+export type QualificationResult = {
+  responseId: string;
+  qualified: boolean;
+  reasons: string[];
+};
+
+export type PayoutAllocationV2 = {
+  responseId: string;
+  respondentId: string;
+  respondentName: string;
+  qualityScore: number;
+  qualified: boolean;
+  disqualificationReasons: string[];
+  basePayout: number;
+  bonusPayout: number;
+  /** basePayout + bonusPayout (backward compat with V1 consumers) */
+  suggestedAmount: number;
+  weight: number;
+};
+
+/**
+ * V2 bonus weight — linear, starting at BONUS_MIN_SCORE.
+ * Every point above the threshold earns proportionally more bonus.
+ */
+export function bonusWeightV2(qualityScore: number): number {
+  return Math.max(qualityScore - DEFAULTS.BONUS_MIN_SCORE, 0);
+}
+
+/**
+ * Determines whether a response qualifies for base pay.
+ *
+ * Qualification criteria (all must pass):
+ * 1. qualityScore >= QUALIFICATION_MIN_SCORE
+ * 2. At least 1 open-ended answer >= MIN_OPEN_ANSWER_CHARS
+ * 3. Total time >= format minimum
+ * 4. Not spam-flagged
+ */
+export function qualifyResponse(
+  response: ScoredResponse,
+  format: CampaignFormat,
+  metadata: ResponseMetadata
+): QualificationResult {
+  const reasons: string[] = [];
+
+  if (response.qualityScore < DEFAULTS.QUALIFICATION_MIN_SCORE) {
+    reasons.push("quality_score_below_threshold");
+  }
+
+  const hasValidOpen = metadata.openAnswers.some(
+    (a) => a.charCount >= DEFAULTS.MIN_OPEN_ANSWER_CHARS
+  );
+  if (!hasValidOpen) {
+    reasons.push("open_answer_too_short");
+  }
+
+  const minTime =
+    format === "quick"
+      ? DEFAULTS.MIN_RESPONSE_TIME_QUICK_MS
+      : DEFAULTS.MIN_RESPONSE_TIME_STANDARD_MS;
+  if (metadata.totalTimeMs < minTime) {
+    reasons.push("insufficient_time");
+  }
+
+  if (metadata.spamFlagged) {
+    reasons.push("spam_detected");
+  }
+
+  return {
+    responseId: response.responseId,
+    qualified: reasons.length === 0,
+    reasons,
+  };
+}
+
+/**
+ * Computes the default target response count from distributable amount and format.
+ */
+export function defaultTargetResponses(
+  distributable: number,
+  format: CampaignFormat
+): number {
+  const targetAvg =
+    format === "quick"
+      ? DEFAULTS.TARGET_AVG_PAYOUT_QUICK
+      : DEFAULTS.TARGET_AVG_PAYOUT_STANDARD;
+  return Math.max(DEFAULTS.MIN_TARGET_RESPONSES_V2, Math.floor(distributable / targetAvg));
+}
+
+/**
+ * V2 payout distribution — base + bonus model.
+ *
+ * 1. Separate qualified vs disqualified responses
+ * 2. Base pool (60%) split equally among qualified
+ * 3. Bonus pool (40%) split proportionally by bonusWeightV2 among score >= 50
+ * 4. If no bonus earners, fold bonus pool into base pool
+ * 5. Remainder reconciliation to the cent
+ *
+ * For subsidized campaigns, use distributeSubsidizedPayouts instead.
+ */
+export function distributePayoutsV2(
+  responses: ScoredResponse[],
+  distributable: number,
+  qualificationResults: QualificationResult[]
+): PayoutAllocationV2[] {
+  if (responses.length === 0 || distributable <= 0) return [];
+
+  // Build a lookup for qualification
+  const qualMap = new Map(qualificationResults.map((q) => [q.responseId, q]));
+
+  // Separate qualified and disqualified
+  const qualified = responses.filter(
+    (r) => qualMap.get(r.responseId)?.qualified === true
+  );
+  const disqualified = responses.filter(
+    (r) => qualMap.get(r.responseId)?.qualified !== true
+  );
+
+  // If nobody qualifies, return all zeros
+  if (qualified.length === 0) {
+    return responses.map((r) => ({
+      responseId: r.responseId,
+      respondentId: r.respondentId,
+      respondentName: r.respondentName,
+      qualityScore: r.qualityScore,
+      qualified: false,
+      disqualificationReasons: qualMap.get(r.responseId)?.reasons ?? [],
+      basePayout: 0,
+      bonusPayout: 0,
+      suggestedAmount: 0,
+      weight: 0,
+    }));
+  }
+
+  // Compute bonus weights for qualified responses
+  const withWeights = qualified.map((r) => ({
+    ...r,
+    weight: bonusWeightV2(r.qualityScore),
+  }));
+  const totalBonusWeight = withWeights.reduce((sum, r) => sum + r.weight, 0);
+
+  // Determine pool split
+  let basePool: number;
+  let bonusPool: number;
+
+  if (totalBonusWeight === 0) {
+    // No bonus earners — fold everything into base
+    basePool = distributable;
+    bonusPool = 0;
+  } else {
+    basePool = distributable * DEFAULTS.BASE_POOL_RATIO;
+    bonusPool = distributable * DEFAULTS.BONUS_POOL_RATIO;
+  }
+
+  // Base pay: equal among qualified
+  const rawBasePay = basePool / qualified.length;
+  const basePay = Math.round(rawBasePay * 100) / 100;
+
+  // Build allocations for qualified responses
+  const allocations: PayoutAllocationV2[] = withWeights.map((r) => {
+    const bonus =
+      totalBonusWeight > 0
+        ? Math.round(((r.weight / totalBonusWeight) * bonusPool) * 100) / 100
+        : 0;
+    return {
+      responseId: r.responseId,
+      respondentId: r.respondentId,
+      respondentName: r.respondentName,
+      qualityScore: r.qualityScore,
+      qualified: true,
+      disqualificationReasons: [],
+      basePayout: basePay,
+      bonusPayout: bonus,
+      suggestedAmount: Math.round((basePay + bonus) * 100) / 100,
+      weight: r.weight,
+    };
+  });
+
+  // Add disqualified responses
+  for (const r of disqualified) {
+    allocations.push({
+      responseId: r.responseId,
+      respondentId: r.respondentId,
+      respondentName: r.respondentName,
+      qualityScore: r.qualityScore,
+      qualified: false,
+      disqualificationReasons: qualMap.get(r.responseId)?.reasons ?? [],
+      basePayout: 0,
+      bonusPayout: 0,
+      suggestedAmount: 0,
+      weight: 0,
+    });
+  }
+
+  // Remainder reconciliation: ensure qualified payouts sum === distributable to the cent
+  const qualifiedAllocations = allocations.filter((a) => a.qualified);
+  const totalAllocated = qualifiedAllocations.reduce(
+    (s, a) => s + a.suggestedAmount,
+    0
+  );
+  const remainder = Math.round((distributable - totalAllocated) * 100) / 100;
+  if (qualifiedAllocations.length > 0 && remainder !== 0) {
+    qualifiedAllocations.sort((a, b) => b.suggestedAmount - a.suggestedAmount);
+    const top = qualifiedAllocations[0];
+    top.basePayout = Math.round((top.basePayout + remainder) * 100) / 100;
+    top.suggestedAmount = Math.round((top.basePayout + top.bonusPayout) * 100) / 100;
+  }
+
+  return allocations;
+}
+
+/**
+ * Subsidized campaign payout — flat amount per qualifying response, no bonus pool.
+ */
+export function distributeSubsidizedPayouts(
+  responses: ScoredResponse[],
+  qualificationResults: QualificationResult[]
+): PayoutAllocationV2[] {
+  const qualMap = new Map(qualificationResults.map((q) => [q.responseId, q]));
+
+  return responses.map((r) => {
+    const qual = qualMap.get(r.responseId);
+    const isQualified = qual?.qualified === true;
+    return {
+      responseId: r.responseId,
+      respondentId: r.respondentId,
+      respondentName: r.respondentName,
+      qualityScore: r.qualityScore,
+      qualified: isQualified,
+      disqualificationReasons: qual?.reasons ?? [],
+      basePayout: isQualified ? DEFAULTS.SUBSIDY_FLAT_PAYOUT : 0,
+      bonusPayout: 0,
+      suggestedAmount: isQualified ? DEFAULTS.SUBSIDY_FLAT_PAYOUT : 0,
+      weight: 0,
+    };
+  });
+}

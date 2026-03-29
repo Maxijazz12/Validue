@@ -38,6 +38,10 @@ export type WallCardProps = {
   userReactions?: string[];
   recentRespondents?: Array<{ name: string; avatar: string | null }>;
   lastActivityLabel?: string | null;
+  /* V2 economics props */
+  isSubsidized?: boolean;
+  economicsVersion?: number;
+  format?: string | null;
 };
 
 /* ─── useCountUp hook ─── */
@@ -153,6 +157,36 @@ function getRewardLabel(amount: number, type: string | null): string {
   }
 }
 
+/** V2 reward display — base + bonus model */
+function getRewardDisplayV2(
+  rewardAmount: number,
+  targetResponses: number,
+  isSubsidized: boolean
+): { badge: string; detail: string; style: "standard" | "high" | "sponsored" | "free" } {
+  if (isSubsidized) {
+    return {
+      badge: "$0.30 base \u00B7 Sponsored",
+      detail: "Earn $0.30 base payout if your response qualifies",
+      style: "sponsored",
+    };
+  }
+  if (!rewardAmount || rewardAmount === 0) {
+    return {
+      badge: "Free \u00B7 Share your thoughts",
+      detail: "No payout \u2014 share your perspective",
+      style: "free",
+    };
+  }
+  const distributable = rewardAmount * 0.85;
+  const basePay = (distributable * 0.60) / Math.max(targetResponses, 1);
+  const formattedBase = `$${basePay.toFixed(2)}`;
+  return {
+    badge: `${formattedBase} base + bonus`,
+    detail: `Earn ${formattedBase} base + bonus for quality responses`,
+    style: distributable >= 50 ? "high" : "standard",
+  };
+}
+
 function getVelocityLabel(currentResponses: number, createdAt: string): string | null {
   const ageHours = Math.max(1, (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60));
   const velocity = currentResponses / ageHours;
@@ -245,13 +279,17 @@ export default function WallCard({
   userReactions = [],
   recentRespondents: _recentRespondents = [],
   lastActivityLabel,
+  isSubsidized = false,
+  economicsVersion,
 }: WallCardProps) {
   const theme = getTheme(category);
   const progress = targetResponses > 0 ? Math.min((currentResponses / targetResponses) * 100, 100) : 0;
   const showNew = isNew(createdAt);
   const showClosingSoon = isClosingSoon(currentResponses, targetResponses, deadline);
-  const hasReward = rewardAmount > 0;
-  const isHighReward = rewardAmount >= 50;
+  const isV2 = economicsVersion === 2;
+  const v2Display = isV2 ? getRewardDisplayV2(rewardAmount, targetResponses, isSubsidized) : null;
+  const hasReward = isV2 ? v2Display!.style !== "free" : rewardAmount > 0;
+  const isHighReward = isV2 ? v2Display!.style === "high" : rewardAmount >= 50;
   const spotsLeft = targetResponses > 0 ? targetResponses - currentResponses : null;
   const showSpotsLeft = showClosingSoon && spotsLeft !== null && spotsLeft <= 10 && spotsLeft > 0;
   const velocityLabel = getVelocityLabel(currentResponses, createdAt);
@@ -412,10 +450,10 @@ export default function WallCard({
                   color: isHighReward ? "#fff" : rewardAmount >= 25 ? theme.accent : undefined,
                 }}
               >
-                {isHighReward && <span className="absolute inset-0 wall-shimmer" />}
+                {isHighReward && !isV2 && <span className="absolute inset-0 wall-shimmer" />}
+                {isHighReward && isV2 && <span className="absolute inset-0 wall-shimmer" />}
                 <span className="relative">
-                  ${animatedReward}
-                  {bonusAvailable && "+"}
+                  {isV2 ? v2Display!.badge : <>${animatedReward}{bonusAvailable && "+"}</>}
                 </span>
               </span>
               {/* Reward pool drain bar for closing-soon cards */}
@@ -486,9 +524,11 @@ export default function WallCard({
           {hasReward && (
             <div className="mb-[12px]">
               <p className="text-[13px] text-[#64748B]">
-                {getRewardLabel(rewardAmount, rewardType)}
+                {isV2 ? v2Display!.detail : (
+                <>{getRewardLabel(rewardAmount, rewardType)}
                 {bonusAvailable && " — bonus available for quality responses"}
-                {rewardsTopAnswers && " — top answers earn more"}
+                {rewardsTopAnswers && " — top answers earn more"}</>
+              )}
               </p>
             </div>
           )}

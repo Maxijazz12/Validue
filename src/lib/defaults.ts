@@ -70,6 +70,70 @@ export const DEFAULTS = {
 
   /** Maximum target responses for a campaign */
   MAX_TARGET_RESPONSES: 10_000,
+
+  /* ─── V2 Economics (base + bonus model) ─── */
+
+  /** Fraction of distributable pool allocated to guaranteed base pay */
+  BASE_POOL_RATIO: 0.60,
+
+  /** Fraction of distributable pool allocated to quality bonus */
+  BONUS_POOL_RATIO: 0.40,
+
+  /** Minimum quality score to qualify for base pay (launch calibration — review after 4 weeks) */
+  QUALIFICATION_MIN_SCORE: 30,
+
+  /** Minimum quality score to earn from the bonus pool (launch calibration) */
+  BONUS_MIN_SCORE: 50,
+
+  /** Hard floor: base pay per response must be >= this at publish time */
+  MIN_BASE_PAYOUT: 0.10,
+
+  /** Target average payout per qualifying response — Quick format (3 min) */
+  TARGET_AVG_PAYOUT_QUICK: 0.45,
+
+  /** Target average payout per qualifying response — Standard format (5 min) */
+  TARGET_AVG_PAYOUT_STANDARD: 0.60,
+
+  /** Minimum total response time for Quick format (ms) */
+  MIN_RESPONSE_TIME_QUICK_MS: 45_000,
+
+  /** Minimum total response time for Standard format (ms) */
+  MIN_RESPONSE_TIME_STANDARD_MS: 90_000,
+
+  /** Minimum target responses for V2 campaigns */
+  MIN_TARGET_RESPONSES_V2: 5,
+
+  /** Minimum characters for at least one open-ended answer */
+  MIN_OPEN_ANSWER_CHARS: 50,
+
+  /** Maximum completed responses per respondent per rolling 24 hours (launch calibration) */
+  MAX_DAILY_RESPONSES: 12,
+
+  /** Maximum concurrent in-progress responses per respondent (launch calibration) */
+  MAX_CONCURRENT_RESPONSES: 2,
+
+  /** Auto-abandon stale in-progress responses after this duration (ms) */
+  STALE_RESPONSE_TIMEOUT_MS: 3_600_000,
+
+  /** Campaign expiration — days after activation */
+  CAMPAIGN_EXPIRY_DAYS: 7,
+
+  /** Minimum respondent available balance (cents) required to cash out */
+  MIN_CASHOUT_BALANCE_CENTS: 200,
+
+  /* ─── Subsidy ─── */
+
+  /** Platform budget per subsidized first campaign */
+  SUBSIDY_BUDGET_PER_CAMPAIGN: 1.50,
+
+  /** Target qualifying responses for subsidized campaigns */
+  SUBSIDY_TARGET_RESPONSES: 5,
+
+  /** Flat payout per qualifying response on subsidized campaigns */
+  SUBSIDY_FLAT_PAYOUT: 0.30,
+
+  /** Monthly platform-wide subsidy spend cap (dollars) */
+  SUBSIDY_MONTHLY_CAP: 1500,
 } as const;
 
 /** NaN-safe number coercion — prevents silent distortion from corrupted data */

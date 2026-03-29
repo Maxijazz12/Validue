@@ -1,5 +1,6 @@
 import sql from "./db";
 import { PLAN_CONFIG, WELCOME_BONUS, type PlanTier, isValidTier } from "./plans";
+import { DEFAULTS } from "./defaults";
 
 /* ─── Types ─── */
 
@@ -159,6 +160,62 @@ export async function canCreateCampaign(
     limit: effectiveLimit,
     isFirstMonth: firstMonth,
   };
+}
+
+/* ─── V2: Subsidy Eligibility ─── */
+
+/**
+ * Checks whether a user is eligible for a free subsidized first campaign.
+ *
+ * Eligibility rules (all must be true):
+ * 1. User has verified email (checked upstream by auth)
+ * 2. User has completed profile (full_name exists, role = founder)
+ * 3. User has never created a campaign
+ * 4. subsidized_campaign_used = false
+ * 5. Account is < 30 days old
+ * 6. Monthly platform subsidy cap not exceeded
+ */
+export async function checkSubsidyEligibility(
+  userId: string
+): Promise<{ eligible: boolean; reason?: string }> {
+  // Check profile completeness and subsidy flag
+  const [profile] = await sql`
+    SELECT full_name, role, subsidized_campaign_used, created_at
+    FROM profiles WHERE id = ${userId}
+  `;
+  if (!profile) return { eligible: false, reason: "Profile not found." };
+  if (!profile.full_name || profile.role !== "founder") {
+    return { eligible: false, reason: "Complete your profile to unlock your free campaign." };
+  }
+  if (profile.subsidized_campaign_used) {
+    return { eligible: false, reason: "Free campaign already used." };
+  }
+
+  // Account age check (< 30 days)
+  const accountAge = Date.now() - new Date(profile.created_at).getTime();
+  if (accountAge > 30 * 24 * 60 * 60 * 1000) {
+    return { eligible: false, reason: "Free campaign offer has expired." };
+  }
+
+  // Must have zero campaigns
+  const isFirst = await isFirstCampaign(userId);
+  if (!isFirst) {
+    return { eligible: false, reason: "Free campaign is only for your first campaign." };
+  }
+
+  // Platform-wide monthly cap check
+  const [{ count: subsidizedThisMonth }] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM campaigns
+    WHERE is_subsidized = true
+      AND created_at > NOW() - INTERVAL '30 days'
+  `;
+  const monthlyCostEstimate = subsidizedThisMonth * DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN;
+  if (monthlyCostEstimate >= DEFAULTS.SUBSIDY_MONTHLY_CAP) {
+    return { eligible: false }; // Silently hide — don't show "temporarily unavailable"
+  }
+
+  return { eligible: true };
 }
 
 /* ─── Increment Campaign Usage ─── */

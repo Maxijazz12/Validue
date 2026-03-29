@@ -1,6 +1,7 @@
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 import { isValidTier } from "@/lib/plans";
+import { DEFAULTS } from "@/lib/defaults";
 import type Stripe from "stripe";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
@@ -42,10 +43,16 @@ export async function POST(request: Request) {
       }
 
       try {
+        // Set expires_at for V2 campaigns (CAMPAIGN_EXPIRY_DAYS after activation)
+        const expiryInterval = `${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} days`;
         await sql`
           UPDATE campaigns
           SET status = 'active',
               funded_at = NOW(),
+              expires_at = CASE
+                WHEN economics_version = 2 THEN NOW() + ${expiryInterval}::interval
+                ELSE expires_at
+              END,
               stripe_payment_intent_id = ${(session.payment_intent as string) || null}
           WHERE id = ${campaignId}
             AND status = 'pending_funding'
@@ -61,6 +68,22 @@ export async function POST(request: Request) {
             WHERE user_id = ${userId}
           `.catch((err) => {
             console.error("[stripe-webhook] Failed to mark welcome credit used:", err);
+          });
+        }
+
+        // V2: Clear platform credit if it was applied
+        const platformCreditUsed = Number(session.metadata?.platformCreditCents || 0);
+        if (userId && platformCreditUsed > 0) {
+          await sql`
+            UPDATE profiles
+            SET platform_credit_cents = GREATEST(0, platform_credit_cents - ${platformCreditUsed}),
+                platform_credit_expires_at = CASE
+                  WHEN platform_credit_cents - ${platformCreditUsed} <= 0 THEN NULL
+                  ELSE platform_credit_expires_at
+                END
+            WHERE id = ${userId}
+          `.catch((err) => {
+            console.error("[stripe-webhook] Failed to clear platform credit:", err);
           });
         }
 

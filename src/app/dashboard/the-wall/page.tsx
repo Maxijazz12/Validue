@@ -218,6 +218,9 @@ export default async function TheWallPage() {
       userReactions: userReactionsMap.get(c.id) || [],
       recentRespondents: respondentMap.get(c.id) || [],
       lastActivityLabel: activityMap.get(c.id) ?? null,
+      isSubsidized: !!c.is_subsidized,
+      economicsVersion: c.economics_version ?? 1,
+      format: c.format ?? null,
     };
   });
 

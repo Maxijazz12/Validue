@@ -21,20 +21,22 @@ export default async function EarningsPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Fetch reputation tier
+  // Fetch reputation tier + V2 balance fields
   const { data: profile } = await supabase
     .from("profiles")
-    .select("reputation_score, reputation_tier")
+    .select("reputation_score, reputation_tier, available_balance_cents, pending_balance_cents")
     .eq("id", user.id)
     .single();
 
   const repTier = (profile?.reputation_tier || "new") as ReputationTier;
   const repScore = Number(profile?.reputation_score) || 0;
+  const availableBalanceCents = Number(profile?.available_balance_cents) || 0;
+  const pendingBalanceCents = Number(profile?.pending_balance_cents) || 0;
 
-  // Fetch all payouts for this respondent
+  // Fetch all payouts for this respondent (include V2 base/bonus)
   const { data: payouts } = await supabase
     .from("payouts")
-    .select("id, amount, platform_fee, status, created_at, campaign:campaigns!campaign_id(id, title)")
+    .select("id, amount, base_amount, bonus_amount, platform_fee, status, created_at, campaign:campaigns!campaign_id(id, title)")
     .eq("respondent_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -57,6 +59,21 @@ export default async function EarningsPage() {
   const totalPayouts = allPayouts.length;
   const hasEarnings = totalPayouts > 0;
 
+  // V2: Fetch recent responses with money_state for the status list
+  const { data: recentResponses } = await supabase
+    .from("responses")
+    .select("id, payout_amount, base_payout, bonus_payout, money_state, created_at, campaign:campaigns!campaign_id(id, title)")
+    .eq("respondent_id", user.id)
+    .in("status", ["submitted", "ranked"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const responseList = (recentResponses || []).map((r) => {
+    const campaignRaw = r.campaign as unknown;
+    const campaign = (Array.isArray(campaignRaw) ? campaignRaw[0] : campaignRaw) as { id: string; title: string } | null;
+    return { ...r, campaign };
+  });
+
   return (
     <>
       <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
@@ -65,11 +82,11 @@ export default async function EarningsPage() {
         <p className="text-[14px] text-[#64748B] mt-[4px]">Track your earnings from responding to ideas</p>
       </div>
 
-      {/* Summary cards */}
+      {/* V2 Balance cards */}
       <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
-        <StatCard label="Total Earned" value={`$${totalEarned.toFixed(2)}`} valueColor="#22c55e" />
-        <StatCard label="Pending" value={`$${pendingAmount.toFixed(2)}`} valueColor="#E5654E" />
-        <StatCard label="Payouts" value={totalPayouts} />
+        <StatCard label="Available Balance" value={`$${(availableBalanceCents / 100).toFixed(2)}`} valueColor="#22c55e" />
+        <StatCard label="Locked Balance" value={`$${(pendingBalanceCents / 100).toFixed(2)}`} valueColor="#F59E0B" />
+        <StatCard label="Total Paid Out" value={`$${totalEarned.toFixed(2)}`} />
         <StatCard label="Reputation" value={repScore}>
           <div className="mt-[4px]">
             <ReputationBadge tier={repTier} size="md" />
@@ -77,18 +94,28 @@ export default async function EarningsPage() {
         </StatCard>
       </div>
 
-      {/* Payout notice */}
-      {pendingAmount > 0 && (
-        <div className="bg-[#E5654E]/10 border border-[#E5654E]/20 rounded-xl p-[16px] mb-[24px]">
+      {/* Cash-out threshold notice */}
+      {availableBalanceCents > 0 && availableBalanceCents < 200 && (
+        <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-xl p-[16px] mb-[24px]">
           <p className="text-[13px] text-[#64748B]">
-            Payouts are tracked and will be processed when the payment system
-            goes live. Your earnings are safe.
+            You need <span className="font-semibold font-mono">${((200 - availableBalanceCents) / 100).toFixed(2)}</span> more
+            in available balance to cash out. Minimum cash-out is $2.00.
+          </p>
+        </div>
+      )}
+
+      {/* Locked balance explainer */}
+      {pendingBalanceCents > 0 && (
+        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-[16px] mb-[24px]">
+          <p className="text-[13px] text-[#64748B]">
+            Locked payouts become available when their campaigns close. This can take up to 7 days.
           </p>
         </div>
       )}
 
       {/* Payout history */}
       {hasEarnings ? (
+        <>
         <div>
           <h2 className="text-[16px] font-semibold text-[#111111] mb-[12px]">
             Payout History
@@ -150,6 +177,49 @@ export default async function EarningsPage() {
             })}
           </div>
         </div>
+
+        {/* V2: Recent responses with money state */}
+        {responseList.length > 0 && (
+          <div className="mt-[24px]">
+            <h2 className="text-[16px] font-semibold text-[#111111] mb-[12px]">Recent Responses</h2>
+            <div className="flex flex-col gap-[8px]">
+              {responseList.map((r) => {
+                const moneyStateConfig: Record<string, { label: string; bg: string; text: string }> = {
+                  pending_qualification: { label: "Pending", bg: "bg-[#94A3B8]/10", text: "text-[#64748B]" },
+                  locked: { label: "Locked", bg: "bg-[#F59E0B]/10", text: "text-[#D97706]" },
+                  available: { label: "Available", bg: "bg-[#22c55e]/10", text: "text-[#22c55e]" },
+                  paid_out: { label: "Paid out", bg: "bg-[#3b82f6]/10", text: "text-[#3b82f6]" },
+                  not_qualified: { label: "Not qualified", bg: "bg-[#ef4444]/10", text: "text-[#ef4444]" },
+                };
+                const state = r.money_state || "pending_qualification";
+                const config = moneyStateConfig[state] || moneyStateConfig.pending_qualification;
+                const amount = Number(r.payout_amount) || 0;
+
+                return (
+                  <div key={r.id} className="bg-white border border-[#E2E8F0] rounded-xl p-[12px] flex items-center justify-between gap-[12px]">
+                    <span className="text-[13px] text-[#111111] truncate min-w-0">
+                      {r.campaign?.title || "Unknown Campaign"}
+                    </span>
+                    <div className="flex items-center gap-[8px] shrink-0">
+                      {amount > 0 && (
+                        <span className="font-mono text-[13px] font-semibold text-[#111111]">
+                          ${amount.toFixed(2)}
+                        </span>
+                      )}
+                      {state === "not_qualified" && (
+                        <span className="text-[13px] text-[#94A3B8]">&mdash;</span>
+                      )}
+                      <span className={`px-[6px] py-[2px] rounded-full text-[10px] font-semibold uppercase tracking-[0.5px] ${config.bg} ${config.text}`}>
+                        {config.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        </>
       ) : (
         <div className="bg-[#FAF9FA] border border-[#E2E8F0] rounded-2xl p-[48px] text-center relative overflow-hidden">
           <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />

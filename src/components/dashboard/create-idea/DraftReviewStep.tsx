@@ -284,6 +284,37 @@ export default function DraftReviewStep({
             questions={draft.questions}
           />
 
+          {/* ─── V2: Campaign Format Toggle ─── */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
+            <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">Campaign Format</h2>
+            <div className="flex gap-[8px] mt-[12px]">
+              {(["quick", "standard"] as const).map((fmt) => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => updateField("format", fmt)}
+                  className={`flex-1 text-left px-[14px] py-[12px] rounded-lg border text-[13px] transition-all cursor-pointer ${
+                    (draft.format || "quick") === fmt
+                      ? "border-[#111111] bg-[#111111] text-white"
+                      : "border-[#E2E8F0] bg-white text-[#111111] hover:border-[#CBD5E1]"
+                  }`}
+                >
+                  <span className="font-semibold block">
+                    {fmt === "quick" ? "Quick" : "Standard"}
+                  </span>
+                  <span className={`text-[11px] ${(draft.format || "quick") === fmt ? "text-white/70" : "text-[#94A3B8]"}`}>
+                    {fmt === "quick"
+                      ? "3 questions \u00B7 ~3 min \u00B7 Fast validation"
+                      : "5 questions \u00B7 ~5 min \u00B7 Deeper insights"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-[#94A3B8] mt-[8px]">
+              Quick is the default format for fast validation. Switch to Standard for deeper feedback.
+            </p>
+          </div>
+
           {/* ─── Campaign Funding ─── */}
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
             <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
@@ -440,87 +471,22 @@ export default function DraftReviewStep({
                 </div>
               )}
 
-              {/* Reward type */}
+              {/* V2: How payouts work explainer (replaces reward type + toggles) */}
               {(draft.rewardPool ?? 0) > 0 && (
-                <>
-                  <div className="flex flex-col gap-[6px]">
-                    <label className="text-[13px] font-medium text-[#64748B]">
-                      How to divide rewards
-                    </label>
-                    <div className="flex gap-[8px]">
-                      {(
-                        [
-                          {
-                            value: "pool",
-                            label: "Split among top responses",
-                            desc: "Your budget is shared among the best responses, ranked by quality",
-                          },
-                          {
-                            value: "top_only",
-                            label: "Winners only",
-                            desc: "Bigger individual payouts for fewer winners — attracts deeper effort",
-                          },
-                        ] as const
-                      ).map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() =>
-                            updateField("rewardType", opt.value)
-                          }
-                          className={`flex-1 text-left px-[14px] py-[12px] rounded-lg border text-[13px] transition-all cursor-pointer ${
-                            (draft.rewardType || "pool") === opt.value
-                              ? "border-[#111111] bg-[#111111] text-white"
-                              : "border-[#E2E8F0] bg-white text-[#111111] hover:border-[#CBD5E1]"
-                          }`}
-                        >
-                          <span className="font-semibold block">
-                            {opt.label}
-                          </span>
-                          <span
-                            className={`text-[11px] ${
-                              (draft.rewardType || "pool") === opt.value
-                                ? "text-white/70"
-                                : "text-[#94A3B8]"
-                            }`}
-                          >
-                            {opt.desc}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                <details className="text-[12px] text-[#64748B] border border-[#E2E8F0] rounded-lg p-[14px]">
+                  <summary className="font-medium text-[13px] text-[#111111] cursor-pointer">
+                    How respondent payouts work
+                  </summary>
+                  <div className="mt-[8px] space-y-[6px]">
+                    <p>
+                      Every qualifying response earns a base payout.
+                      Respondents who write higher-quality answers earn additional bonus.
+                    </p>
+                    <p>
+                      Your budget &rarr; 15% platform fee &rarr; 60% base pool (split equally) &rarr; 40% quality bonus pool (earned by top scorers)
+                    </p>
                   </div>
-
-                  {/* Toggles */}
-                  <div className="flex flex-col gap-[10px]">
-                    <label className="flex items-center gap-[10px] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={!!draft.rewardsTopAnswers}
-                        onChange={(e) =>
-                          updateField("rewardsTopAnswers", e.target.checked)
-                        }
-                        className="w-[18px] h-[18px] rounded accent-[#111111] cursor-pointer"
-                      />
-                      <span className="text-[13px] text-[#64748B]">
-                        Highlight that thoughtful responses earn more
-                      </span>
-                    </label>
-                    <label className="flex items-center gap-[10px] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={!!draft.bonusAvailable}
-                        onChange={(e) =>
-                          updateField("bonusAvailable", e.target.checked)
-                        }
-                        className="w-[18px] h-[18px] rounded accent-[#111111] cursor-pointer"
-                      />
-                      <span className="text-[13px] text-[#64748B]">
-                        Show &quot;Bonus available&quot; badge on The Wall
-                      </span>
-                    </label>
-                  </div>
-                </>
+                </details>
               )}
 
               {(draft.rewardPool ?? 0) === 0 && (
@@ -585,9 +551,12 @@ export default function DraftReviewStep({
                   deadline={null}
                   creatorName="You"
                   creatorAvatar={null}
-                  bonusAvailable={!!draft.bonusAvailable}
-                  rewardsTopAnswers={!!draft.rewardsTopAnswers}
-                  rewardType={draft.rewardType ?? "pool"}
+                  bonusAvailable={false}
+                  rewardsTopAnswers={false}
+                  rewardType={null}
+                  isSubsidized={false}
+                  economicsVersion={2}
+                  format={draft.format ?? "quick"}
                   matchScore={85}
                   isVisible
                 />

@@ -3,9 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import sql from "@/lib/db";
 import type { CampaignDraft } from "@/lib/ai/types";
-import { canCreateCampaign, isFirstCampaign } from "@/lib/plan-guard";
+import { canCreateCampaign, isFirstCampaign, checkSubsidyEligibility } from "@/lib/plan-guard";
 import { calculateReach, validateFunding } from "@/lib/reach";
 import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
+import { DEFAULTS } from "@/lib/defaults";
+import { defaultTargetResponses, type CampaignFormat } from "@/lib/payout-math";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
@@ -62,10 +64,24 @@ export async function publishCampaign(
   draft.tags = draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text);
 
   // 4. Validate funding amount against tier minimum
-  const fundingAmount = draft.rewardPool || 0;
-  const fundingCheck = validateFunding(allowance.tier, fundingAmount);
-  if (!fundingCheck.valid) {
-    return { error: fundingCheck.reason ?? "Invalid funding amount." };
+  let fundingAmount = draft.rewardPool || 0;
+  let isSubsidized = false;
+
+  // V2: Check subsidy eligibility for $0 campaigns
+  if (fundingAmount === 0) {
+    const subsidy = await checkSubsidyEligibility(user.id);
+    if (subsidy.eligible) {
+      isSubsidized = true;
+      fundingAmount = 0; // stays 0 — platform funds internally
+    }
+    // If not eligible and fundingAmount is 0, let it through as a free (unfunded) campaign
+  }
+
+  if (!isSubsidized && fundingAmount > 0) {
+    const fundingCheck = validateFunding(allowance.tier, fundingAmount);
+    if (!fundingCheck.valid) {
+      return { error: fundingCheck.reason ?? "Invalid funding amount." };
+    }
   }
 
   // 4. Calculate reach units (with quality modifier)
@@ -85,14 +101,32 @@ export async function publishCampaign(
   const planConfig = PLAN_CONFIG[allowance.tier];
 
   // 5. Prepare values
-  const estimatedMinutes = Math.max(5, Math.ceil(draft.questions.length * 1.5));
-  const distributableAmount = fundingAmount
-    ? Math.round(fundingAmount * (1 - PLATFORM_FEE_RATE) * 100) / 100
-    : 0;
+  const format: CampaignFormat = isSubsidized ? "quick" : (draft.format === "standard" ? "standard" : "quick");
+  const estimatedMinutes = format === "quick" ? 3 : 5;
+
+  // Subsidized campaigns: platform-funded, no platform fee
+  const distributableAmount = isSubsidized
+    ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN
+    : (fundingAmount ? Math.round(fundingAmount * (1 - PLATFORM_FEE_RATE) * 100) / 100 : 0);
+  const targetResponses = isSubsidized
+    ? DEFAULTS.SUBSIDY_TARGET_RESPONSES
+    : (distributableAmount > 0 ? defaultTargetResponses(distributableAmount, format) : 0);
+
+  // V2 publish-time constraint: base pay per response >= MIN_BASE_PAYOUT
+  if (distributableAmount > 0) {
+    const basePay = (distributableAmount * DEFAULTS.BASE_POOL_RATIO) / Math.max(targetResponses, 1);
+    if (basePay < DEFAULTS.MIN_BASE_PAYOUT) {
+      return { error: `Budget too low for target response count. Minimum base pay per response is $${DEFAULTS.MIN_BASE_PAYOUT.toFixed(2)}.` };
+    }
+  }
+
   const keyAssumptions = draft.assumptions
     .filter((a) => a.trim().length > 0)
     .map((a) => enforceLength(a, 500).text);
-  const initialStatus = fundingAmount > 0 ? "pending_funding" : "active";
+  // Subsidized campaigns go active immediately (no Stripe); funded campaigns wait for payment
+  const initialStatus = isSubsidized ? "active" : (fundingAmount > 0 ? "pending_funding" : "active");
+  // Subsidized: use subsidy budget as reward_amount for display; funded: use actual amount
+  const effectiveRewardAmount = isSubsidized ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN : fundingAmount;
 
   // 6. Atomic transaction: profile + campaign + questions
   try {
@@ -105,12 +139,16 @@ export async function publishCampaign(
         ON CONFLICT (id) DO NOTHING
       `;
 
+      // Subsidized campaigns get expires_at set at publish (they skip Stripe)
+      const expiresAt = isSubsidized ? sql`NOW() + INTERVAL '${sql.unsafe(String(DEFAULTS.CAMPAIGN_EXPIRY_DAYS))} days'` : null;
+
       const [campaign] = await tx`
         INSERT INTO campaigns (
           creator_id, title, description, status,
           category, tags, estimated_minutes,
           reward_amount, reward_type, bonus_available, rewards_top_answers,
-          distributable_amount,
+          distributable_amount, target_responses,
+          format, economics_version, is_subsidized, expires_at,
           target_interests, target_expertise, target_age_ranges, target_location,
           key_assumptions,
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
@@ -121,8 +159,9 @@ export async function publishCampaign(
         ) VALUES (
           ${user.id}, ${draft.title}, ${draft.summary}, ${initialStatus},
           ${draft.category}, ${draft.tags}, ${estimatedMinutes},
-          ${fundingAmount}, ${draft.rewardType || "pool"}, ${!!draft.bonusAvailable}, ${!!draft.rewardsTopAnswers},
-          ${distributableAmount},
+          ${effectiveRewardAmount}, ${draft.rewardType || "pool"}, ${!!draft.bonusAvailable}, ${!!draft.rewardsTopAnswers},
+          ${distributableAmount}, ${targetResponses || null},
+          ${format}, ${2}, ${isSubsidized}, ${isSubsidized ? expiresAt : null},
           ${draft.audience.interests}, ${draft.audience.expertise}, ${draft.audience.ageRanges}, ${draft.audience.location || null},
           ${keyAssumptions},
           ${draft.audience.occupation || null}, ${draft.audience.industry || null}, ${draft.audience.experienceLevel || null}, ${draft.audience.nicheQualifier || null},
@@ -181,6 +220,9 @@ export async function publishCampaign(
       qualityScore,
       effectiveReach: reach.effectiveReach,
       campaignStrength: reach.campaignStrength,
+      format,
+      economicsVersion: 2,
+      targetResponses,
     });
 
     // Mark founder as having posted (for onboarding progress)
@@ -189,6 +231,15 @@ export async function publishCampaign(
       .from("profiles")
       .update({ has_posted: true })
       .eq("id", user.id);
+
+    // V2: Mark subsidy as used (atomically, outside transaction — idempotent)
+    if (isSubsidized) {
+      await sql`
+        UPDATE profiles
+        SET subsidized_campaign_used = true
+        WHERE id = ${user.id}
+      `;
+    }
 
     return { id: result.id };
   } catch (err) {
