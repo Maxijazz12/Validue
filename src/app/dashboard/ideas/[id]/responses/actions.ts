@@ -7,6 +7,7 @@ import type { AnswerWithMeta } from "@/lib/ai/types";
 import { updateRespondentReputation } from "@/lib/reputation";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function rankCampaignResponses(campaignId: string) {
   const supabase = await createClient();
@@ -27,6 +28,10 @@ export async function rankCampaignResponses(campaignId: string) {
   if (campaign.creator_id !== user.id) throw new Error("Not your campaign");
   if (campaign.ranking_status === "ranking")
     throw new Error("Ranking already in progress");
+
+  // Rate limit: 5 ranking runs per hour
+  const rl = rateLimit(`rank:${user.id}`, 3600000, 5);
+  if (!rl.allowed) throw new Error("Too many ranking requests. Please wait.");
 
   // Atomic lock: only transitions from 'unranked' to 'ranking'.
   // Prevents concurrent ranking runs via compare-and-swap.

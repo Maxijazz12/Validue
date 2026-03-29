@@ -125,10 +125,18 @@ type ContentFlagged = {
   entryPoint: string;
 };
 
+type CampaignCloned = {
+  event: "campaign.cloned";
+  originalCampaignId: string;
+  newCampaignId: string;
+  creatorId: string;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
   | CampaignStatusChanged
+  | CampaignCloned
   | RankingStarted
   | RankingCompleted
   | RankingFailed

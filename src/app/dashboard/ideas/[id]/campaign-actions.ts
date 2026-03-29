@@ -2,9 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import sql from "@/lib/db";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { logOps } from "@/lib/ops-logger";
 import { captureWarning } from "@/lib/sentry";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function completeCampaign(
   campaignId: string
@@ -115,4 +117,87 @@ export async function resumeCampaign(
 
   revalidatePath(`/dashboard/ideas/${campaignId}`);
   return { success: true };
+}
+
+export async function cloneCampaign(campaignId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated." };
+
+  // Fetch original campaign
+  const { data: original } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .eq("creator_id", user.id)
+    .single();
+
+  if (!original) return { error: "Campaign not found." };
+
+  // Rate limit: 10 clones per hour
+  const rl = rateLimit(`clone:${user.id}`, 3600000, 10);
+  if (!rl.allowed) return { error: "Too many duplications. Please wait." };
+
+  // Fetch original questions
+  const { data: questions } = await supabase
+    .from("questions")
+    .select("text, type, sort_order, options, is_baseline, category")
+    .eq("campaign_id", campaignId)
+    .order("sort_order", { ascending: true });
+
+  let newId: string;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+    const result = await sql.begin(async (tx: any) => {
+      const [campaign] = await tx`
+        INSERT INTO campaigns (
+          creator_id, title, description, status, category, tags,
+          estimated_minutes, reward_amount, reward_type,
+          bonus_available, rewards_top_answers,
+          target_interests, target_expertise, target_age_ranges, target_location,
+          key_assumptions,
+          audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
+          quality_scores, quality_score
+        ) VALUES (
+          ${user.id}, ${"(Copy) " + original.title}, ${original.description}, 'draft',
+          ${original.category}, ${original.tags},
+          ${original.estimated_minutes}, 0, ${original.reward_type},
+          ${original.bonus_available}, ${original.rewards_top_answers},
+          ${original.target_interests}, ${original.target_expertise}, ${original.target_age_ranges}, ${original.target_location},
+          ${original.key_assumptions},
+          ${original.audience_occupation}, ${original.audience_industry}, ${original.audience_experience_level}, ${original.audience_niche_qualifier},
+          ${original.quality_scores}, ${original.quality_score}
+        )
+        RETURNING id
+      `;
+
+      for (const q of questions || []) {
+        await tx`
+          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category)
+          VALUES (${campaign.id}, ${q.text}, ${q.type}, ${q.sort_order}, ${q.options}::jsonb, ${q.is_baseline}, ${q.category})
+        `;
+      }
+
+      return campaign;
+    });
+
+    newId = result.id;
+
+    logOps({
+      event: "campaign.cloned",
+      originalCampaignId: campaignId,
+      newCampaignId: newId,
+      creatorId: user.id,
+    });
+  } catch (err) {
+    console.error("[cloneCampaign] DB error:", err);
+    captureWarning(`cloneCampaign failed: ${(err as Error).message}`, { campaignId, operation: "campaign.clone" });
+    return { error: "Failed to duplicate campaign." };
+  }
+
+  redirect(`/dashboard/ideas/${newId}`);
 }

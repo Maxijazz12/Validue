@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import ThemeToggle from "@/components/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/ui/Avatar";
 
@@ -107,8 +108,8 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
 
   function getNavItemClass(href: string) {
     return isActive(href)
-      ? "bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-      : "text-[#94A3B8] hover:bg-[#F8FAFC] hover:text-[#111111]";
+      ? "bg-[#111111] dark:bg-white/10 text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+      : "text-[#94A3B8] hover:bg-[#F8FAFC] dark:hover:bg-[#22252F] hover:text-[#111111] dark:hover:text-[#E8EAF0]";
   }
 
   function renderNavItem(item: NavItem) {
@@ -217,6 +218,7 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
               </Link>
             )}
           </div>
+          <ThemeToggle compact />
           <button
             onClick={handleLogout}
             className="p-[6px] rounded-lg text-[#94A3B8] hover:text-[#111111] hover:bg-[#F3F4F6] transition-all cursor-pointer bg-transparent border-none"
@@ -234,7 +236,7 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
   return (
     <>
       {/* Mobile header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-[8px] px-[12px] py-[8px] bg-white/90 backdrop-blur-2xl border-b border-[#E2E8F0]">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-[8px] px-[12px] py-[8px] bg-white/90 dark:bg-[#0F1117]/90 backdrop-blur-2xl border-b border-[#E2E8F0] dark:border-[#2A2D3A]">
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="p-[10px] bg-white border border-[#E2E8F0] rounded-xl cursor-pointer transition-all hover:bg-[#F3F4F6]"

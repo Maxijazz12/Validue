@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import WallFeed from "@/components/dashboard/WallFeed";
 import WallOnboarding from "@/components/dashboard/WallOnboarding";
 import ProfilePrompt from "@/components/dashboard/ProfilePrompt";
-import type { WallCardProps, WallComment } from "@/components/dashboard/WallCard";
+import type { WallCardProps } from "@/components/dashboard/WallCard";
 import type { WallUserProfile } from "@/components/dashboard/WallFeed";
 import type { ActivityItem } from "@/components/dashboard/ActivityTicker";
 import {
@@ -89,28 +89,7 @@ export default async function TheWallPage() {
     }
   }
 
-  // Bulk fetch comments for all campaigns
-  const { data: allComments } = campaignIds.length > 0
-    ? await supabase
-        .from("campaign_comments")
-        .select("id, campaign_id, author_id, content, created_at, author:profiles!author_id(full_name, avatar_url)")
-        .in("campaign_id", campaignIds)
-        .order("created_at", { ascending: false })
-    : { data: [] };
 
-  const commentMap = new Map<string, WallComment[]>();
-  for (const c of allComments || []) {
-    const list = commentMap.get(c.campaign_id) || [];
-    list.push({
-      id: c.id,
-      content: c.content,
-      createdAt: c.created_at,
-      authorName: ((c.author as unknown as { full_name: string }) ?? {}).full_name || "Anonymous",
-      authorAvatar: ((c.author as unknown as { avatar_url: string | null }) ?? {}).avatar_url || null,
-      isOwn: c.author_id === user!.id,
-    });
-    commentMap.set(c.campaign_id, list);
-  }
 
   // Bulk fetch reactions for all campaigns
   const { data: allReactions } = campaignIds.length > 0
@@ -235,7 +214,6 @@ export default async function TheWallPage() {
       matchScore: c.matchScore,
       matchReasons: c.matchReasons,
       firstQuestion: firstQuestionMap.get(c.id) ?? null,
-      comments: commentMap.get(c.id) || [],
       reactionCounts: reactionCountsMap.get(c.id) || {},
       userReactions: userReactionsMap.get(c.id) || [],
       recentRespondents: respondentMap.get(c.id) || [],

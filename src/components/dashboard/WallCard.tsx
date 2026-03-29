@@ -4,15 +4,6 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import Avatar from "@/components/ui/Avatar";
 import WallReactionBar from "@/components/dashboard/WallReactionBar";
 
-export type WallComment = {
-  id: string;
-  content: string;
-  createdAt: string;
-  authorName: string;
-  authorAvatar: string | null;
-  isOwn: boolean;
-};
-
 export type WallCardProps = {
   id: string;
   title: string;
@@ -42,8 +33,6 @@ export type WallCardProps = {
   matchReasons?: string[];
   firstQuestion?: { id: string; text: string; type: string; options: string[] | null } | null;
   isFocused?: boolean;
-  /* Wave 4 props */
-  comments?: WallComment[];
   /* Wave 5 props */
   reactionCounts?: Record<string, number>;
   userReactions?: string[];
@@ -252,7 +241,6 @@ export default function WallCard({
   matchReasons,
   firstQuestion,
   isFocused = false,
-  comments: _comments = [],
   reactionCounts = {},
   userReactions = [],
   recentRespondents: _recentRespondents = [],

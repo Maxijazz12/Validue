@@ -1,0 +1,243 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  getCampaignAnalytics,
+  type AnalyticsData,
+} from "@/app/dashboard/ideas/[id]/analytics-actions";
+
+function BarChart({
+  data,
+  labelKey,
+  valueKey,
+  color = "#E5654E",
+  maxBars = 10,
+}: {
+  data: { [key: string]: string | number }[];
+  labelKey: string;
+  valueKey: string;
+  color?: string;
+  maxBars?: number;
+}) {
+  const items = data.slice(0, maxBars);
+  const max = Math.max(...items.map((d) => Number(d[valueKey]) || 0), 1);
+
+  return (
+    <div className="flex flex-col gap-[6px]">
+      {items.map((d, i) => {
+        const value = Number(d[valueKey]) || 0;
+        const pct = (value / max) * 100;
+        return (
+          <div key={i} className="flex items-center gap-[8px]">
+            <span className="text-[11px] text-[#64748B] w-[60px] shrink-0 truncate text-right">
+              {d[labelKey]}
+            </span>
+            <div className="flex-1 h-[16px] rounded bg-[#F3F4F6] overflow-hidden">
+              <div
+                className="h-full rounded transition-all duration-500"
+                style={{ width: `${pct}%`, backgroundColor: color }}
+              />
+            </div>
+            <span className="text-[11px] font-mono font-semibold text-[#111111] w-[24px] text-right">
+              {value}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResponseTimeline({
+  data,
+}: {
+  data: { date: string; count: number }[];
+}) {
+  if (data.length === 0) return null;
+  const max = Math.max(...data.map((d) => d.count), 1);
+
+  return (
+    <div className="flex items-end gap-[3px] h-[80px]">
+      {data.map((d, i) => {
+        const pct = (d.count / max) * 100;
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+            <div
+              className="w-full rounded-t bg-[#E5654E]/70 hover:bg-[#E5654E] transition-colors min-h-[2px]"
+              style={{ height: `${Math.max(pct, 3)}%` }}
+            />
+            <div className="absolute -top-[24px] left-1/2 -translate-x-1/2 px-[6px] py-[2px] rounded bg-[#111111] text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              {d.date.slice(5)}: {d.count}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DemographicPills({
+  items,
+}: {
+  items: { label: string; count: number }[];
+}) {
+  if (items.length === 0) {
+    return <span className="text-[12px] text-[#94A3B8]">No data</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-[6px]">
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className="text-[11px] px-[8px] py-[3px] rounded-full bg-[#F3F4F6] text-[#64748B]"
+        >
+          {item.label}
+          <span className="ml-[4px] font-mono font-semibold text-[#111111]">
+            {item.count}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export default function CampaignAnalytics({
+  campaignId,
+}: {
+  campaignId: string;
+}) {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    getCampaignAnalytics(campaignId)
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [campaignId]);
+
+  if (loading) {
+    return (
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
+        <div className="flex items-center gap-[8px]">
+          <div className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-pulse" />
+          <span className="text-[13px] text-[#94A3B8]">Loading analytics...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const hasScores = data.scoreDistribution.some((d) => d.count > 0);
+
+  return (
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden">
+      {/* Header — always visible */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-[24px_32px] max-md:p-[20px] text-left cursor-pointer hover:bg-[#FCFCFD] transition-colors bg-transparent border-none"
+      >
+        <div className="flex items-center gap-[10px]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 20h.01" /><path d="M7 20v-4" /><path d="M12 20v-8" /><path d="M17 20V8" /><path d="M22 4v16" />
+          </svg>
+          <h2 className="text-[16px] font-semibold text-[#111111]">Analytics</h2>
+        </div>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#999999"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`transition-transform ${expanded ? "rotate-180" : ""}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-[#E2E8F0] p-[24px_32px] max-md:p-[20px]">
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 gap-[12px] mb-[24px]">
+            <div className="p-[12px] rounded-xl bg-[#F8FAFC]">
+              <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px]">
+                Avg time/answer
+              </span>
+              <div className="font-mono text-[18px] font-bold text-[#111111] mt-[2px]">
+                {data.avgTimePerResponse > 0 ? `${data.avgTimePerResponse}s` : "—"}
+              </div>
+            </div>
+            <div className="p-[12px] rounded-xl bg-[#F8FAFC]">
+              <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px]">
+                Paste detected
+              </span>
+              <div className={`font-mono text-[18px] font-bold mt-[2px] ${data.totalPasteDetected > 0 ? "text-[#E5654E]" : "text-[#111111]"}`}>
+                {data.totalPasteDetected}
+              </div>
+            </div>
+          </div>
+
+          {/* Response timeline */}
+          {data.responsesByDay.length > 1 && (
+            <div className="mb-[24px]">
+              <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+                Responses over time
+              </h3>
+              <ResponseTimeline data={data.responsesByDay} />
+              <div className="flex items-center justify-between mt-[4px]">
+                <span className="text-[10px] text-[#CBD5E1]">
+                  {data.responsesByDay[0].date.slice(5)}
+                </span>
+                <span className="text-[10px] text-[#CBD5E1]">
+                  {data.responsesByDay[data.responsesByDay.length - 1].date.slice(5)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Score distribution */}
+          {hasScores && (
+            <div className="mb-[24px]">
+              <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+                Quality score distribution
+              </h3>
+              <BarChart
+                data={data.scoreDistribution}
+                labelKey="bucket"
+                valueKey="count"
+                color="#22c55e"
+              />
+            </div>
+          )}
+
+          {/* Respondent demographics */}
+          <div className="mb-[24px]">
+            <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+              Respondent interests
+            </h3>
+            <DemographicPills items={data.respondentDemographics.interests} />
+          </div>
+
+          <div className="mb-[24px]">
+            <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+              Respondent expertise
+            </h3>
+            <DemographicPills items={data.respondentDemographics.expertise} />
+          </div>
+
+          <div>
+            <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+              Reputation tiers
+            </h3>
+            <DemographicPills items={data.respondentDemographics.tiers} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

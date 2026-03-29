@@ -49,6 +49,39 @@
   --animate-float-b: floatB 5s ease-in-out infinite;
 }
 
+/* ─── Dark theme overrides ─── */
+.dark {
+  --color-bg: #0F1117;
+  --color-bg-elevated: #1A1D27;
+  --color-bg-hero: #13151D;
+  --color-bg-card: #1A1D27;
+  --color-border: #2A2D3A;
+  --color-border-hover: #3A3D4A;
+  --color-text-primary: #E8EAF0;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-accent: #E8EAF0;
+  --color-surface-warm: #15171F;
+  --color-surface-cool: #13151D;
+  --color-surface-glass: rgba(26, 29, 39, 0.85);
+  --color-surface-glass-border: rgba(255, 255, 255, 0.06);
+  color-scheme: dark;
+}
+
+/* Dark mode: override hardcoded colors on common elements */
+.dark input, .dark select, .dark textarea {
+  background-color: #1A1D27;
+  border-color: #2A2D3A;
+  color: #E8EAF0;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #64748B;
+}
+.dark input:focus, .dark select:focus, .dark textarea:focus {
+  border-color: #3A3D4A;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -77,6 +110,35 @@ body {
   background: var(--color-border);
   border-radius: 3px;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: #3A3D4A;
+}
+
+/* Dark mode: override hardcoded Tailwind arbitrary values */
+/* Backgrounds */
+.dark .bg-white { background-color: #1A1D27 !important; }
+.dark .bg-\[\#FCFCFD\] { background-color: #15171F !important; }
+.dark .bg-\[\#FAF9FA\] { background-color: #15171F !important; }
+.dark .bg-\[\#F3F4F6\] { background-color: #22252F !important; }
+.dark .bg-\[\#F8FAFC\] { background-color: #1E2130 !important; }
+.dark .bg-\[\#F1F5F9\] { background-color: #22252F !important; }
+
+/* Borders */
+.dark .border-\[\#E2E8F0\] { border-color: #2A2D3A !important; }
+.dark .border-\[\#CBD5E1\] { border-color: #3A3D4A !important; }
+.dark .border-\[\#f0f0f0\] { border-color: #2A2D3A !important; }
+
+/* Text */
+.dark .text-\[\#111111\] { color: #E8EAF0 !important; }
+.dark .text-\[\#222222\] { color: #E8EAF0 !important; }
+.dark .text-\[\#64748B\] { color: #94A3B8 !important; }
+.dark .text-\[\#94A3B8\] { color: #64748B !important; }
+.dark .text-\[\#CBD5E1\] { color: #4A4D5A !important; }
+
+/* Hover backgrounds */
+.dark .hover\:bg-\[\#FCFCFD\]:hover { background-color: #22252F !important; }
+.dark .hover\:bg-\[\#F9FAFB\]:hover { background-color: #22252F !important; }
+.dark .hover\:border-\[\#CBD5E1\]:hover { border-color: #3A3D4A !important; }
 
 /* ─── CTA Button (solid black, accent glow on hover) ─── */
 .gradient-btn {
@@ -92,6 +154,14 @@ body {
 }
 .gradient-btn:active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.dark .gradient-btn {
+  background: #E8EAF0;
+  color: #0F1117;
+}
+.dark .gradient-btn:hover {
+  background: #FFFFFF;
+  box-shadow: 0 4px 20px rgba(232, 193, 176, 0.1);
 }
 
 /* ─── Glass surface ─── */

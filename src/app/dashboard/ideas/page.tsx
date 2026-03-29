@@ -34,25 +34,28 @@ export default async function IdeasPage() {
 
   const { data: ideas } = await supabase
     .from("campaigns")
-    .select("*")
+    .select("id, title, status, reward_amount, reward_type, current_responses, target_responses, target_interests, target_expertise, created_at")
     .eq("creator_id", user!.id)
     .order("created_at", { ascending: false });
 
-  // Count matched responses per campaign (respondents with profile_completed)
-  const ideasWithMatches = await Promise.all(
-    (ideas || []).map(async (idea) => {
-      const { count: matchedCount } = await supabase
-        .from("responses")
-        .select("*, respondent:profiles!respondent_id(profile_completed)", { count: "exact", head: true })
-        .eq("campaign_id", idea.id)
-        .eq("respondent.profile_completed", true);
+  // Batch count matched responses for all campaigns in one query
+  const campaignIds = (ideas || []).map((i) => i.id);
+  const matchedCounts = new Map<string, number>();
+  if (campaignIds.length > 0) {
+    const { data: matches } = await supabase
+      .from("responses")
+      .select("campaign_id, respondent:profiles!respondent_id(profile_completed)")
+      .in("campaign_id", campaignIds)
+      .eq("respondent.profile_completed", true);
+    for (const m of matches || []) {
+      matchedCounts.set(m.campaign_id, (matchedCounts.get(m.campaign_id) || 0) + 1);
+    }
+  }
 
-      return {
-        ...idea,
-        matched_responses: matchedCount || 0,
-      };
-    })
-  );
+  const ideasWithMatches = (ideas || []).map((idea) => ({
+    ...idea,
+    matched_responses: matchedCounts.get(idea.id) || 0,
+  }));
 
   const ideaItems: IdeaItem[] = ideasWithMatches.map((idea) => {
     const audience = getAudienceLabel(idea);

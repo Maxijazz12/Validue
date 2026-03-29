@@ -3,8 +3,11 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import RankButton from "@/components/dashboard/responses/RankButton";
 import ResponseSection from "@/components/dashboard/responses/ResponseSection";
+import ExportResponsesButton from "@/components/dashboard/responses/ExportResponsesButton";
 import type { ResponseItem } from "@/components/dashboard/responses/ResponseList";
 import { safeNumber } from "@/lib/defaults";
+import { getSubscription } from "@/lib/plan-guard";
+import { PLAN_CONFIG } from "@/lib/plans";
 
 export default async function CampaignResponsesPage({
   params,
@@ -18,6 +21,9 @@ export default async function CampaignResponsesPage({
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/auth/login");
+
+  const sub = await getSubscription(user.id);
+  const hasExport = !!PLAN_CONFIG[sub.tier].hasExport;
 
   // Fetch campaign (creator only)
   const { data: campaign } = await supabase
@@ -159,8 +165,15 @@ export default async function CampaignResponsesPage({
 
         <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] relative overflow-hidden">
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
-          <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">Responses</h1>
-          <p className="text-[14px] text-[#64748B] mt-[4px]">{campaign.title}</p>
+          <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
+            <div>
+              <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">Responses</h1>
+              <p className="text-[14px] text-[#64748B] mt-[4px]">{campaign.title}</p>
+            </div>
+            {totalResponses > 0 && (
+              <ExportResponsesButton campaignId={id} hasExport={hasExport} />
+            )}
+          </div>
         </div>
       </div>
 

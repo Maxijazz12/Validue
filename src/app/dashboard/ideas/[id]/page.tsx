@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import FundCampaignButton from "@/components/dashboard/FundCampaignButton";
 import { CompleteCampaignButton, PauseCampaignButton, ResumeCampaignButton } from "@/components/dashboard/CampaignStatusButtons";
+import CloneCampaignButton from "@/components/dashboard/CloneCampaignButton";
+import CampaignAnalytics from "@/components/dashboard/CampaignAnalytics";
 import { getCampaignStrength, getStrengthLabel, estimateFillSpeed, getQualityModifier } from "@/lib/reach";
 import { getStrengthColors } from "@/lib/strength-colors";
 import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
@@ -213,13 +215,16 @@ export default async function CampaignDetailPage({
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
           <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
             <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">{campaign.title}</h1>
-            <span
-              className={`px-[12px] py-[5px] rounded-full text-[12px] font-semibold uppercase tracking-[0.5px] shrink-0 ${
-                statusColors[campaign.status] || statusColors.draft
-              }`}
-            >
-              {campaign.status === "pending_funding" ? "Pending Funding" : campaign.status}
-            </span>
+            <div className="flex items-center gap-[8px] shrink-0">
+              <CloneCampaignButton campaignId={campaign.id} />
+              <span
+                className={`px-[12px] py-[5px] rounded-full text-[12px] font-semibold uppercase tracking-[0.5px] ${
+                  statusColors[campaign.status] || statusColors.draft
+                }`}
+              >
+                {campaign.status === "pending_funding" ? "Pending Funding" : campaign.status}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -489,6 +494,13 @@ export default async function CampaignDetailPage({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ─── Analytics ─── */}
+      {campaign.current_responses > 0 && (
+        <div className="mb-[24px]">
+          <CampaignAnalytics campaignId={campaign.id} />
         </div>
       )}
 

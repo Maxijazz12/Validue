@@ -7,6 +7,7 @@ import { DEFAULTS, safeNumber, safePositive } from "@/lib/defaults";
 import { PLATFORM_FEE_RATE } from "@/lib/plans";
 import { logOps } from "@/lib/ops-logger";
 import { captureError, captureWarning } from "@/lib/sentry";
+import { rateLimit } from "@/lib/rate-limit";
 import sql from "@/lib/db";
 
 export type PayoutSuggestion = {
@@ -207,6 +208,10 @@ export async function allocatePayouts(
   if (!campaign) throw new Error("Campaign not found");
   if (campaign.payout_status === "allocated")
     throw new Error("Payouts already allocated");
+
+  // Rate limit: 5 allocation attempts per hour
+  const rl = rateLimit(`payout:${user.id}`, 3600000, 5);
+  if (!rl.allowed) throw new Error("Too many payout attempts. Please wait.");
 
   const distributable = safePositive(campaign.distributable_amount);
 

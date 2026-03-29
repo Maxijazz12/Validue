@@ -378,9 +378,17 @@ export default function WallFeed({
       } else if (e.key === "o" && focusedIndex !== null) {
         e.preventDefault();
         window.location.href = `/dashboard/the-wall/${results[focusedIndex].id}`;
+      } else if (e.key === "r" && focusedIndex !== null) {
+        e.preventDefault();
+        window.location.href = `/dashboard/the-wall/${results[focusedIndex].id}`;
+      } else if (e.key === "/") {
+        e.preventDefault();
+        document.getElementById("wall-search")?.focus();
       } else if (e.key === "Escape") {
         if (expandedId) setExpandedId(null);
-        else setFocusedIndex(null);
+        else if (document.activeElement?.id === "wall-search") {
+          (document.activeElement as HTMLElement).blur();
+        } else setFocusedIndex(null);
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -477,7 +485,7 @@ export default function WallFeed({
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </div>
-              <input type="text" placeholder="Search ideas..." value={query} onChange={(e) => setQuery(e.target.value)}
+              <input id="wall-search" type="text" placeholder="Search ideas..." value={query} onChange={(e) => setQuery(e.target.value)}
                 className="w-full pl-[38px] pr-[12px] py-[10px] text-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-300"
               />
               {query && (

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
+import { rateLimit } from "@/lib/rate-limit";
 import sql from "@/lib/db";
 
 export type AnswerMetadata = {
@@ -88,6 +89,10 @@ export async function saveAnswer(
 
   if (!user) throw new Error("Not authenticated");
 
+  // Rate limit: 120 saves per hour (rapid typing/navigation is normal)
+  const rl = rateLimit(`save:${user.id}`, 3600000, 120);
+  if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
+
   // Sanitize metadata + content moderation + length enforcement
   const safeMetadata = sanitizeMetadata(metadata);
   const { text: safeText } = enforceLength(text, MAX_LENGTHS.ANSWER_TEXT);
@@ -136,6 +141,10 @@ export async function submitResponse(responseId: string) {
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  // Rate limit: 10 submissions per hour
+  const rl = rateLimit(`submit:${user.id}`, 3600000, 10);
+  if (!rl.allowed) throw new Error("Too many submissions. Please wait before submitting again.");
 
   // Verify response belongs to user and is in_progress
   const { data: response } = await supabase

@@ -9,6 +9,7 @@ import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function publishCampaign(
   draft: CampaignDraft
@@ -26,6 +27,12 @@ export async function publishCampaign(
   } catch (err) {
     console.error("[publishCampaign] Auth exception:", err);
     return { error: "Authentication service unavailable." };
+  }
+
+  // Rate limit: 5 publishes per hour
+  const rl = rateLimit(`publish:${user.id}`, 3600000, 5);
+  if (!rl.allowed) {
+    return { error: "Too many campaigns created. Please wait before publishing again." };
   }
 
   // 2. Check tier allowance

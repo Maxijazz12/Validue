@@ -58,7 +58,7 @@ export default async function DashboardLayout({
   const totalEarned = Number(profile?.total_earned) || 0;
 
   return (
-    <div className="min-h-screen bg-[#FCFCFD] relative overflow-hidden">
+    <div className="min-h-screen bg-[#FCFCFD] dark:bg-[#0F1117] relative overflow-hidden">
       {/* Ambient color washes (matches landing page depth) */}
       <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
         <div className="absolute" style={{ top: '10%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,193,176,0.09) 0%, transparent 70%)' }} />

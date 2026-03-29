@@ -19,36 +19,39 @@ export default async function ResponsesPage() {
     .gt("current_responses", 0)
     .order("created_at", { ascending: false });
 
-  // For each campaign, count ranked responses and avg score
-  const campaignsWithStats: CampaignWithStats[] = await Promise.all(
-    (campaigns || []).map(async (c) => {
-      const { data: responses } = await supabase
-        .from("responses")
-        .select("quality_score, status")
-        .eq("campaign_id", c.id)
-        .in("status", ["submitted", "ranked"]);
+  // Batch fetch response stats for all campaigns in one query
+  const campaignIds = (campaigns || []).map((c) => c.id);
+  const statsMap = new Map<string, { total: number; ranked: number; scoreSum: number }>();
+  if (campaignIds.length > 0) {
+    const { data: allResponses } = await supabase
+      .from("responses")
+      .select("campaign_id, quality_score, status")
+      .in("campaign_id", campaignIds)
+      .in("status", ["submitted", "ranked"]);
+    for (const r of allResponses || []) {
+      const entry = statsMap.get(r.campaign_id) || { total: 0, ranked: 0, scoreSum: 0 };
+      entry.total++;
+      if (r.status === "ranked") {
+        entry.ranked++;
+        entry.scoreSum += Number(r.quality_score) || 0;
+      }
+      statsMap.set(r.campaign_id, entry);
+    }
+  }
 
-      const ranked = (responses || []).filter((r) => r.status === "ranked");
-      const avgScore =
-        ranked.length > 0
-          ? Math.round(
-              ranked.reduce((s, r) => s + (Number(r.quality_score) || 0), 0) /
-                ranked.length
-            )
-          : null;
-
-      return {
-        id: c.id,
-        title: c.title,
-        current_responses: c.current_responses,
-        target_responses: c.target_responses,
-        ranking_status: c.ranking_status || "unranked",
-        totalResponses: responses?.length || 0,
-        rankedCount: ranked.length,
-        avgScore,
-      };
-    })
-  );
+  const campaignsWithStats: CampaignWithStats[] = (campaigns || []).map((c) => {
+    const stats = statsMap.get(c.id) || { total: 0, ranked: 0, scoreSum: 0 };
+    return {
+      id: c.id,
+      title: c.title,
+      current_responses: c.current_responses,
+      target_responses: c.target_responses,
+      ranking_status: c.ranking_status || "unranked",
+      totalResponses: stats.total,
+      rankedCount: stats.ranked,
+      avgScore: stats.ranked > 0 ? Math.round(stats.scoreSum / stats.ranked) : null,
+    };
+  });
 
   const hasCampaigns = campaignsWithStats.length > 0;
 
