@@ -1,5 +1,6 @@
 @PRODUCT.md
 @CAPABILITIES.md
+@ARCHITECTURE.md
 @AGENTS.md
 @DESIGN.md
 
@@ -101,6 +102,61 @@ Full protocol in `COUNCIL.md` — read it when a council is triggered. These are
 - **Level 1 (fan-out):** Schema changes to campaigns/responses/payouts, new cron/webhook logic, auth/RLS changes, competing technical approaches. Launch 3 subagents with varied framing, synthesize, pick one.
 - **Level 2 (multi-model):** Changes to `payout-math.ts`, new scoring algorithms, pricing/economics changes, AI synthesis prompt design. Run Level 1 first, then give Max the problem statement for ChatGPT verification.
 - **Level 3 (full council):** V2→V3 economics, launch pricing, core pivots. Level 1 + Level 2 + synthesis memo + sleep on it.
+
+# Autonomous Workflow — Self-Driving Mode
+
+After completing any task, automatically:
+
+1. **Run the learning loop** (propose CLAUDE.md updates if applicable)
+2. **Assess next priority** — read PRODUCT.md build phases, check current codebase state, identify what's blocking or highest-leverage
+3. **Generate the next task prompt** — write it as if a senior PM were speccing the work: clear objective, constraints, acceptance criteria, which files are likely involved
+4. **Present to Max** in this format:
+
+```
+## Next: [task title]
+[1-2 sentence description of what and why]
+
+**Touches:** [key files/areas]
+**Complexity:** [trivial / moderate / complex → plan mode]
+**Ready to go?**
+```
+
+5. Max responds: "go", "next" (skip to different priority), or redirects
+
+**Auto plan mode:** Enter plan mode without asking when the task touches >3 files, changes architecture, or involves new AI prompts/schemas. For trivial tasks (single file, clear change), just do it.
+
+**Priority order** (unless Max overrides):
+1. Whatever is blocking the current PRODUCT.md phase gate
+2. Bugs or broken functionality
+3. Highest-leverage feature for current phase
+4. Tech debt that's actively causing problems
+5. Polish and optimization
+
+# Task Classification (Quick Route)
+
+Classify every incoming task instantly. Don't re-read rules — use this table.
+
+| If the task... | Level | Parallel? | Plan mode? |
+|---|---|---|---|
+| Single file, clear change | 0 | No | No |
+| UI component, no shared imports | 0 | Worktree OK | No |
+| New API route (standalone) | 0 | Worktree OK | No |
+| Bug fix | 0 | No | No |
+| Touches economics (payout-math, defaults, plan-guard, reach) | 1 council | No | Yes |
+| Schema migration + code changes | 1 council | No | Yes |
+| New AI feature (prompts, schemas, scoring) | 1 council | No | Yes |
+| Auth/RLS changes | 1 council | No | Yes |
+| Pricing/payout formula changes | 2 council | No | Yes |
+| Product direction change | 3 council | No | Yes |
+| Touches >3 files | — | No | Yes (auto) |
+| Design reference ("make it like X") | 0 | Worktree per component | No |
+
+**Critical path files (never parallelize against):**
+Economics: payout-math.ts, defaults.ts, plan-guard.ts, reach.ts
+API contracts: api/generate/route.ts, api/webhooks/stripe/route.ts
+Hub actions: ideas/new/actions.ts, responses/payout-actions.ts, the-wall/[id]/actions.ts
+
+**Safe for worktree:** landing/*, ui/*, new API routes, new lib utilities, test suites
 
 # Post-Task Learning Loop
 
