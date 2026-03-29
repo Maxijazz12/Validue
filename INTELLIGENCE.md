@@ -66,7 +66,9 @@ When analyzing a product (Stripe, Linear, Notion, etc.):
 Each lesson: one sentence + evidence tier + source + date + status (active / hypothesis / superseded).
 
 ### Pricing & Monetization
-<!-- No lessons yet. First lessons will come from Phase 0 founder feedback and real conversion data. -->
+- $49 is likely viable for 3 of 4 founder segments. Skeptical/experienced founders see it as cheap insurance. First-timers see it as expensive but justified. Serial founders see it as an impulse buy only. — Tier 4, simulation 2026-03-29, hypothesis
+- A sample report on the website is likely critical for conversion. Every simulated persona said they need to see output quality before paying. — Tier 4, simulation 2026-03-29, hypothesis
+- $29 "student/first-time" tier at ~15 respondents could expand the market significantly without cannibalizing $49 tier. — Tier 4, simulation 2026-03-29, hypothesis
 
 ### Onboarding & First Experience
 <!-- No lessons yet. -->
@@ -88,7 +90,8 @@ Each lesson: one sentence + evidence tier + source + date + status (active / hyp
 - Recommendations need same scrutiny as the original idea. An unvalidated pivot suggestion is "half a product." — Tier 4, simulation 2026-03-29, hypothesis
 
 ### Architecture (User-Facing Impact)
-<!-- No lessons yet. -->
+- Respondent quality is the #1 trust concern and the binding constraint on the product. Synthesis quality is strong; data quality is the vulnerability. The path to higher trust and pricing runs through better response collection, not better AI. — Tier 4, simulation 2026-03-29, hypothesis
+- Response collection structure (question design, behavioral probes, respondent UX) is likely the make-or-break factor. Scoring/anti-gaming catch bad responses but don't produce good ones. The input quality caps the output quality. — Tier 5, founder input (Max) 2026-03-29, hypothesis — CRITICAL: test before Phase 1 engine build
 
 ---
 
@@ -99,3 +102,5 @@ Track major product decisions and what happened. Update "Outcome" column when re
 | Decision | Date | Rationale | Outcome | Lesson |
 |----------|------|-----------|---------|--------|
 | Assumption Autopsy framing over generic survey model | 2026-03-29 | No competitor owns assumption-testing. Brief organized by assumptions > survey responses. (Tier 5: internal reasoning + Tier 3: competitor landscape analysis) | [pending — validate in Phase 0] | [pending] |
+| Variant B ("The Verdict") as brief format | 2026-03-29 | Performed best in comparative simulation (3 variants × 2 ideas × 4 personas). Decision call + transparency + evidence labels. (Tier 4: simulation) | [pending — needs real-founder testing] | [pending] |
+| Response collection quality is the binding constraint | 2026-03-29 | Simulated buyers flagged respondent quality as #1 trust concern. Max confirmed: scoring catches bad responses but doesn't produce good ones. Question design and respondent UX determine signal quality. (Tier 4: simulation + Tier 2: founder input) | [pending — needs response structure experimentation] | [pending] |
