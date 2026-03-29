@@ -22,7 +22,29 @@ These are not optional. Skipping a required check is a protocol violation.
 
 # Context Overload — CRITICAL PROTOCOL
 
-**You cannot switch models mid-session.** The only defense against context degradation is stopping work and starting fresh. This is not optional — degraded output is worse than no output.
+**The model starts underperforming at ~180K tokens.** Tool-use count is a proxy — the real constraint is accumulated context. The primary defense is **offloading work to subagents** so the main context stays lean. The secondary defense is stopping and handing off to a fresh session.
+
+## Subagent Offloading (Primary Defense)
+
+**Important implementation work should spawn subagents.** The main conversation thread is for coordination, decisions, and review — not for heavy execution. This keeps the main context under the degradation threshold.
+
+**Always offload to subagents:**
+- Multi-file implementation tasks (give the agent the spec, let it write the code)
+- Codebase exploration and research (use Explore agents)
+- Architecture/design planning (use Plan agents)
+- Council fan-out (3 agents with varied framing)
+- Simulation runs (persona agents)
+- Test/lint/build verification (background agents)
+
+**Keep in main thread only:**
+- Decision-making and synthesis (reviewing subagent output)
+- Small edits (<20 lines, 1-2 files)
+- Commits and git operations
+- Conversations with Max
+
+**The rule:** If a task will require >3 tool calls to implement, spawn a subagent. The subagent gets its own fresh context and returns a result. The main thread stays clean.
+
+## Context Warning Thresholds
 
 **When any context warning fires (40/60/80 tool uses, PreCompact):**
 
@@ -37,6 +59,7 @@ These are not optional. Skipping a required check is a protocol violation.
 4. **Tell Max: "Start a fresh session. Here's what to tell the next instance."**
 5. **Do not argue that you're "still fine."** The model that's degrading cannot detect its own degradation. Trust the system signal.
 
+**At 40 tool uses:** Early warning. Start offloading ALL remaining work to subagents. No more direct implementation in main thread.
 **At 60+ tool uses:** Quality is likely degraded. Wrap up and hand off. No exceptions.
 **At 80+ tool uses:** High hallucination risk. Do NOT write code. Only summarize and hand off.
 
