@@ -5,6 +5,43 @@
 @DESIGN.md
 @INTELLIGENCE.md
 
+# Mandatory Document Consultation Rules
+
+These are not optional. Skipping a required check is a protocol violation.
+
+| Before doing... | You MUST read... | Why |
+|---|---|---|
+| Any feature work or architecture decision | PRODUCT.md (phase gates, defer list, decision rules) | Prevents building deferred features or skipping phase gates |
+| Any product/UX/pricing/conversion decision | INTELLIGENCE.md (lessons, evidence hierarchy, anti-bullshit rules) | Prevents repeating mistakes and ensures evidence is properly weighted |
+| Deciding whether to parallelize or which files to touch | ARCHITECTURE.md (coupling table, critical path, safe worktrees) | Prevents merge conflicts and wrong parallelization calls |
+| Any design or styling work | DESIGN.md (current tokens, component patterns, active references) | Prevents inconsistency and redundant CSS exploration |
+| Writing new Next.js code patterns | AGENTS.md (breaking changes, async params, TailwindCSS 4) | Prevents framework-version bugs |
+| Proposing next task (autonomous workflow) | PRODUCT.md phase gate status + CLAUDE.md priority order | Prevents working on Phase 3 when Phase 0 gate is unmet |
+
+**When the phase gate is blocked on a human action** (e.g., "show briefs to real founders"), do NOT propose code that assumes the gate will pass. Instead: identify work that is valuable regardless of gate outcome, or explicitly state "nothing to code — waiting for real-world input."
+
+# Context Overload — CRITICAL PROTOCOL
+
+**You cannot switch models mid-session.** The only defense against context degradation is stopping work and starting fresh. This is not optional — degraded output is worse than no output.
+
+**When any context warning fires (40/60/80 tool uses, PreCompact):**
+
+1. **STOP proposing new work immediately.** Do not start a new task.
+2. **Finish only the current atomic action** (complete the file edit, finish the commit). Do not start multi-step work.
+3. **Write a handoff summary** to Max with:
+   - What was completed this session
+   - What is in progress (with file paths and line numbers)
+   - What the next task should be
+   - Any decisions that were made but not yet implemented
+   - Any CLAUDE.md/INTELLIGENCE.md updates that are pending
+4. **Tell Max: "Start a fresh session. Here's what to tell the next instance."**
+5. **Do not argue that you're "still fine."** The model that's degrading cannot detect its own degradation. Trust the system signal.
+
+**At 60+ tool uses:** Quality is likely degraded. Wrap up and hand off. No exceptions.
+**At 80+ tool uses:** High hallucination risk. Do NOT write code. Only summarize and hand off.
+
+**If Max says "keep going" past a warning:** Comply but add a disclaimer: "I'm past the context warning threshold. Output quality may be degraded. Verify anything I produce in this range."
+
 # Product Vision Rule
 
 PRODUCT.md is the canonical source of truth for what VLDTA is, what to build, what not to build, and in what order. Reference it before making architecture or feature decisions.
