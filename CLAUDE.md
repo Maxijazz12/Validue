@@ -3,6 +3,7 @@
 @ARCHITECTURE.md
 @AGENTS.md
 @DESIGN.md
+@INTELLIGENCE.md
 
 # Product Vision Rule
 
@@ -23,6 +24,29 @@ When Max references another product, company, or website's design — whether di
 When reskinning multiple components to a new reference, use worktree agents in parallel — each component is independent once the tokens are defined.
 
 If a reference is vague ("make it more premium"), ask which product or aesthetic Max has in mind rather than guessing.
+
+# Product Intelligence Protocol
+
+INTELLIGENCE.md contains accumulated product lessons, evidence hierarchy, and simulation rules. Reference it before product decisions.
+
+**When to invoke:**
+- Pricing, packaging, or monetization decisions
+- Landing page, onboarding, or conversion work
+- UX flow design or navigation changes
+- Trust-building or credibility decisions
+- Feature prioritization or scope decisions
+- Any work where "what actually works" matters more than "what looks right"
+
+**When to simulate:**
+- Before committing to a UX flow, landing section, or pricing structure
+- Spawn 3 agents with distinct founder personas (skeptical, first-time, experienced PM)
+- Tag all results as [SIMULATED] — hypotheses only
+- Use to narrow options and generate better real-world tests
+
+**After real outcomes arrive:**
+- Update INTELLIGENCE.md lessons with actual data (Tier 1-2)
+- Supersede any simulated hypotheses that real data contradicts
+- Promote confirmed hypotheses to active lessons
 
 # Autonomous Behaviors — Do These Without Asking
 - Run `npm run lint` and `npm test` after non-trivial code changes
