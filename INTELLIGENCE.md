@@ -72,16 +72,20 @@ Each lesson: one sentence + evidence tier + source + date + status (active / hyp
 <!-- No lessons yet. -->
 
 ### Landing & Conversion
-<!-- No lessons yet. -->
+- The assumption-verdict structure (extract → test → verdict per assumption) is likely the core format differentiator vs ChatGPT and generic surveys. Repeatedly cited as the thing simulated personas valued most. — Tier 4, simulation 2026-03-29, hypothesis
+- The "uncomfortable truth" section is likely the single highest-emotional-impact element. Every persona described it as the part that "hit hardest." — Tier 4, simulation 2026-03-29, hypothesis
 
 ### UX & Navigation
 <!-- No lessons yet. -->
 
 ### Trust & Credibility
-<!-- No lessons yet. -->
+- Respondent transparency (who responded, sample size, caveats) likely increases trust even when revealing limitations. Honesty about weakness builds credibility. — Tier 4, simulation 2026-03-29, hypothesis
+- Competitive landscape tables from AI feel "fake-smart" and can damage credibility. Better omitted than poorly done. — Tier 4, simulation 2026-03-29, hypothesis
 
 ### Feature Packaging
-<!-- No lessons yet. -->
+- Top-line decision recommendation (PROCEED/PIVOT/PAUSE) likely increases actionability vs letting founder interpret raw verdicts. First-time founders specifically need the meta-decision. — Tier 4, simulation 2026-03-29, hypothesis
+- "Cheapest next test in 5 days" is likely more actionable than "strategic pivot recommendation." Founders want experiments, not business plans. — Tier 4, simulation 2026-03-29, hypothesis
+- Recommendations need same scrutiny as the original idea. An unvalidated pivot suggestion is "half a product." — Tier 4, simulation 2026-03-29, hypothesis
 
 ### Architecture (User-Facing Impact)
 <!-- No lessons yet. -->
