@@ -315,12 +315,14 @@ describe("Full lifecycle: publish → respond → rank → qualify → payout �
     `;
 
     // Assumption 0: q0 + qBaseline → 4 respondents × 2 questions = 8
-    const a0 = evidenceRows.filter((r: { assumption_index: number }) => r.assumption_index === 0);
+    const a0 = evidenceRows.filter(// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (r: any) => r.assumption_index === 0);
     expect(a0.length).toBe(8);
     expect(Number(a0[0].quality_score)).toBe(82); // best first
 
     // Assumption 1: q1 → 4 respondents
-    const a1 = evidenceRows.filter((r: { assumption_index: number }) => r.assumption_index === 1);
+    const a1 = evidenceRows.filter(// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (r: any) => r.assumption_index === 1);
     expect(a1.length).toBe(4);
 
     // Brief methodology stats (mirrors getBriefMethodology)

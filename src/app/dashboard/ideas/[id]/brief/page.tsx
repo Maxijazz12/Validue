@@ -244,11 +244,22 @@ export default async function BriefPage({
                 <h3 className="text-[15px] font-semibold text-[#111111] leading-snug">
                   {v.assumption}
                 </h3>
-                <span
-                  className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[12px] font-semibold ${verdictColors[v.verdict]}`}
-                >
-                  {verdictLabels[v.verdict]}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  {v.confidence && (
+                    <span className={`text-[11px] font-medium ${
+                      v.confidence === "HIGH" ? "text-[#22c55e]"
+                        : v.confidence === "MEDIUM" ? "text-[#E5654E]"
+                        : "text-[#94A3B8]"
+                    }`}>
+                      {v.confidence === "HIGH" ? "High" : v.confidence === "MEDIUM" ? "Med" : "Low"}
+                    </span>
+                  )}
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-semibold ${verdictColors[v.verdict]}`}
+                  >
+                    {verdictLabels[v.verdict]}
+                  </span>
+                </div>
               </div>
 
               <p className="text-[14px] text-[#64748B] leading-relaxed mb-3">

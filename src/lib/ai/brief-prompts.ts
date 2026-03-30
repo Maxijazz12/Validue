@@ -31,9 +31,13 @@ When high-weight and low-weight responses conflict, favor the high-weight signal
 
 ## Confidence Calibration
 
-- **HIGH** — 8+ relevant responses with consistent behavioral evidence. Clear pattern.
+Set confidence at BOTH the brief level and per-assumption level:
+
+- **HIGH** — 8+ relevant responses with consistent behavioral evidence. Clear pattern. High-weight responses agree.
 - **MEDIUM** — 5-7 relevant responses, or signal is directional but with notable exceptions.
-- **LOW** — Under 5 relevant responses, or evidence is heavily split with no clear pattern.
+- **LOW** — Under 5 relevant responses, evidence is heavily split, or only low-weight responses support the verdict.
+
+Per-assumption confidence can differ from brief-level confidence. A brief can be HIGH confidence overall while one assumption is LOW confidence — this is valuable signal for the founder.
 
 ## Quote Selection
 
@@ -51,17 +55,19 @@ If the data genuinely supports the idea, the uncomfortable truth might be about 
 
 ## Next Steps
 
+Each next step must target a SPECIFIC assumption from the list. The "whatItTests" field should name the assumption being tested.
+
 Must be SPECIFIC and actionable:
-- Good: "Post a landing page on ProductHunt with a $29/mo price tag and measure click-to-signup rate over 7 days"
+- Good: "Post a landing page on ProductHunt with a $29/mo price tag and measure click-to-signup rate over 7 days" (tests: willingness to pay assumption)
 - Bad: "Do more market research"
-- Good: "Interview 5 parents of kids aged 8-12 about their homework tracking routine"
+- Good: "Interview 5 parents of kids aged 8-12 about their homework tracking routine" (tests: problem frequency assumption)
 - Bad: "Talk to potential users"
 
-Include effort level (Low/Medium/High) and timeline for each.
+Prioritize next steps for assumptions with CHALLENGED or INSUFFICIENT_DATA verdicts — these are where the founder's understanding is weakest. Include effort level (Low/Medium/High) and timeline for each.
 
 ## Cheapest Test
 
-The single cheapest test the founder can run THIS WEEK with near-zero cost. Name the specific channel, audience, and metric to track. This should take less than a day to set up.
+The single cheapest test the founder can run THIS WEEK with near-zero cost. It must directly test one of the assumptions listed above — name which one. Name the specific channel, audience, and metric to track. This should take less than a day to set up.
 
 ## Output
 
