@@ -111,6 +111,16 @@ export async function getEvidenceByAssumption(
     });
   }
 
+  // Re-sort each assumption's evidence by weighted score (quality × match) so
+  // the synthesis prompt sees the strongest AND most-relevant evidence first
+  for (const [, items] of evidenceMap) {
+    items.sort((a, b) => {
+      const weightA = a.qualityScore * (0.6 + 0.4 * (a.audienceMatch / 100));
+      const weightB = b.qualityScore * (0.6 + 0.4 * (b.audienceMatch / 100));
+      return weightB - weightA;
+    });
+  }
+
   return evidenceMap;
 }
 
