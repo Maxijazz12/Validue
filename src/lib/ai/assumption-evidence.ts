@@ -1,4 +1,5 @@
 import sql from "@/lib/db";
+import { computeMatchScore } from "@/lib/wall-ranking";
 
 /* ─── Types ─── */
 
@@ -9,6 +10,9 @@ export interface AssumptionEvidence {
   authenticityScore: number;
   depthScore: number;
   respondentLabel: string;
+  evidenceCategory: string;
+  /** 0-100 audience match score between respondent profile and campaign targeting */
+  audienceMatch: number;
 }
 
 export interface BriefMethodology {
@@ -31,12 +35,25 @@ export async function getEvidenceByAssumption(
     SELECT
       q.assumption_index,
       q.text        AS question_text,
+      q.category    AS evidence_category,
       a.text        AS answer_text,
       r.quality_score,
-      r.scoring_dimensions
+      r.scoring_dimensions,
+      r.respondent_id,
+      p.interests   AS respondent_interests,
+      p.expertise   AS respondent_expertise,
+      p.age_range   AS respondent_age_range,
+      p.reputation_score AS respondent_reputation,
+      p.total_responses_completed AS respondent_total_responses,
+      c.target_interests,
+      c.target_expertise,
+      c.target_age_ranges,
+      c.tags        AS campaign_tags
     FROM answers a
     JOIN questions q  ON q.id = a.question_id
     JOIN responses r  ON r.id = a.response_id
+    JOIN campaigns c  ON c.id = r.campaign_id
+    LEFT JOIN profiles p ON p.id = r.respondent_id
     WHERE r.campaign_id = ${campaignId}
       AND r.status IN ('submitted', 'ranked')
       AND q.assumption_index IS NOT NULL
@@ -61,6 +78,24 @@ export async function getEvidenceByAssumption(
       authenticity?: number;
     }) ?? {};
 
+    // Compute audience match using existing wall-ranking logic
+    const audienceMatch = computeMatchScore(
+      {
+        target_interests: (row.target_interests as string[]) ?? [],
+        target_expertise: (row.target_expertise as string[]) ?? [],
+        target_age_ranges: (row.target_age_ranges as string[]) ?? [],
+        tags: (row.campaign_tags as string[]) ?? [],
+      },
+      {
+        interests: (row.respondent_interests as string[]) ?? [],
+        expertise: (row.respondent_expertise as string[]) ?? [],
+        age_range: (row.respondent_age_range as string | null) ?? null,
+        profile_completed: true,
+        reputation_score: Number(row.respondent_reputation ?? 0),
+        total_responses_completed: Number(row.respondent_total_responses ?? 0),
+      }
+    );
+
     const count = (labelCounters.get(idx) ?? 0) + 1;
     labelCounters.set(idx, count);
 
@@ -71,6 +106,8 @@ export async function getEvidenceByAssumption(
       authenticityScore: Number(dims.authenticity ?? 0),
       depthScore: Number(dims.depth ?? 0),
       respondentLabel: `Respondent ${count}`,
+      evidenceCategory: (row.evidence_category as string) ?? "behavior",
+      audienceMatch: Math.round(audienceMatch),
     });
   }
 

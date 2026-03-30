@@ -1,18 +1,18 @@
-import type { BaselineCategory } from "@/lib/ai/types";
+import type { EvidenceCategory } from "@/lib/ai/types";
 
 export interface BaselineQuestion {
   id: string;
-  category: BaselineCategory;
+  category: EvidenceCategory;
   text: string;
   options: string[];
   description: string;
 }
 
 export const BASELINE_QUESTIONS: BaselineQuestion[] = [
-  // ─── Interest ───
+  // ─── Willingness (formerly Interest) ───
   {
     id: "bl-interest-1",
-    category: "interest",
+    category: "willingness",
     text: "How often do you actively look for a better way to handle this?",
     options: ["Every week", "Every month", "A few times a year", "Rarely or never"],
     description:
@@ -20,7 +20,7 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
   },
   {
     id: "bl-interest-2",
-    category: "interest",
+    category: "willingness",
     text: "When was the last time you searched for a solution to this problem?",
     options: ["This week", "This month", "A while ago", "I've never looked"],
     description:
@@ -55,10 +55,10 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
       "Measures switching cost — high cost means harder adoption.",
   },
 
-  // ─── Payment ───
+  // ─── Price (formerly Payment) ───
   {
     id: "bl-payment-1",
-    category: "payment",
+    category: "price",
     text: "How much have you spent on tools or services for this problem in the past year?",
     options: ["$0 — only free options", "Under $50", "$50–$200", "Over $200"],
     description:
@@ -66,7 +66,7 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
   },
   {
     id: "bl-payment-2",
-    category: "payment",
+    category: "price",
     text: "What's the most you've paid for a single tool in this category?",
     options: [
       "Only free tools",
@@ -140,37 +140,36 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
 export function recommendBaseline(scribbleText: string): BaselineQuestion[] {
   const text = scribbleText.toLowerCase();
 
-  // Score each category based on keyword presence
-  const categoryScores: Record<BaselineCategory, number> = {
-    interest: 1, // always useful — default fallback
-    willingness: 1,
-    payment: 0,
+  // Score each category based on keyword presence (only categories with baseline questions)
+  const categoryScores: Partial<Record<EvidenceCategory, number>> = {
+    willingness: 2, // always useful — default fallback (includes old "interest" baselines)
+    price: 0,
     behavior: 0,
     pain: 0,
   };
 
-  // Payment signals
+  // Price signals
   if (/pay|price|cost|subscri|revenue|monetiz|free|premium|charge/.test(text)) {
-    categoryScores.payment += 3;
+    categoryScores.price! += 3;
   }
 
   // Behavior signals
   if (/current|today|already|existing|how do|workaround|manual|process|workflow/.test(text)) {
-    categoryScores.behavior += 3;
+    categoryScores.behavior! += 3;
   }
 
   // Pain signals
   if (/frustrat|annoying|painful|slow|broken|hate|waste|tedious|struggle|difficult/.test(text)) {
-    categoryScores.pain += 3;
+    categoryScores.pain! += 3;
   }
 
   // Willingness signals
   if (/try|switch|adopt|replace|use|download|sign up/.test(text)) {
-    categoryScores.willingness += 2;
+    categoryScores.willingness! += 2;
   }
 
   // Sort categories by score descending, pick top 3
-  const topCategories = (Object.entries(categoryScores) as [BaselineCategory, number][])
+  const topCategories = (Object.entries(categoryScores) as [EvidenceCategory, number][])
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([cat]) => cat);

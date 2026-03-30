@@ -63,6 +63,12 @@ export async function publishCampaign(
   // Enforce tag length limits
   draft.tags = draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text);
 
+  // 3b. Enforce behavioral screening — at least 1 baseline question required
+  const baselineCount = draft.questions.filter((q) => q.isBaseline).length;
+  if (baselineCount === 0) {
+    return { error: "Campaign must include at least 1 behavioral screening question. Re-generate or add a baseline question." };
+  }
+
   // 4. Validate funding amount against tier minimum
   let fundingAmount = draft.rewardPool || 0;
   let isSubsidized = false;

@@ -151,12 +151,12 @@ export function computeMomentumScore(
  * Computes the composite wall ranking score for a campaign relative to
  * a specific respondent profile.
  *
- * V2 weights:
- *   matchScore     × 0.35
- *   rewardScore    × 0.20
- *   qualityScore   × 0.15  (reduced — quality already affects reach)
- *   freshnessScore × 0.15
- *   momentumScore  × 0.15  (increased — marketplace liquidity matters)
+ * V3 weights (match-heavy — matching is the moat):
+ *   matchScore     × 0.50  (up from 0.35 — better matching > more campaigns)
+ *   rewardScore    × 0.15
+ *   qualityScore   × 0.10
+ *   freshnessScore × 0.12
+ *   momentumScore  × 0.13
  */
 export function computeWallScore(
   campaign: WallCampaign,
@@ -175,11 +175,11 @@ export function computeWallScore(
   );
 
   const wallScore =
-    matchScore * 0.35 +
-    rewardScore * 0.2 +
-    qualityScore * 0.15 +
-    freshnessScore * 0.15 +
-    momentumScore * 0.15;
+    matchScore * 0.50 +
+    rewardScore * 0.15 +
+    qualityScore * 0.10 +
+    freshnessScore * 0.12 +
+    momentumScore * 0.13;
 
   return {
     wallScore: Math.round(wallScore * 100) / 100,

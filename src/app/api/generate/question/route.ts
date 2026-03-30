@@ -106,6 +106,7 @@ export async function POST(request: Request) {
       ...currentQuestion,
       text: parsed.data.text,
       section: parsed.data.section,
+      category: parsed.data.evidenceCategory,
     };
 
     logGeneration({

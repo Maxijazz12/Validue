@@ -1,4 +1,4 @@
-import { questionId as uid, type CampaignDraft, type DraftQuestion } from "./types";
+import { questionId as uid, type CampaignDraft, type DraftQuestion, type EvidenceCategory } from "./types";
 import { CATEGORY_OPTIONS, INDUSTRY_OPTIONS } from "@/lib/constants";
 import { recommendBaseline } from "@/lib/baseline-questions";
 
@@ -191,37 +191,40 @@ function generateAssumptions(text: string): string[] {
 
 /* ─── Open Question Templates (expanded) ─── */
 
-const OPEN_TEMPLATES: { text: string; keywords?: RegExp }[] = [
-  { text: "Walk me through how you currently deal with this problem. What does a typical experience look like?" },
-  { text: "What's the most frustrating part of the way things work today?" },
-  { text: "What tools or services have you tried for this? What made you stop using them?", keywords: /tool|app|software|platform/ },
-  { text: "Have you ever looked for a solution to this? What happened?", keywords: /problem|issue|pain|frustrat/ },
-  { text: "When was the last time this problem really got in your way? What happened?", keywords: /time|slow|waste|tedious/ },
-  { text: "How often do you run into this problem, and what do you usually do when it happens?" },
-  { text: "What does your current workflow look like for handling this? Walk me through the steps.", keywords: /process|workflow|manual/ },
-  { text: "Who else is affected when this problem comes up — just you, or others too?" },
-  { text: "If you could change one thing about how you handle this today, what would it be?" },
-  { text: "What have you spent time or money on to try to solve this, even partially?", keywords: /pay|cost|money|spend/ },
+type QuestionTemplate = { text: string; keywords?: RegExp; category: EvidenceCategory };
+
+const OPEN_TEMPLATES: QuestionTemplate[] = [
+  { text: "Walk me through how you currently deal with this problem. What does a typical experience look like?", category: "behavior" },
+  { text: "What's the most frustrating part of the way things work today?", category: "pain" },
+  { text: "What tools or services have you tried for this? What made you stop using them?", keywords: /tool|app|software|platform/, category: "attempts" },
+  { text: "Have you ever looked for a solution to this? What happened?", keywords: /problem|issue|pain|frustrat/, category: "attempts" },
+  { text: "When was the last time this problem really got in your way? What happened?", keywords: /time|slow|waste|tedious/, category: "pain" },
+  { text: "How often do you run into this problem, and what do you usually do when it happens?", category: "behavior" },
+  { text: "What does your current workflow look like for handling this? Walk me through the steps.", keywords: /process|workflow|manual/, category: "behavior" },
+  { text: "Who else is affected when this problem comes up — just you, or others too?", category: "pain" },
+  { text: "If you could change one thing about how you handle this today, what would it be?", category: "willingness" },
+  { text: "What have you spent time or money on to try to solve this, even partially?", keywords: /pay|cost|money|spend/, category: "price" },
 ];
 
-const FOLLOWUP_TEMPLATES: { text: string; keywords?: RegExp }[] = [
-  { text: "What would need to be true for you to try this in the first week it launched?" },
-  { text: "If this solved the problem perfectly, what would change about your day-to-day?" },
-  { text: "What would make you confident enough to pay for this before seeing full results?", keywords: /pay|price|cost|subscri/ },
-  { text: "Who else in your team or circle would need to be involved for this to work?", keywords: /team|collaborat|share|group/ },
-  { text: "What's the biggest reason you might NOT try something like this, even if it worked well?" },
-  { text: "How would you describe this problem to a friend who doesn't experience it?" },
-  { text: "What would a 'good enough' solution look like for you? What's the minimum bar?" },
-  { text: "If you had to choose between this and your current approach, what would tip the decision?" },
+const FOLLOWUP_TEMPLATES: QuestionTemplate[] = [
+  { text: "What would need to be true for you to try this in the first week it launched?", category: "willingness" },
+  { text: "If this solved the problem perfectly, what would change about your day-to-day?", category: "willingness" },
+  { text: "What would make you confident enough to pay for this before seeing full results?", keywords: /pay|price|cost|subscri/, category: "price" },
+  { text: "Who else in your team or circle would need to be involved for this to work?", keywords: /team|collaborat|share|group/, category: "behavior" },
+  { text: "What's the biggest reason you might NOT try something like this, even if it worked well?", category: "negative" },
+  { text: "How would you describe this problem to a friend who doesn't experience it?", category: "pain" },
+  { text: "What would a 'good enough' solution look like for you? What's the minimum bar?", category: "willingness" },
+  { text: "If you had to choose between this and your current approach, what would tip the decision?", category: "negative" },
 ];
 
 function selectQuestions(
-  templates: { text: string; keywords?: RegExp }[],
+  templates: QuestionTemplate[],
   text: string,
-  count: number
+  count: number,
+  assumptionCount: number
 ): DraftQuestion[] {
   const lower = text.toLowerCase();
-  const selected: typeof templates = [];
+  const selected: QuestionTemplate[] = [];
 
   // First pick keyword-matching templates
   for (const t of templates) {
@@ -237,13 +240,15 @@ function selectQuestions(
     }
   }
 
-  return selected.slice(0, count).map((t) => ({
+  return selected.slice(0, count).map((t, i) => ({
     id: uid(),
     text: t.text,
     type: "open" as const,
     options: null,
     section: (templates === FOLLOWUP_TEMPLATES ? "followup" : "open") as "open" | "followup",
     isBaseline: false,
+    category: t.category,
+    assumptionIndex: i % assumptionCount, // round-robin across assumptions
   }));
 }
 
@@ -273,8 +278,9 @@ export async function generateCampaignDraftFallback(
   const followupCount = 1;
   const baselineCount = format === "quick" ? 1 : 2;
 
-  const openQuestions = selectQuestions(OPEN_TEMPLATES, scribbleText, openCount);
-  const followupQuestions = selectQuestions(FOLLOWUP_TEMPLATES, scribbleText, followupCount);
+  const assumptionCount = assumptions.length;
+  const openQuestions = selectQuestions(OPEN_TEMPLATES, scribbleText, openCount, assumptionCount);
+  const followupQuestions = selectQuestions(FOLLOWUP_TEMPLATES, scribbleText, followupCount, assumptionCount);
 
   // Baseline questions from the curated library
   const baselineRecs = recommendBaseline(scribbleText);

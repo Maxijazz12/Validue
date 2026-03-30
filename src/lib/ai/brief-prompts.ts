@@ -19,6 +19,15 @@ export const BRIEF_SYSTEM_PROMPT = `You are a founder validation analyst. Your j
 - **REFUTED** — Strong consensus against. 70%+ of relevant responses contradict the assumption with behavioral evidence.
 - **INSUFFICIENT_DATA** — Fewer than 3 relevant responses, or responses are too thin/generic to draw conclusions.
 
+## Audience Match Weighting
+
+Each response includes a match score (0-100) showing how well the respondent matches the campaign's target audience. Weight evidence accordingly:
+- **match ≥ 60:** High-relevance respondent — their evidence carries full weight. Prefer their quotes.
+- **match 30-59:** Moderate relevance — include but don't anchor conclusions on these alone.
+- **match < 30:** Low match — note as supplementary only. If this is the only evidence for an assumption, flag low confidence.
+
+When evidence from high-match and low-match respondents conflicts, favor the high-match signal.
+
 ## Confidence Calibration
 
 - **HIGH** — 8+ relevant responses with consistent behavioral evidence. Clear pattern.
@@ -57,6 +66,17 @@ The single cheapest test the founder can run THIS WEEK with near-zero cost. Name
 
 Use the create_decision_brief tool. Every assumption provided must receive a verdict.`;
 
+/* ─── Helpers ─── */
+
+function computeAvgMatch(
+  evidenceByAssumption: Map<number, AssumptionEvidence[]>
+): number {
+  const allEvidence = Array.from(evidenceByAssumption.values()).flat();
+  if (allEvidence.length === 0) return 0;
+  const sum = allEvidence.reduce((acc, e) => acc + e.audienceMatch, 0);
+  return Math.round(sum / allEvidence.length);
+}
+
 /* ─── Prompt Builder ─── */
 
 /**
@@ -81,7 +101,8 @@ ${sanitizeForPrompt(campaignDescription || "No description provided.")}
 ## Methodology
 - Total submitted responses: ${methodology.responseCount}
 - Average quality score: ${methodology.avgQuality}/100
-- Completion rate: ${Math.round(methodology.completionRate * 100)}%`);
+- Completion rate: ${Math.round(methodology.completionRate * 100)}%
+- Average audience match: ${computeAvgMatch(evidenceByAssumption)}/100`);
 
   // Assumptions + evidence
   sections.push("## Assumptions & Evidence");
@@ -99,8 +120,8 @@ Relevant responses: ${evidence.length}`;
       for (const e of evidence) {
         block += `
 
-**Q:** ${sanitizeForPrompt(e.questionText)}
-**A (${e.respondentLabel}, quality=${e.qualityScore}, depth=${e.depthScore}, authenticity=${e.authenticityScore}):** ${sanitizeForPrompt(e.answerText)}`;
+**Q [${e.evidenceCategory}]:** ${sanitizeForPrompt(e.questionText)}
+**A (${e.respondentLabel}, quality=${e.qualityScore}, depth=${e.depthScore}, authenticity=${e.authenticityScore}, match=${e.audienceMatch}):** ${sanitizeForPrompt(e.answerText)}`;
       }
     }
 
@@ -108,7 +129,7 @@ Relevant responses: ${evidence.length}`;
   }
 
   sections.push(
-    "---\n\nSynthesize a Decision Brief using the create_decision_brief tool. Every assumption listed above must receive a verdict."
+    "---\n\nSynthesize a Decision Brief using the create_decision_brief tool. Every assumption listed above must receive a verdict. Evidence tagged with different categories (behavior, attempts, willingness, price, pain, negative) provides triangulation — convergence across categories is stronger signal than volume from a single angle. Pay special attention to [negative] evidence — it directly challenges assumptions. Weight evidence by audience match score — high-match respondents (60+) are more representative of the target market than low-match respondents."
   );
 
   return sections.join("\n\n");

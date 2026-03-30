@@ -1,7 +1,7 @@
 "use client";
 
 import { BASELINE_QUESTIONS, type BaselineQuestion } from "@/lib/baseline-questions";
-import type { DraftQuestion, BaselineCategory } from "@/lib/ai/types";
+import type { DraftQuestion, EvidenceCategory } from "@/lib/ai/types";
 
 interface BaselineQuestionPickerProps {
   currentQuestionId: string;
@@ -10,20 +10,22 @@ interface BaselineQuestionPickerProps {
   onClose: () => void;
 }
 
-const CATEGORY_LABELS: Record<BaselineCategory, string> = {
-  interest: "Interest",
-  willingness: "Willingness",
-  payment: "Payment",
+const CATEGORY_LABELS: Record<EvidenceCategory, string> = {
   behavior: "Behavior",
+  attempts: "Attempts",
+  willingness: "Willingness",
+  price: "Price",
   pain: "Pain Intensity",
+  negative: "Disconfirmation",
 };
 
-const CATEGORY_COLORS: Record<BaselineCategory, string> = {
-  interest: "bg-[#dbeafe] text-[#1d4ed8]",
-  willingness: "bg-[#dcfce7] text-[#166534]",
-  payment: "bg-[#fef9c3] text-[#854d0e]",
+const CATEGORY_COLORS: Record<EvidenceCategory, string> = {
   behavior: "bg-[#f3e8ff] text-[#7c3aed]",
+  attempts: "bg-[#dbeafe] text-[#1d4ed8]",
+  willingness: "bg-[#dcfce7] text-[#166534]",
+  price: "bg-[#fef9c3] text-[#854d0e]",
   pain: "bg-[#fee2e2] text-[#991b1b]",
+  negative: "bg-[#fecaca] text-[#b91c1c]",
 };
 
 export default function BaselineQuestionPicker({

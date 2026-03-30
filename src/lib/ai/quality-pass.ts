@@ -200,7 +200,7 @@ function scoreMonetizationCoverage(draft: CampaignDraft): { score: number; warni
 
   const monetizationQs = questions.filter((q) => MONETIZATION_KEYWORDS.test(q.text));
   const hasPaymentBaseline = questions.some(
-    (q) => q.isBaseline && q.category === "payment"
+    (q) => q.isBaseline && q.category === "price"
   );
 
   let score = 0;
@@ -258,7 +258,9 @@ function checkBaselines(draft: CampaignDraft): QualityWarning[] {
   const warnings: QualityWarning[] = [];
   const baselines = draft.questions.filter((q) => q.isBaseline);
 
-  if (baselines.length < 3) {
+  if (baselines.length === 0) {
+    warnings.push({ severity: "high", dimension: "baselines", message: "No baseline questions — at least 1 behavioral screening question is required." });
+  } else if (baselines.length < 3) {
     warnings.push({ severity: "medium", dimension: "baselines", message: `Only ${baselines.length} baseline question${baselines.length === 1 ? "" : "s"} — campaigns need exactly 3 for comparable signal.` });
   }
 
@@ -304,6 +306,49 @@ function checkAssumptionCoverage(draft: CampaignDraft): QualityWarning[] {
   return warnings;
 }
 
+/* ─── Evidence Category Triangulation Check ─── */
+
+function checkEvidenceCategories(draft: CampaignDraft): QualityWarning[] {
+  const warnings: QualityWarning[] = [];
+  const nonBaseline = draft.questions.filter((q) => !q.isBaseline);
+
+  // Per-assumption: check category diversity and negative coverage
+  for (let i = 0; i < draft.assumptions.length; i++) {
+    const questionsForAssumption = nonBaseline.filter((q) => q.assumptionIndex === i);
+    if (questionsForAssumption.length === 0) continue; // handled by checkAssumptionCoverage
+
+    const categories = new Set(questionsForAssumption.map((q) => q.category).filter(Boolean));
+
+    if (categories.size < 3) {
+      warnings.push({
+        severity: "high",
+        dimension: "evidence",
+        message: `Assumption "${draft.assumptions[i].slice(0, 50)}…" has only ${categories.size} evidence category${categories.size === 1 ? "" : "ies"} — need ≥3 for triangulation.`,
+      });
+    }
+
+    if (!categories.has("negative")) {
+      warnings.push({
+        severity: "high",
+        dimension: "evidence",
+        message: `Assumption "${draft.assumptions[i].slice(0, 50)}…" has no disconfirmation question — add a "negative" category question to test against it.`,
+      });
+    }
+  }
+
+  // Campaign-wide: warn if no negative questions at all
+  const hasAnyNegative = nonBaseline.some((q) => q.category === "negative");
+  if (!hasAnyNegative) {
+    warnings.push({
+      severity: "medium",
+      dimension: "evidence",
+      message: "No disconfirmation questions in the campaign — add at least one to surface evidence against your assumptions.",
+    });
+  }
+
+  return warnings;
+}
+
 /* ─── Main Quality Pass ─── */
 
 export interface QualityPassResult {
@@ -344,6 +389,7 @@ export function runQualityPass(
     ...checkAssumptions(patchedDraft),
     ...checkBaselines(patchedDraft),
     ...checkAssumptionCoverage(patchedDraft),
+    ...checkEvidenceCategories(patchedDraft),
   ];
 
   // Weighted overall score

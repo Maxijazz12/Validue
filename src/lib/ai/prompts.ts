@@ -67,7 +67,9 @@ const RULES = `## Core rules — never violate these:
 
 11. **Assumption mapping.** Every open and follow-up question must include an assumptionIndex (0-based) indicating which assumption from the assumptions array it primarily tests. Every assumption must have at least one question testing it.
 
-12. **Response anchors.** Every open and follow-up question must include 2-3 response anchors — short hints shown below the text area that guide respondents toward specific, useful answers. Examples: "Include: specific tools or apps you used", "Mention: how long ago and how often".`;
+12. **Response anchors.** Every open and follow-up question must include 2-3 response anchors — short hints shown below the text area that guide respondents toward specific, useful answers. Examples: "Include: specific tools or apps you used", "Mention: how long ago and how often".
+
+13. **Evidence categories required.** Every open and follow-up question must include exactly one evidenceCategory from: behavior (current habits/routines), attempts (past solutions tried), willingness (openness to switching/trying), price (spending habits/WTP), pain (problem severity/frequency), negative (disconfirmation — designed to find evidence AGAINST the assumption). Per assumption: use ≥3 distinct categories across its questions. Every assumption must have at least one "negative" question — phrased to surface evidence that would disprove the assumption.`;
 
 /* ═══════════════════════════════════════════
    SECTION 2: EXAMPLES (few-shot)
@@ -90,22 +92,25 @@ Strong output:
   4. Users will trust AI-generated meal plans enough to follow them weekly
 - Open questions:
   - text: "Walk me through what a typical weeknight dinner looks like for you right now — from deciding what to eat to actually eating."
-    assumptionIndex: 0 (tests: "Busy professionals want to eat healthier but feel time is the primary barrier")
+    assumptionIndex: 0, evidenceCategory: "behavior"
     anchors: ["Include: how you decide what to eat, how long it takes", "Mention: any tools or apps you use for meal planning"]
   - text: "Think about the last time you tried to eat healthier for a sustained period. What specifically got in the way?"
-    assumptionIndex: 0 (tests same assumption from a different angle)
+    assumptionIndex: 0, evidenceCategory: "pain"
     anchors: ["Include: what you tried, how long it lasted, what broke the habit", "Mention: specific obstacles — time, cost, knowledge, motivation"]
   - text: "What tools, apps, or habits have you tried for meal planning? What made you stop using them?"
-    assumptionIndex: 1 (tests: "Current meal planning tools are too manual or don't account for personal preferences")
+    assumptionIndex: 1, evidenceCategory: "attempts"
     anchors: ["Name specific tools or apps you've tried", "Include: what worked, what didn't, why you stopped"]
+  - text: "What would make you NOT switch from your current routine, even if a better option existed?"
+    assumptionIndex: 0, evidenceCategory: "negative"
+    anchors: ["Include: specific things you'd lose by switching", "Mention: habits or workflows that are hard to change"]
 - Follow-up questions:
   - text: "If an AI generated a full week of meals and a shopping list for you every Sunday — what would make you trust it enough to follow it?"
-    assumptionIndex: 3 (tests: "Users will trust AI-generated meal plans enough to follow them weekly")
+    assumptionIndex: 3, evidenceCategory: "willingness"
     anchors: ["Include: what would build or break your trust", "Mention: past experiences with AI recommendations"]
   - text: "How does the cost of your current food routine compare to what you'd want to spend on something like this?"
-    assumptionIndex: 2 (tests: "A subscription AI planner is more appealing than delivery for cost-conscious users")
+    assumptionIndex: 2, evidenceCategory: "price"
     anchors: ["Include: how much you currently spend weekly on food", "Mention: what you'd expect to pay for this kind of tool"]
-- Baseline IDs: ["bl-willingness-1", "bl-payment-1", "bl-behavior-1"]
+- Baseline IDs: ["bl-willingness-1", "bl-price-1", "bl-behavior-1"]
 - Audience: interests: ["Health"], expertise: ["Founder", "Product Manager"], ageRanges: ["25-34", "35-44"], occupation: "Working professional", industry: "Technology"
 
 Notice: every question is grounded in behavior. No "Would you like an AI meal planner?" — that's leading and hypothetical.`;
@@ -176,13 +181,17 @@ Requirements:
 - Baseline IDs: pick exactly 3 from the library. Prefer diverse categories.
 - Every open/followup question must include assumptionIndex (0-based) mapping to which assumption it tests.
 - Every open/followup question must include 2-3 response anchors — short hints that guide respondents toward specific, useful answers.
+- Every open/followup question must include an evidenceCategory: behavior, attempts, willingness, price, pain, or negative.
 - Every assumption must have at least one question testing it.
+- Every assumption must have ≥3 distinct evidence categories across its questions.
+- Every assumption must have at least one "negative" question (designed to find evidence AGAINST the assumption).
 - Audience: be specific. Fill in as many targeting fields as you can confidently infer.
 
 Question quality bar:
 - Every question must help the founder make a build, kill, or pivot decision.
 - At least one question must ask about CURRENT behavior (what they do today).
 - At least one question must probe PAIN or URGENCY (what frustrates them, how often).
+- At least one question per assumption must be a disconfirmation probe (evidenceCategory: "negative").
 - No hypotheticals unless they're tied to a concrete scenario.
 - No generic questions like "What do you think?" or "Any feedback?"
 

@@ -170,6 +170,9 @@ export async function POST(request: Request) {
       options: null,
       section: q.section as "open" | "followup",
       isBaseline: false,
+      assumptionIndex: q.assumptionIndex,
+      anchors: q.anchors,
+      category: q.evidenceCategory,
     }));
 
     const followupQuestions: DraftQuestion[] = raw.followupQuestions.map(
@@ -180,6 +183,9 @@ export async function POST(request: Request) {
         options: null,
         section: "followup" as const,
         isBaseline: false,
+        assumptionIndex: q.assumptionIndex,
+        anchors: q.anchors,
+        category: q.evidenceCategory,
       })
     );
 

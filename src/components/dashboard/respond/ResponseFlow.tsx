@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useMemo } from "react";
 import CampaignDetail from "./CampaignDetail";
 import QuestionStepper from "./QuestionStepper";
 import SubmissionConfirmation from "./SubmissionConfirmation";
 import { startResponse } from "@/app/dashboard/the-wall/[id]/actions";
+import { seededShuffle } from "@/lib/shuffle";
 import type { Question } from "./QuestionStepper";
 
 export type SuggestedCampaign = {
@@ -91,6 +92,14 @@ export default function ResponseFlow({
     return map.size > 0 ? map : undefined;
   })();
 
+  // Baselines first (original order), then custom questions shuffled per-respondent
+  const orderedQuestions = useMemo(() => {
+    if (!responseId) return questions;
+    const baselines = questions.filter((q) => q.isBaseline);
+    const customs = questions.filter((q) => !q.isBaseline);
+    return [...baselines, ...seededShuffle(customs, responseId)];
+  }, [questions, responseId]);
+
   const openCount = questions.filter((q) => q.type === "open").length;
   const mcCount = questions.filter((q) => q.type === "multiple_choice").length;
 
@@ -137,7 +146,7 @@ export default function ResponseFlow({
 
       {stage === "responding" && responseId && (
         <QuestionStepper
-          questions={questions}
+          questions={orderedQuestions}
           responseId={responseId}
           initialAnswers={initialAnswers}
           onSubmitted={handleSubmitted}

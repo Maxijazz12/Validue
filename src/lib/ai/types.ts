@@ -9,12 +9,16 @@ export function questionId(): string {
 
 export type QuestionType = "open" | "multiple_choice";
 
-export type BaselineCategory =
-  | "interest"
-  | "willingness"
-  | "payment"
+export type EvidenceCategory =
   | "behavior"
-  | "pain";
+  | "attempts"
+  | "willingness"
+  | "price"
+  | "pain"
+  | "negative";
+
+/** @deprecated Use EvidenceCategory instead */
+export type BaselineCategory = EvidenceCategory;
 
 export interface DraftQuestion {
   id: string;
@@ -24,7 +28,7 @@ export interface DraftQuestion {
   section: "open" | "followup" | "baseline";
   isBaseline: boolean;
   baselineId?: string; // references BaselineQuestion.id when swapped from library
-  category?: BaselineCategory;
+  category?: EvidenceCategory;
   assumptionIndex?: number; // 0-based index into campaign assumptions array — which assumption this question tests
   anchors?: string[]; // 2-3 response anchor hints for open-ended questions (e.g. "Include: what tools you used, how often, what didn't work")
 }

@@ -29,11 +29,14 @@ export const AIDraftAudienceSchema = z.object({
 
 /* ─── Question Schemas ─── */
 
+export const EVIDENCE_CATEGORIES = ["behavior", "attempts", "willingness", "price", "pain", "negative"] as const;
+
 export const AIOpenQuestionSchema = z.object({
   text: z.string().min(10),
   section: z.enum(["open", "followup"]),
   assumptionIndex: z.number().int().min(0).max(4),
   anchors: z.array(z.string()).min(2).max(3),
+  evidenceCategory: z.enum(EVIDENCE_CATEGORIES),
 });
 
 export const AIBaselinePickSchema = z.object({
@@ -61,6 +64,7 @@ export type AICampaignDraftRaw = z.infer<typeof AICampaignDraftSchema>;
 export const AIRegeneratedQuestionSchema = z.object({
   text: z.string().min(10),
   section: z.enum(["open", "followup"]),
+  evidenceCategory: z.enum(EVIDENCE_CATEGORIES),
 });
 
 export type AIRegeneratedQuestionRaw = z.infer<typeof AIRegeneratedQuestionSchema>;
@@ -125,7 +129,7 @@ export const GENERATE_CAMPAIGN_TOOL = {
         type: "array" as const,
         items: {
           type: "object" as const,
-          required: ["text", "section", "assumptionIndex", "anchors"],
+          required: ["text", "section", "assumptionIndex", "anchors", "evidenceCategory"],
           properties: {
             text: {
               type: "string" as const,
@@ -148,6 +152,11 @@ export const GENERATE_CAMPAIGN_TOOL = {
               maxItems: 3,
               description: "2-3 response anchor hints shown below the text area to guide respondent answers (e.g. 'Include: specific tools or apps you used', 'Mention: how often and how long ago')",
             },
+            evidenceCategory: {
+              type: "string" as const,
+              enum: ["behavior", "attempts", "willingness", "price", "pain", "negative"],
+              description: "What type of evidence this question gathers: behavior (current habits), attempts (past solutions tried), willingness (openness to switching), price (spending/WTP), pain (problem severity), negative (disconfirmation — evidence AGAINST the assumption)",
+            },
           },
         },
         minItems: 2,
@@ -159,7 +168,7 @@ export const GENERATE_CAMPAIGN_TOOL = {
         type: "array" as const,
         items: {
           type: "object" as const,
-          required: ["text", "section", "assumptionIndex", "anchors"],
+          required: ["text", "section", "assumptionIndex", "anchors", "evidenceCategory"],
           properties: {
             text: {
               type: "string" as const,
@@ -180,6 +189,11 @@ export const GENERATE_CAMPAIGN_TOOL = {
               minItems: 2,
               maxItems: 3,
               description: "2-3 response anchor hints shown below the text area to guide respondent answers (e.g. 'Include: specific tools or apps you used', 'Mention: how often and how long ago')",
+            },
+            evidenceCategory: {
+              type: "string" as const,
+              enum: ["behavior", "attempts", "willingness", "price", "pain", "negative"],
+              description: "What type of evidence this question gathers: behavior (current habits), attempts (past solutions tried), willingness (openness to switching), price (spending/WTP), pain (problem severity), negative (disconfirmation — evidence AGAINST the assumption)",
             },
           },
         },
@@ -257,7 +271,7 @@ export const REGENERATE_QUESTION_TOOL = {
     "Generate a replacement validation question for a founder's campaign.",
   input_schema: {
     type: "object" as const,
-    required: ["text", "section"],
+    required: ["text", "section", "evidenceCategory"],
     properties: {
       text: {
         type: "string" as const,
@@ -267,6 +281,11 @@ export const REGENERATE_QUESTION_TOOL = {
         type: "string" as const,
         enum: ["open", "followup"],
         description: "Whether this is an open-ended or follow-up question",
+      },
+      evidenceCategory: {
+        type: "string" as const,
+        enum: ["behavior", "attempts", "willingness", "price", "pain", "negative"],
+        description: "What type of evidence this question gathers",
       },
     },
   },
