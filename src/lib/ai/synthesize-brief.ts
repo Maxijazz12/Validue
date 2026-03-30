@@ -78,7 +78,8 @@ async function callSynthesis(
   campaignDescription: string,
   assumptions: string[],
   evidenceByAssumption: Awaited<ReturnType<typeof getEvidenceByAssumption>>,
-  methodology: Awaited<ReturnType<typeof getBriefMethodology>>
+  methodology: Awaited<ReturnType<typeof getBriefMethodology>>,
+  priceSignal: PriceSignal | null
 ): Promise<DecisionBrief> {
   const client = getClient();
 
@@ -87,7 +88,8 @@ async function callSynthesis(
     campaignDescription,
     assumptions,
     evidenceByAssumption,
-    methodology
+    methodology,
+    priceSignal
   );
 
   const response = await client.messages.create({
@@ -196,7 +198,8 @@ export async function synthesizeBrief(
         campaignDescription,
         assumptions,
         evidenceByAssumption,
-        methodology
+        methodology,
+        priceSignal
       );
       logGeneration({
         event: "response.ranked",
@@ -217,7 +220,8 @@ export async function synthesizeBrief(
           campaignDescription,
           assumptions,
           evidenceByAssumption,
-          methodology
+          methodology,
+          priceSignal
         );
         logGeneration({
           event: "response.ranked",

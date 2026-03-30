@@ -1,5 +1,6 @@
 import { sanitizeForPrompt } from "./sanitize-prompt";
 import type { AssumptionEvidence, BriefMethodology } from "./assumption-evidence";
+import type { PriceSignal } from "./extract-price-signal";
 
 /* ─── System Prompt ─── */
 
@@ -105,7 +106,8 @@ export function buildSynthesisPrompt(
   campaignDescription: string,
   assumptions: string[],
   evidenceByAssumption: Map<number, AssumptionEvidence[]>,
-  methodology: BriefMethodology
+  methodology: BriefMethodology,
+  priceSignal?: PriceSignal | null
 ): string {
   const sections: string[] = [];
 
@@ -143,6 +145,33 @@ Relevant responses: ${evidence.length}`;
     }
 
     sections.push(block);
+  }
+
+  // Price signal (if available)
+  if (priceSignal && priceSignal.respondentCount > 0) {
+    let priceBlock = `## Willingness-to-Pay Signal\n${priceSignal.respondentCount} respondents answered baseline price questions.\n`;
+
+    if (Object.keys(priceSignal.priceCeilingDistribution).length > 0) {
+      priceBlock += "\nPrice ceiling (max paid for similar tools):";
+      for (const [tier, count] of Object.entries(priceSignal.priceCeilingDistribution)) {
+        priceBlock += `\n- ${tier}: ${count} respondent${count === 1 ? "" : "s"}`;
+      }
+    }
+
+    if (Object.keys(priceSignal.pastSpendingDistribution).length > 0) {
+      priceBlock += "\n\nPast spending (last 12 months):";
+      for (const [tier, count] of Object.entries(priceSignal.pastSpendingDistribution)) {
+        priceBlock += `\n- ${tier}: ${count}`;
+      }
+    }
+
+    if (priceSignal.matchSkew) {
+      priceBlock += `\n\nNote: ${priceSignal.matchSkew}`;
+    }
+
+    priceBlock += "\n\nUse this pricing data when evaluating assumptions related to willingness to pay, pricing, or monetization. Reference specific price tiers in your verdicts and next steps where relevant.";
+
+    sections.push(priceBlock);
   }
 
   sections.push(
