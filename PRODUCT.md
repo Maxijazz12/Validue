@@ -30,7 +30,6 @@ Phase 1 — assumption extraction + Decision Brief.
 Current blockers:
 - end-to-end testing with real campaign data
 - behavioral screening enforcement
-- question randomization
 
 ## Build Order
 

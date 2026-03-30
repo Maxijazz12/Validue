@@ -13,10 +13,18 @@ TASK="${1:?Usage: $0 \"task description\" [model] [effort]}"
 MODEL="${2:-sonnet}"
 EFFORT="${3:-high}"
 
+# Auto-downgrade model for lower effort tasks
+case "$EFFORT" in
+  low)    MODEL="haiku"  ;;
+  medium) MODEL="sonnet" ;;
+  # high/max: keep user's choice
+esac
+
 # Derive fallback model
 case "$MODEL" in
   opus)   FALLBACK="sonnet" ;;
   sonnet) FALLBACK="haiku" ;;
+  haiku)  FALLBACK="haiku" ;;
   *)      FALLBACK="sonnet" ;;
 esac
 
