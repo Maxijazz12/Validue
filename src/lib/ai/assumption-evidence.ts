@@ -124,6 +124,73 @@ export async function getEvidenceByAssumption(
   return evidenceMap;
 }
 
+/* ─── Per-Assumption Coverage Scoring ─── */
+
+export interface AssumptionCoverage {
+  /** Number of evidence items for this assumption */
+  responseCount: number;
+  /** Average quality score (0-100) */
+  avgQuality: number;
+  /** Average audience match score (0-100) */
+  avgMatch: number;
+  /** Number of distinct evidence categories represented */
+  categoryCount: number;
+  /** Which evidence categories are present */
+  categories: string[];
+  /** Whether a "negative" (disconfirmation) category is present */
+  hasNegative: boolean;
+  /** Overall coverage strength: "strong" (5+ responses, 3+ categories, avg match 50+),
+   *  "moderate" (3+ responses, 2+ categories), "thin" (everything else) */
+  strength: "strong" | "moderate" | "thin";
+}
+
+/**
+ * Compute coverage metrics for a single assumption's evidence.
+ * Pure function — no DB calls.
+ */
+export function computeCoverage(evidence: AssumptionEvidence[]): AssumptionCoverage {
+  if (evidence.length === 0) {
+    return {
+      responseCount: 0, avgQuality: 0, avgMatch: 0,
+      categoryCount: 0, categories: [], hasNegative: false, strength: "thin",
+    };
+  }
+
+  const avgQuality = Math.round(evidence.reduce((s, e) => s + e.qualityScore, 0) / evidence.length);
+  const avgMatch = Math.round(evidence.reduce((s, e) => s + e.audienceMatch, 0) / evidence.length);
+  const categories = [...new Set(evidence.map((e) => e.evidenceCategory).filter(Boolean))];
+  const hasNegative = categories.includes("negative");
+
+  let strength: "strong" | "moderate" | "thin" = "thin";
+  if (evidence.length >= 5 && categories.length >= 3 && avgMatch >= 50) {
+    strength = "strong";
+  } else if (evidence.length >= 3 && categories.length >= 2) {
+    strength = "moderate";
+  }
+
+  return {
+    responseCount: evidence.length,
+    avgQuality,
+    avgMatch,
+    categoryCount: categories.length,
+    categories,
+    hasNegative,
+    strength,
+  };
+}
+
+/**
+ * Compute coverage for all assumptions in a campaign.
+ */
+export function computeAllCoverage(
+  evidenceByAssumption: Map<number, AssumptionEvidence[]>,
+  assumptionCount: number
+): AssumptionCoverage[] {
+  return Array.from({ length: assumptionCount }, (_, i) =>
+    computeCoverage(evidenceByAssumption.get(i) ?? [])
+  );
+}
+
 /* ─── Methodology Stats ─── */
 
 /**

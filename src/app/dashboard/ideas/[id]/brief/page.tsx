@@ -2,7 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { synthesizeBrief } from "@/lib/ai/synthesize-brief";
+import type { BriefResult } from "@/lib/ai/synthesize-brief";
 import type { DecisionBrief, AssumptionVerdict, NextStep } from "@/lib/ai/brief-schemas";
+import type { AssumptionCoverage } from "@/lib/ai/assumption-evidence";
 import sql from "@/lib/db";
 
 /* ─── Verdict colors ─── */
@@ -113,15 +115,18 @@ export default async function BriefPage({
   const assumptions: string[] = campaign.key_assumptions ?? [];
 
   let brief: DecisionBrief;
+  let coverage: AssumptionCoverage[] = [];
   let synthesisError = false;
 
   try {
-    brief = await synthesizeBrief(
+    const result: BriefResult = await synthesizeBrief(
       campaign.id,
       campaign.title,
       campaign.description,
       assumptions
     );
+    brief = result.brief;
+    coverage = result.coverage;
   } catch {
     synthesisError = true;
     brief = {
@@ -255,6 +260,58 @@ export default async function BriefPage({
                   <span>{v.supportingCount} supporting</span>
                   <span>{v.contradictingCount} contradicting</span>
                   <span>{v.totalResponses} total</span>
+                </div>
+              )}
+
+              {/* Coverage indicator */}
+              {coverage[i] && coverage[i].responseCount > 0 && (
+                <div className="rounded-xl bg-[#FAF9FA] border border-[#E2E8F0] px-4 py-3 mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] uppercase tracking-[0.08em] font-medium text-[#94A3B8]">
+                      Evidence strength
+                    </span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      coverage[i].strength === "strong"
+                        ? "bg-[#22c55e]/10 text-[#22c55e]"
+                        : coverage[i].strength === "moderate"
+                          ? "bg-[#E5654E]/10 text-[#E5654E]"
+                          : "bg-[#94A3B8]/10 text-[#94A3B8]"
+                    }`}>
+                      {coverage[i].strength}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-[12px]">
+                    <div>
+                      <span className="text-[#94A3B8] block text-[11px]">Avg quality</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="h-1 flex-1 rounded-full bg-[#E2E8F0]">
+                          <div className="h-1 rounded-full bg-[#22c55e]" style={{ width: `${coverage[i].avgQuality}%` }} />
+                        </div>
+                        <span className="text-[#64748B] font-medium">{coverage[i].avgQuality}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[#94A3B8] block text-[11px]">Avg match</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="h-1 flex-1 rounded-full bg-[#E2E8F0]">
+                          <div className="h-1 rounded-full bg-[#3b82f6]" style={{ width: `${coverage[i].avgMatch}%` }} />
+                        </div>
+                        <span className="text-[#64748B] font-medium">{coverage[i].avgMatch}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[#94A3B8] block text-[11px]">Categories</span>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {coverage[i].categories.map((cat) => (
+                          <span key={cat} className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            cat === "negative" ? "bg-[#fecaca] text-[#b91c1c]" : "bg-[#E2E8F0] text-[#64748B]"
+                          }`}>
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

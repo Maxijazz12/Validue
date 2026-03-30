@@ -2,7 +2,8 @@ import { getClient, isAIAvailable, MODELS } from "./client";
 import { SYNTHESIZE_BRIEF_TOOL, DecisionBriefSchema } from "./brief-schemas";
 import type { DecisionBrief } from "./brief-schemas";
 import { BRIEF_SYSTEM_PROMPT, buildSynthesisPrompt } from "./brief-prompts";
-import { getEvidenceByAssumption, getBriefMethodology } from "./assumption-evidence";
+import { getEvidenceByAssumption, getBriefMethodology, computeAllCoverage } from "./assumption-evidence";
+import type { AssumptionCoverage } from "./assumption-evidence";
 import { logGeneration } from "./logger";
 
 /* ─── Fallback Brief ─── */
@@ -109,6 +110,14 @@ async function callSynthesis(
   return parsed.data;
 }
 
+/* ─── Result Type ─── */
+
+export interface BriefResult {
+  brief: DecisionBrief;
+  /** Per-assumption coverage metrics (deterministic, computed from evidence) */
+  coverage: AssumptionCoverage[];
+}
+
 /* ─── Main Entry Point ─── */
 
 /**
@@ -118,6 +127,7 @@ async function callSynthesis(
  * 2. If too few responses, returns a deterministic fallback
  * 3. Calls Claude to synthesize the brief
  * 4. On failure, retries once, then falls back to deterministic
+ * 5. Computes per-assumption coverage from raw evidence (deterministic)
  *
  * Never throws — the brief page must always render something.
  */
@@ -126,7 +136,7 @@ export async function synthesizeBrief(
   campaignTitle: string,
   campaignDescription: string,
   assumptions: string[]
-): Promise<DecisionBrief> {
+): Promise<BriefResult> {
   const start = Date.now();
 
   // Gather evidence
@@ -149,8 +159,12 @@ export async function synthesizeBrief(
       confidence: 0,
       latencyMs: Date.now() - start,
     });
-    return buildFallbackBrief(assumptions, 0);
+    const emptyCoverage = computeAllCoverage(new Map(), assumptions.length);
+    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage };
   }
+
+  // Compute coverage from evidence (deterministic — same regardless of AI/fallback path)
+  const coverage = computeAllCoverage(evidenceByAssumption, assumptions.length);
 
   // Too few responses for meaningful synthesis
   if (methodology.responseCount < 3) {
@@ -163,7 +177,7 @@ export async function synthesizeBrief(
       confidence: 0,
       latencyMs: Date.now() - start,
     });
-    return buildFallbackBrief(assumptions, methodology.responseCount);
+    return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage };
   }
 
   // Attempt AI synthesis
@@ -187,7 +201,7 @@ export async function synthesizeBrief(
         latencyMs: Date.now() - start,
       });
 
-      return brief;
+      return { brief, coverage };
     } catch {
       // Retry once
       try {
@@ -208,7 +222,7 @@ export async function synthesizeBrief(
           latencyMs: Date.now() - start,
         });
 
-        return brief;
+        return { brief, coverage };
       } catch {
         // Fall through to fallback
       }
@@ -226,5 +240,5 @@ export async function synthesizeBrief(
     latencyMs: Date.now() - start,
   });
 
-  return buildFallbackBrief(assumptions, methodology.responseCount);
+  return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage };
 }
