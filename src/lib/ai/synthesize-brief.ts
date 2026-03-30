@@ -4,6 +4,8 @@ import type { DecisionBrief } from "./brief-schemas";
 import { BRIEF_SYSTEM_PROMPT, buildSynthesisPrompt } from "./brief-prompts";
 import { getEvidenceByAssumption, getBriefMethodology, computeAllCoverage } from "./assumption-evidence";
 import type { AssumptionCoverage } from "./assumption-evidence";
+import { extractPriceSignal } from "./extract-price-signal";
+import type { PriceSignal } from "./extract-price-signal";
 import { logGeneration } from "./logger";
 
 /* ─── Fallback Brief ─── */
@@ -116,6 +118,8 @@ export interface BriefResult {
   brief: DecisionBrief;
   /** Per-assumption coverage metrics (deterministic, computed from evidence) */
   coverage: AssumptionCoverage[];
+  /** Willingness-to-pay signal extracted from baseline price questions */
+  priceSignal: PriceSignal | null;
 }
 
 /* ─── Main Entry Point ─── */
@@ -143,10 +147,13 @@ export async function synthesizeBrief(
   let evidenceByAssumption: Awaited<ReturnType<typeof getEvidenceByAssumption>>;
   let methodology: Awaited<ReturnType<typeof getBriefMethodology>>;
 
+  let priceSignal: PriceSignal | null = null;
+
   try {
-    [evidenceByAssumption, methodology] = await Promise.all([
+    [evidenceByAssumption, methodology, priceSignal] = await Promise.all([
       getEvidenceByAssumption(campaignId),
       getBriefMethodology(campaignId),
+      extractPriceSignal(campaignId),
     ]);
   } catch {
     // DB query failed — return minimal fallback
@@ -160,7 +167,7 @@ export async function synthesizeBrief(
       latencyMs: Date.now() - start,
     });
     const emptyCoverage = computeAllCoverage(new Map(), assumptions.length);
-    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage };
+    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage, priceSignal: null };
   }
 
   // Compute coverage from evidence (deterministic — same regardless of AI/fallback path)
@@ -177,7 +184,7 @@ export async function synthesizeBrief(
       confidence: 0,
       latencyMs: Date.now() - start,
     });
-    return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage };
+    return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal };
   }
 
   // Attempt AI synthesis
@@ -201,7 +208,7 @@ export async function synthesizeBrief(
         latencyMs: Date.now() - start,
       });
 
-      return { brief, coverage };
+      return { brief, coverage, priceSignal };
     } catch {
       // Retry once
       try {
@@ -222,7 +229,7 @@ export async function synthesizeBrief(
           latencyMs: Date.now() - start,
         });
 
-        return { brief, coverage };
+        return { brief, coverage, priceSignal };
       } catch {
         // Fall through to fallback
       }
@@ -240,5 +247,5 @@ export async function synthesizeBrief(
     latencyMs: Date.now() - start,
   });
 
-  return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage };
+  return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal };
 }

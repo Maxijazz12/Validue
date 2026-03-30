@@ -5,6 +5,7 @@ import { synthesizeBrief } from "@/lib/ai/synthesize-brief";
 import type { BriefResult } from "@/lib/ai/synthesize-brief";
 import type { DecisionBrief, AssumptionVerdict, NextStep } from "@/lib/ai/brief-schemas";
 import type { AssumptionCoverage } from "@/lib/ai/assumption-evidence";
+import type { PriceSignal } from "@/lib/ai/extract-price-signal";
 import sql from "@/lib/db";
 
 /* ─── Verdict colors ─── */
@@ -116,6 +117,7 @@ export default async function BriefPage({
 
   let brief: DecisionBrief;
   let coverage: AssumptionCoverage[] = [];
+  let priceSignal: PriceSignal | null = null;
   let synthesisError = false;
 
   try {
@@ -127,6 +129,7 @@ export default async function BriefPage({
     );
     brief = result.brief;
     coverage = result.coverage;
+    priceSignal = result.priceSignal;
   } catch {
     synthesisError = true;
     brief = {
@@ -391,6 +394,71 @@ export default async function BriefPage({
           </ul>
         </div>
       </section>
+
+      {/* ─── Price Signal ─── */}
+      {priceSignal && priceSignal.respondentCount > 0 && (
+        <section className="mb-8">
+          <h2 className="text-[13px] uppercase tracking-[0.1em] text-[#94A3B8] font-medium mb-3">
+            Willingness to Pay
+          </h2>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-[24px]">
+            <p className="text-[15px] text-[#111111] leading-relaxed font-medium mb-4">
+              {priceSignal.interpretation}
+            </p>
+
+            {Object.keys(priceSignal.priceCeilingDistribution).length > 0 && (
+              <div className="mb-4">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-[#94A3B8] font-medium mb-2">
+                  Price ceiling (max paid for similar tools)
+                </p>
+                <div className="space-y-1.5">
+                  {Object.entries(priceSignal.priceCeilingDistribution).map(([tier, count]) => (
+                    <div key={tier} className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[13px] text-[#64748B]">{tier}</span>
+                          <span className="text-[12px] text-[#94A3B8] font-medium">{count}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-[#E2E8F0]">
+                          <div
+                            className="h-1.5 rounded-full bg-[#3b82f6]"
+                            style={{ width: `${(count / priceSignal.respondentCount) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Object.keys(priceSignal.pastSpendingDistribution).length > 0 && (
+              <div className="mb-4">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-[#94A3B8] font-medium mb-2">
+                  Past spending (last 12 months)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(priceSignal.pastSpendingDistribution).map(([tier, count]) => (
+                    <span key={tier} className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-3 py-1 text-[12px] text-[#64748B]">
+                      {tier} <span className="font-semibold text-[#111111]">{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {priceSignal.matchSkew && (
+              <div className="rounded-xl bg-[#FEF3C7] border border-[#F59E0B]/20 px-4 py-3 text-[13px] text-[#92400E] leading-relaxed">
+                {priceSignal.matchSkew}
+              </div>
+            )}
+
+            <p className="text-[11px] text-[#94A3B8] mt-3">
+              Based on {priceSignal.respondentCount} respondent{priceSignal.respondentCount === 1 ? "" : "s"} who answered baseline price questions.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ─── Next Steps ─── */}
       <section className="mb-8">

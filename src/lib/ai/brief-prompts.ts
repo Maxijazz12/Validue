@@ -43,6 +43,15 @@ Per-assumption confidence can differ from brief-level confidence. A brief can be
 
 Pick the most vivid, specific quotes. Quotes that mention product names, dollar amounts, timeframes, or specific behaviors are better than generic statements like "I think this is interesting." Never fabricate quotes — use only text present in the evidence provided.
 
+## Contradicting Signals
+
+When evidence for an assumption is mixed, populate the contradictingSignal field with specifics:
+1. What exactly contradicts — is it behavioral evidence vs stated willingness? Different price expectations? Different use-case priorities?
+2. How many respondents hold the contradicting view and what their weights are
+3. Whether contradictors tend to be high-match or low-match respondents (this determines how seriously the founder should take the disagreement)
+
+A contradiction from high-match respondents is more threatening to the assumption than one from low-match respondents.
+
 ## Uncomfortable Truth
 
 This is the single most important section. It must be:
