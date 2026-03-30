@@ -16,6 +16,7 @@ export type Question = {
   options: string[] | null;
   isBaseline: boolean;
   category: string | null;
+  anchors: string[] | null;
 };
 
 type StoredAnswer = {
@@ -265,6 +266,7 @@ export default function QuestionStepper({
               onChange={setCurrentText}
               onPaste={() => setPasteCount((c) => c + 1)}
               onTimeUpdate={handleTimeUpdate}
+              anchors={question.anchors ?? undefined}
             />
           ) : (
             <MultipleChoiceAnswer

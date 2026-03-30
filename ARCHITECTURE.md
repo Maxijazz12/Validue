@@ -135,6 +135,18 @@ Wall feed (ranked by wall-ranking.ts) → startResponse() → saveAnswer() × N 
 Founder clicks "Rank" → AI scores (4D + confidence) → suggestDistribution() → qualifyResponse() (V2) → distributePayoutsV2() → atomic: create payouts + update responses + update profiles → notify respondents → updateReputation()
 ```
 
+## Parallelization Rules
+
+**Default: single agent with subagents.** Only escalate to worktrees when there's a clear speed win with zero shared files.
+
+**Use subagents for:** codebase exploration (2-3 Explore in parallel), plan design, background verification (tests/lint/build).
+
+**Use worktree agents for:** genuinely independent features touching zero shared files — new modules, pages, API routes, test suites.
+
+**Do not parallelize when:** tasks edit the same files or shared dependencies, work is sequential, or you have to think hard about whether tasks will conflict (they will).
+
+**Rule of thumb:** If a task will require >3 tool calls, spawn a subagent. Keep main thread for decisions, synthesis, small edits, commits.
+
 ## High-Coupling Files (Risk Assessment)
 
 | File | Dependents | Risk | Why |

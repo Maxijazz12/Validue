@@ -1,4 +1,5 @@
 # VLDTA Design System
+<!-- Last reviewed: 2026-03-29 -->
 
 This is a living design reference. Sections are updated when Max references another product's design. Tokens here map to CSS variables in `globals.css` and Tailwind theme config.
 

@@ -24,19 +24,27 @@ export function useTheme() {
 }
 
 export default function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
+  // Always start with "light" on both server and client to avoid hydration mismatch
+  const [theme, setTheme] = useState<Theme>("light");
+  const [mounted, setMounted] = useState(false);
+
+  // After mount, read the real theme from localStorage / system preference
+  useEffect(() => {
     const stored = localStorage.getItem("theme") as Theme | null;
     const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
-    return stored || preferred;
-  });
-  const mounted = typeof window !== "undefined";
+    const resolved = stored || preferred;
+    setTheme(resolved);
+    document.documentElement.classList.toggle("dark", resolved === "dark");
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    if (mounted) {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+    }
+  }, [theme, mounted]);
 
   const toggle = useCallback(() => {
     setTheme((prev) => {
@@ -46,11 +54,6 @@ export default function ThemeProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, []);
-
-  // Prevent flash by not rendering until mounted
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>

@@ -17,8 +17,8 @@ export default function AchievementBanner({
 }) {
   return (
     <div
-      className="achievement-enter flex items-center gap-[14px] p-[14px_18px] rounded-xl border border-[#E2E8F0] mb-[12px] relative overflow-hidden"
-      style={{ borderLeftWidth: 3, borderLeftColor: achievement.accent, background: `linear-gradient(90deg, ${achievement.accent}08, transparent)` }}
+      className="achievement-enter flex items-center gap-[14px] p-[14px_18px] rounded-xl border border-[#E2E8F0] dark:border-[#2A2D3A] mb-[12px] relative overflow-hidden bg-bg-card"
+      style={{ borderLeftWidth: 3, borderLeftColor: achievement.accent, backgroundImage: `linear-gradient(90deg, ${achievement.accent}08, transparent)` }}
     >
       <div
         className="w-[36px] h-[36px] rounded-full flex items-center justify-center shrink-0"
@@ -27,8 +27,8 @@ export default function AchievementBanner({
         {achievement.icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-[#111111]">{achievement.title}</p>
-        <p className="text-[12px] text-[#64748B]">{achievement.subtitle}</p>
+        <p className="text-[13px] font-semibold text-[#111111] dark:text-[#E8EAF0]">{achievement.title}</p>
+        <p className="text-[12px] text-[#64748B] dark:text-[#94A3B8]">{achievement.subtitle}</p>
       </div>
       <button
         onClick={onDismiss}

@@ -112,37 +112,11 @@ A decision-quality system for solo SaaS builders. Not every decision needs a cou
 
 ### Level 2: Multi-Model Verification
 
-**Setup:**
-- Claude solves the problem first, independently.
-- The same problem (NOT Claude's solution) is sent to a second model.
-- Critical: no anchoring. The second model must not see Claude's answer.
-
-**How to invoke (practical options):**
-- **Manual:** Copy the problem statement into ChatGPT. Bring the answer back.
-- **Automated (when openai SDK is installed):** Claude calls the OpenAI API via a verification script, passing only the problem statement.
-
-**Comparison:**
-- If both models reach the same conclusion: very high confidence. Proceed.
-- If they reach different conclusions: DO NOT average them. Present both to Max with the specific delta highlighted. The disagreement is the insight.
-- If one model identifies a risk the other missed: incorporate it regardless of which model "won."
-
-**Output:** Delta Report — what agreed, what diverged, which risks were unique to each model, recommended path.
-
-**Time budget:** 10-15 minutes. The second model call is fast. The value is in the comparison, not the depth.
+Claude solves independently, then Max pastes the same problem (NOT Claude's answer) into ChatGPT for independent derivation. Compare conclusions — disagreements are the most valuable signal. Present both to Max if they diverge. Time budget: 10-15 min.
 
 ### Level 3: Full Council
 
-**Setup:**
-- Level 1 fan-out (3 Claude runs with varied framing)
-- Level 2 multi-model verification on the point of highest uncertainty
-- Synthesis memo written
-- 24-hour hold before committing (sleep on it)
-
-**Why the hold:** Council outputs feel authoritative. That's dangerous. The hold prevents premature lock-in and lets Max's own judgment weigh in after the initial enthusiasm fades.
-
-**Output:** Full Synthesis Memo (Section 5) + explicit "what to test before committing" section.
-
-**Time budget:** 30-45 minutes for the council work. Then wait.
+Level 1 fan-out + Level 2 multi-model + synthesis memo + 24-hour hold before committing. The hold prevents premature lock-in. Time budget: 30-45 min for council work, then wait.
 
 ## 5. Synthesis Memo Template
 

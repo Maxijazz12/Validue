@@ -436,6 +436,28 @@ export default async function CampaignDetailPage({
         </div>
       </div>
 
+      {/* ─── Decision Brief CTA ─── */}
+      {campaign.current_responses >= 3 && (
+        <Link
+          href={`/dashboard/ideas/${campaign.id}/brief`}
+          className="block bg-[#111111] rounded-2xl p-[20px] mb-[16px] hover:bg-[#222222] hover:-translate-y-[1px] transition-all duration-300 no-underline group"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[16px] font-semibold text-white">
+                View Decision Brief
+              </span>
+              <span className="text-[13px] text-[#94A3B8] ml-[8px]">
+                AI synthesis of {campaign.current_responses} responses into assumption verdicts
+              </span>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+        </Link>
+      )}
+
       {/* ─── View Responses CTA ─── */}
       {campaign.current_responses > 0 && (
         <Link

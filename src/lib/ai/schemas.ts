@@ -32,6 +32,8 @@ export const AIDraftAudienceSchema = z.object({
 export const AIOpenQuestionSchema = z.object({
   text: z.string().min(10),
   section: z.enum(["open", "followup"]),
+  assumptionIndex: z.number().int().min(0).max(4),
+  anchors: z.array(z.string()).min(2).max(3),
 });
 
 export const AIBaselinePickSchema = z.object({
@@ -123,7 +125,7 @@ export const GENERATE_CAMPAIGN_TOOL = {
         type: "array" as const,
         items: {
           type: "object" as const,
-          required: ["text", "section"],
+          required: ["text", "section", "assumptionIndex", "anchors"],
           properties: {
             text: {
               type: "string" as const,
@@ -134,6 +136,17 @@ export const GENERATE_CAMPAIGN_TOOL = {
               enum: ["open", "followup"],
               description:
                 "'open' for broad validation questions, 'followup' for idea-specific probes",
+            },
+            assumptionIndex: {
+              type: "number" as const,
+              description: "0-based index into the assumptions array. Which assumption does this question primarily test?",
+            },
+            anchors: {
+              type: "array" as const,
+              items: { type: "string" as const },
+              minItems: 2,
+              maxItems: 3,
+              description: "2-3 response anchor hints shown below the text area to guide respondent answers (e.g. 'Include: specific tools or apps you used', 'Mention: how often and how long ago')",
             },
           },
         },
@@ -146,7 +159,7 @@ export const GENERATE_CAMPAIGN_TOOL = {
         type: "array" as const,
         items: {
           type: "object" as const,
-          required: ["text", "section"],
+          required: ["text", "section", "assumptionIndex", "anchors"],
           properties: {
             text: {
               type: "string" as const,
@@ -156,6 +169,17 @@ export const GENERATE_CAMPAIGN_TOOL = {
               type: "string" as const,
               enum: ["open", "followup"],
               description: "Should be 'followup'",
+            },
+            assumptionIndex: {
+              type: "number" as const,
+              description: "0-based index into the assumptions array. Which assumption does this question primarily test?",
+            },
+            anchors: {
+              type: "array" as const,
+              items: { type: "string" as const },
+              minItems: 2,
+              maxItems: 3,
+              description: "2-3 response anchor hints shown below the text area to guide respondent answers (e.g. 'Include: specific tools or apps you used', 'Mention: how often and how long ago')",
             },
           },
         },

@@ -176,7 +176,7 @@ export async function publishCampaign(
       for (let i = 0; i < draft.questions.length; i++) {
         const q = draft.questions[i];
         await tx`
-          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category)
+          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
           VALUES (
             ${campaign.id},
             ${q.text},
@@ -184,7 +184,9 @@ export async function publishCampaign(
             ${i},
             ${q.options ? JSON.stringify(q.options) : null}::jsonb,
             ${q.isBaseline},
-            ${q.category || null}
+            ${q.category || null},
+            ${q.assumptionIndex ?? null},
+            ${q.anchors ? JSON.stringify(q.anchors) : null}::jsonb
           )
         `;
       }

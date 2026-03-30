@@ -13,80 +13,123 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
   {
     id: "bl-interest-1",
     category: "interest",
-    text: "Would you consider using something like this?",
-    options: ["Yes", "No", "I'm open to it"],
-    description: "Measures baseline interest in the concept.",
+    text: "How often do you actively look for a better way to handle this?",
+    options: ["Every week", "Every month", "A few times a year", "Rarely or never"],
+    description:
+      "Measures active solution-seeking behavior — frequency reveals urgency.",
   },
   {
     id: "bl-interest-2",
     category: "interest",
-    text: "How relevant is this problem to your daily life or work?",
-    options: ["Very relevant", "Somewhat relevant", "Not relevant"],
-    description: "Gauges how strongly the problem resonates.",
+    text: "When was the last time you searched for a solution to this problem?",
+    options: ["This week", "This month", "A while ago", "I've never looked"],
+    description:
+      "Tests recency of solution-seeking — recent search signals active pain.",
   },
 
   // ─── Willingness ───
   {
     id: "bl-willingness-1",
     category: "willingness",
-    text: "If this existed today, would you try it?",
-    options: ["Yes", "Maybe", "No"],
-    description: "Tests willingness to adopt a new solution.",
+    text: "What's the closest thing you've tried for this problem, and how long did you use it?",
+    options: [
+      "Currently using something",
+      "Tried something but stopped",
+      "Never tried anything",
+      "I don't have this problem",
+    ],
+    description:
+      "Reveals switching behavior and current solution satisfaction.",
   },
   {
     id: "bl-willingness-2",
     category: "willingness",
-    text: "Would you recommend something like this to a friend or colleague?",
-    options: ["Definitely", "Possibly", "Unlikely"],
-    description: "Measures advocacy potential and perceived value.",
+    text: "If you switched to a new tool for this, what would you lose from your current approach?",
+    options: [
+      "Nothing — my current approach doesn't work",
+      "Some convenience",
+      "Important features or workflows",
+      "Too much — I'd never switch",
+    ],
+    description:
+      "Measures switching cost — high cost means harder adoption.",
   },
 
   // ─── Payment ───
   {
     id: "bl-payment-1",
     category: "payment",
-    text: "Would you pay for something like this if it solved the problem well?",
-    options: ["Yes", "Maybe", "No"],
-    description: "Tests willingness to pay for a solution.",
+    text: "How much have you spent on tools or services for this problem in the past year?",
+    options: ["$0 — only free options", "Under $50", "$50–$200", "Over $200"],
+    description:
+      "Reveals actual spending behavior — past spending predicts future willingness.",
   },
   {
     id: "bl-payment-2",
     category: "payment",
-    text: "What would you expect to pay for a solution like this?",
-    options: ["Free", "Under $10/mo", "$10–$30/mo", "$30+/mo", "One-time purchase"],
-    description: "Gauges price sensitivity and expectations.",
+    text: "What's the most you've paid for a single tool in this category?",
+    options: [
+      "Only free tools",
+      "Under $10/month",
+      "$10–$30/month",
+      "$30+/month",
+      "One-time purchase",
+    ],
+    description:
+      "Establishes price ceiling from real purchase history.",
   },
 
   // ─── Behavior ───
   {
     id: "bl-behavior-1",
     category: "behavior",
-    text: "How do you currently handle this problem?",
-    options: ["Existing solution", "Manual workaround", "Ignore it", "Not relevant to me"],
-    description: "Reveals current behavior and alternatives.",
+    text: "What do you currently use to handle this?",
+    options: [
+      "A dedicated paid tool",
+      "A free tool or app",
+      "Spreadsheets or manual workaround",
+      "Nothing — I just deal with it",
+      "Not relevant to me",
+    ],
+    description:
+      "Maps the competitive landscape through actual behavior.",
   },
   {
     id: "bl-behavior-2",
     category: "behavior",
-    text: "How often do you encounter this problem?",
-    options: ["Daily", "Weekly", "Monthly", "Rarely", "Never"],
-    description: "Measures frequency and urgency of the pain point.",
+    text: "How many times in the past week did you run into this problem?",
+    options: [
+      "0 times",
+      "1–2 times",
+      "3–5 times",
+      "Daily",
+      "Multiple times a day",
+    ],
+    description:
+      "Measures problem frequency — daily problems justify daily-use products.",
   },
 
   // ─── Pain ───
   {
     id: "bl-pain-1",
     category: "pain",
-    text: "How frustrated are you with the current way you handle this?",
-    options: ["Very frustrated", "Somewhat frustrated", "Not frustrated", "I don't deal with this"],
-    description: "Measures pain intensity around the problem.",
+    text: "What did you most recently give up on or work around because of this problem?",
+    options: [
+      "Gave up on a task entirely",
+      "Found a clunky workaround",
+      "Paid for a partial fix",
+      "Nothing — it's not really a problem for me",
+    ],
+    description:
+      "Surfaces real cost of the problem through recent concrete experience.",
   },
   {
     id: "bl-pain-2",
     category: "pain",
-    text: "If you could wave a magic wand and fix one thing about this problem, how impactful would that be?",
-    options: ["Life-changing", "Very helpful", "Nice to have", "Wouldn't matter"],
-    description: "Tests perceived impact of solving the problem.",
+    text: "How much time do you waste on this problem per week?",
+    options: ["None", "Under 30 minutes", "30 minutes to 2 hours", "Over 2 hours"],
+    description:
+      "Quantifies time cost — high time waste signals willingness to pay for a solution.",
   },
 ];
 

@@ -32,7 +32,7 @@ export default async function RespondPage({
   // Fetch questions
   const { data: questions } = await supabase
     .from("questions")
-    .select("*")
+    .select("id, text, type, sort_order, options, is_baseline, category, anchors")
     .eq("campaign_id", id)
     .order("sort_order", { ascending: true });
 
@@ -118,6 +118,7 @@ export default async function RespondPage({
         options: q.options as string[] | null,
         isBaseline: q.is_baseline,
         category: q.category,
+        anchors: q.anchors as string[] | null,
       }))}
       existingResponse={existingResponse}
       existingAnswers={existingAnswers}

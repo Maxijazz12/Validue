@@ -448,12 +448,12 @@ export default function WallFeed({
 
       {/* ─── Earnings Potential Banner ─── */}
       {earningsPotential > 0 && !earningsDismissed && (
-        <div className="flex items-center gap-[12px] p-[14px_18px] rounded-xl border border-[#E2E8F0] mb-[12px] bg-gradient-to-r from-[#F59E0B]/5 to-transparent" style={{ borderLeftWidth: 3, borderLeftColor: "#F59E0B" }}>
+        <div className="flex items-center gap-[12px] p-[14px_18px] rounded-xl border border-[#E2E8F0] dark:border-[#2A2D3A] mb-[12px] bg-bg-card bg-gradient-to-r from-[#F59E0B]/5 to-transparent" style={{ borderLeftWidth: 3, borderLeftColor: "#F59E0B" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
             <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
           </svg>
-          <p className="text-[13px] text-[#64748B] flex-1">
-            You could earn up to <span className="font-mono font-bold text-[#111111]">${earningsPotential}</span> from your matched campaigns
+          <p className="text-[13px] text-[#64748B] dark:text-[#94A3B8] flex-1">
+            You could earn up to <span className="font-mono font-bold text-[#111111] dark:text-[#E8EAF0]">${earningsPotential}</span> from your matched campaigns
           </p>
           <button
             onClick={() => { setEarningsDismissed(true); localStorage.setItem("wall-earnings-dismissed", "1"); }}
@@ -468,15 +468,15 @@ export default function WallFeed({
 
       {/* ─── Sticky Header ─── */}
       <div
-        className={`bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[28px_32px] max-md:p-[20px] mb-[20px] relative overflow-hidden sticky top-0 z-20 transition-all duration-300 ${
+        className={`bg-[#FAF9FA] dark:bg-[#1A1D27] rounded-2xl border border-[#E2E8F0] dark:border-[#2A2D3A] p-[28px_32px] max-md:p-[20px] mb-[20px] relative overflow-hidden sticky top-0 z-20 transition-all duration-300 ${
           isScrolled ? "wall-header-collapsed" : ""
         }`}
       >
         <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
 
         <div className="wall-header-collapsible">
-          <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">The Wall</h1>
-          <p className="text-[14px] text-[#64748B] mt-[4px]">Earn by sharing feedback.</p>
+          <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222] dark:text-[#E8EAF0]">The Wall</h1>
+          <p className="text-[14px] text-[#64748B] dark:text-[#94A3B8] mt-[4px]">Earn by sharing feedback.</p>
 
           <div className="flex items-center gap-[8px] mt-[20px]">
             <div className="relative flex-1">

@@ -271,6 +271,39 @@ function checkBaselines(draft: CampaignDraft): QualityWarning[] {
   return warnings;
 }
 
+/* ─── Assumption Coverage Check ─── */
+
+function checkAssumptionCoverage(draft: CampaignDraft): QualityWarning[] {
+  const warnings: QualityWarning[] = [];
+  const nonBaseline = draft.questions.filter((q) => !q.isBaseline);
+
+  // Check that every assumption has at least one question mapped to it
+  for (let i = 0; i < draft.assumptions.length; i++) {
+    const hasQuestion = nonBaseline.some((q) => q.assumptionIndex === i);
+    if (!hasQuestion) {
+      warnings.push({
+        severity: "high",
+        dimension: "assumptions",
+        message: `Assumption "${draft.assumptions[i].slice(0, 50)}…" has no question testing it — add a question or remove the assumption.`,
+      });
+    }
+  }
+
+  // Check for questions with invalid assumptionIndex
+  for (const q of nonBaseline) {
+    if (q.assumptionIndex !== undefined && q.assumptionIndex >= draft.assumptions.length) {
+      warnings.push({
+        severity: "medium",
+        dimension: "assumptions",
+        message: `Question maps to assumption index ${q.assumptionIndex} but only ${draft.assumptions.length} assumptions exist.`,
+        questionId: q.id,
+      });
+    }
+  }
+
+  return warnings;
+}
+
 /* ─── Main Quality Pass ─── */
 
 export interface QualityPassResult {
@@ -310,6 +343,7 @@ export function runQualityPass(
     ...monetization.warnings,
     ...checkAssumptions(patchedDraft),
     ...checkBaselines(patchedDraft),
+    ...checkAssumptionCoverage(patchedDraft),
   ];
 
   // Weighted overall score

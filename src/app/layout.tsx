@@ -54,6 +54,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${plusJakarta.variable} ${instrumentSerif.variable} antialiased`}
     >
+      <head>
+        {/* Prevent FOUC: apply dark class before paint based on stored theme or system preference */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
       </body>

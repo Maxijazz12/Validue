@@ -1,69 +1,50 @@
 @PRODUCT.md
-@CAPABILITIES.md
 @ARCHITECTURE.md
 @AGENTS.md
-@DESIGN.md
-@INTELLIGENCE.md
 
 # Mandatory Document Consultation Rules
 
 These are not optional. Skipping a required check is a protocol violation.
 
-| Before doing... | You MUST read... | Why |
-|---|---|---|
-| Any feature work or architecture decision | PRODUCT.md (phase gates, defer list, decision rules) | Prevents building deferred features or skipping phase gates |
-| Any product/UX/pricing/conversion decision | INTELLIGENCE.md (lessons, evidence hierarchy, anti-bullshit rules) | Prevents repeating mistakes and ensures evidence is properly weighted |
-| Deciding whether to parallelize or which files to touch | ARCHITECTURE.md (coupling table, critical path, safe worktrees) | Prevents merge conflicts and wrong parallelization calls |
-| Any design or styling work | DESIGN.md (current tokens, component patterns, active references) | Prevents inconsistency and redundant CSS exploration |
-| Writing new Next.js code patterns | AGENTS.md (breaking changes, async params, TailwindCSS 4) | Prevents framework-version bugs |
-| Proposing next task (autonomous workflow) | PRODUCT.md phase gate status + CLAUDE.md priority order | Prevents working on Phase 3 when Phase 0 gate is unmet |
+| Before doing... | Read first |
+|---|---|
+| Feature work or architecture decisions | PRODUCT.md |
+| Product/UX/pricing/conversion decisions | INTELLIGENCE.md (on-demand) |
+| Parallelization or file-touch decisions | ARCHITECTURE.md |
+| Design or styling work | DESIGN.md (on-demand) |
+| New Next.js code patterns | AGENTS.md |
+| Proposing next task | PRODUCT.md phase gate status |
 
 **When the phase gate is blocked on a human action** (e.g., "show briefs to real founders"), do NOT propose code that assumes the gate will pass. Instead: identify work that is valuable regardless of gate outcome, or explicitly state "nothing to code — waiting for real-world input."
 
-# Context Overload — CRITICAL PROTOCOL
+# On-Demand Documents (loaded by hooks when relevant, not @-referenced)
 
-**The model starts underperforming at ~180K tokens.** Tool-use count is a proxy — the real constraint is accumulated context. The primary defense is **offloading work to subagents** so the main context stays lean. The secondary defense is stopping and handing off to a fresh session.
+These docs are NOT auto-loaded. Hooks inject reminders to read them when you touch relevant files. This keeps context lean for tasks that don't need them.
 
-## Subagent Offloading (Primary Defense)
+- **DESIGN.md** — Hook fires when editing `src/components/` or `globals.css`. Read it then.
+- **INTELLIGENCE.md** — Hook fires when editing `landing/`, pricing, or conversion areas. Read it then.
+- **COUNCIL.md** — Hook fires when council trigger hits (economics, auth, AI pipeline files). Read it then.
+- **CAPABILITIES.md** — Static stack reference. Read manually only if unsure about what tools/APIs are available (rare).
 
-**Important implementation work should spawn subagents.** The main conversation thread is for coordination, decisions, and review — not for heavy execution. This keeps the main context under the degradation threshold.
+# Context Management
 
-**Always offload to subagents:**
-- Multi-file implementation tasks (give the agent the spec, let it write the code)
-- Codebase exploration and research (use Explore agents)
-- Architecture/design planning (use Plan agents)
-- Council fan-out (3 agents with varied framing)
-- Simulation runs (persona agents)
-- Test/lint/build verification (background agents)
+Context thresholds and subagent offloading rules are in global `~/.claude/CLAUDE.md`. Hooks in `settings.json` enforce tool-use warnings at 40/60/80. When a warning fires: finish current action, write handoff summary, stop.
 
-**Keep in main thread only:**
-- Decision-making and synthesis (reviewing subagent output)
-- Small edits (<20 lines, 1-2 files)
-- Commits and git operations
-- Conversations with Max
+# Hook-Enforced Behaviors (Automated)
 
-**The rule:** If a task will require >3 tool calls to implement, spawn a subagent. The subagent gets its own fresh context and returns a result. The main thread stays clean.
+Hooks in `~/.claude/settings.json` inject system messages automatically. They guard economics files (COUNCIL REQUIRED), critical APIs/actions (HIGH-RISK), migrations (safety checklist), AI pipeline (fallback reminder), landing/UI (read DESIGN.md or INTELLIGENCE.md), plus auto-lint on every .ts/.tsx edit and test reminders every 8 edits. SessionStart loads phase status and last handoff. Context warnings fire at 40/60/80 tool uses. PreCompact/PostCompact manage session transitions.
 
-## Context Warning Thresholds
+**When a hook message fires, follow its instructions literally.** "COUNCIL REQUIRED" = stop and ask Max. "LINT ERRORS" = fix before continuing. Context warnings = follow escalation protocol in global CLAUDE.md.
 
-**When any context warning fires (40/60/80 tool uses, PreCompact):**
+**Hook verification (run after settings.json changes):** Edit defaults.ts → expect COUNCIL REQUIRED. Edit a .tsx → expect lint run. Check /tmp/claude-tool-count.txt increments. If any fail, the hook regex is broken.
 
-1. **STOP proposing new work immediately.** Do not start a new task.
-2. **Finish only the current atomic action** (complete the file edit, finish the commit). Do not start multi-step work.
-3. **Write a handoff summary** to Max with:
-   - What was completed this session
-   - What is in progress (with file paths and line numbers)
-   - What the next task should be
-   - Any decisions that were made but not yet implemented
-   - Any CLAUDE.md/INTELLIGENCE.md updates that are pending
-4. **Tell Max: "Start a fresh session. Here's what to tell the next instance."**
-5. **Do not argue that you're "still fine."** The model that's degrading cannot detect its own degradation. Trust the system signal.
+## Memory System
 
-**At 40 tool uses:** Early warning. Start offloading ALL remaining work to subagents. No more direct implementation in main thread.
-**At 60+ tool uses:** Quality is likely degraded. Wrap up and hand off. No exceptions.
-**At 80+ tool uses:** High hallucination risk. Do NOT write code. Only summarize and hand off.
+Persistent memory lives at the project memory path (loaded via additionalDirectories). At session start, check `memory/phase-status.md` for current gate and `memory/session-handoffs.md` for continuity.
 
-**If Max says "keep going" past a warning:** Comply but add a disclaimer: "I'm past the context warning threshold. Output quality may be degraded. Verify anything I produce in this range."
+**After every session with meaningful work:** Update `memory/session-handoffs.md` with what was done, in progress (with file paths), what's next, and pending decisions.
+
+**After every council decision:** Add entry to `memory/decision-log.md`.
 
 # Product Vision Rule
 
@@ -102,12 +83,6 @@ INTELLIGENCE.md contains accumulated product lessons, evidence hierarchy, and si
 - Spawn 3 agents with distinct founder personas (skeptical, first-time, experienced PM)
 - Tag all results as [SIMULATED] — hypotheses only
 - Use to narrow options and generate better real-world tests
-
-**Periodic regression simulations:**
-- After any major iteration (new question design, new response flow, new brief format), re-run the full simulation battery: 3+ variants × 2+ ideas × 4 personas
-- Compare against previous simulation results to detect improvement or regression
-- Log delta in INTELLIGENCE.md: "After [change], simulated trust/actionability/WTP moved [direction]"
-- This is not validation — it's a regression test for product quality across iterations
 
 **After real outcomes arrive:**
 - Update INTELLIGENCE.md lessons with actual data (Tier 1-2)
@@ -158,44 +133,11 @@ These constants in `defaults.ts` are calibrated for launch:
 
 Do not change without data. New thresholds go in `defaults.ts` with a comment explaining why.
 
-# Parallelization Rules
+# Next Task Proposal
 
-## When to use subagents (within one session)
-- **Explore agents**: Codebase research, dependency mapping, finding existing patterns. Launch 2-3 in parallel when scope is uncertain.
-- **Plan agents**: Architecture design after exploration. One at a time — they need Explore results as input.
-- **Background agents**: Run tests, lint, or build verification while continuing other work.
+Check PRODUCT.md phase status, memory/session-handoffs.md for proposed next task, and phase-0/ artifacts to determine current state.
 
-## When to use worktree isolation
-Use `isolation: "worktree"` when building a feature that is genuinely independent — new page + new API route + new lib utility that don't modify existing shared files. The agent gets a full repo copy and works on a branch.
-
-Good candidates for worktree agents:
-- New landing page sections (`src/components/landing/` — 14 files, zero coupling)
-- New API endpoints that don't modify existing routes
-- New lib utilities before anything imports them
-- Pure UI components (`src/components/ui/` — no action imports)
-- Test suites for existing code
-
-## When NOT to parallelize
-- **Economics logic** (`payout-math.ts`, `defaults.ts`, `plan-guard.ts`, `reach.ts`) — this is the critical path. 5% of files, 80% of merge conflict risk. Always sequential.
-- **Server actions** — 12 action files are imported by 17+ components. Two agents modifying different actions that share lib imports will collide.
-- **Any task where files overlap** — if two agents would edit the same file, run sequentially.
-- **Tasks that are tightly sequential** — if step 2 depends on step 1's output, don't force parallelism.
-
-## Default: single agent with subagents
-Most VLDTA tasks are tightly coupled enough that one agent with Explore/Plan subagents is the right call. Only escalate to worktree agents when you can clearly identify independent work streams that touch zero shared files.
-
-## LLM Council — Execution Rules
-
-Full protocol in `COUNCIL.md` — read it when a council is triggered. These are not suggestions — when a trigger is hit, execute the protocol automatically.
-
-- **Level 0 (default):** UI, API, migrations, components, tests, refactors. Single agent. Just build.
-- **Level 1 (fan-out):** Schema changes to campaigns/responses/payouts, new cron/webhook logic, auth/RLS changes, competing technical approaches. Launch 3 subagents with varied framing, synthesize, pick one.
-- **Level 2 (multi-model):** Changes to `payout-math.ts`, new scoring algorithms, pricing/economics changes, AI synthesis prompt design. Run Level 1 first, then give Max the problem statement for ChatGPT verification.
-- **Level 3 (full council):** V2→V3 economics, launch pricing, core pivots. Level 1 + Level 2 + synthesis memo + sleep on it.
-
-# Autonomous Workflow — Self-Driving Mode
-
-After completing any task, automatically:
+After completing any task:
 
 1. **Run the learning loop** (propose CLAUDE.md updates if applicable)
 2. **Assess next priority** — read PRODUCT.md build phases, check current codebase state, identify what's blocking or highest-leverage
@@ -250,15 +192,13 @@ Hub actions: ideas/new/actions.ts, responses/payout-actions.ts, the-wall/[id]/ac
 
 # Post-Task Learning Loop
 
-After non-trivial tasks where something failed, a non-obvious edge case appeared, or a new pattern emerged — propose a CLAUDE.md update to Max. Don't silently self-edit. One-two sentences per bullet, filed under Dead Ends / Proven Patterns / Thresholds. Max 15 bullets per section. If a lesson generalizes beyond VLDTA, promote to `~/.claude/CLAUDE.md` and delete the local copy.
+After tasks where something failed or a non-obvious edge case appeared — propose a CLAUDE.md update to Max. Don't silently self-edit. One-two sentences per bullet, filed under Dead Ends / Proven Patterns / Thresholds. Max 15 bullets per section. If a lesson generalizes beyond VLDTA, promote to `~/.claude/CLAUDE.md` and delete the local copy.
 
 When CLAUDE.md or config files are updated, include them in the next git commit with a message explaining what changed.
 
 # Pre-Commit Checklist
 
-Before any commit, verify:
-- No `select("*")` in new/modified Supabase queries
-- New API routes have Zod validation + rate limiting
+Before any commit, verify (in addition to universal rules in global CLAUDE.md):
 - New tables have RLS policies
 - New AI features have deterministic fallbacks
 - No temp dev features (test buttons, console.logs, hardcoded test data)

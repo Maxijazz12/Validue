@@ -1,10 +1,18 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTheme } from "./ThemeProvider";
 
 export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, toggle } = useTheme();
-  const isDark = theme === "dark";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch — render neutral state until mounted
+  const isDark = mounted ? theme === "dark" : false;
 
   return (
     <button
@@ -16,6 +24,7 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
           ? "p-[6px] rounded-lg hover:bg-[#F3F4F6] dark:hover:bg-[#2A2D3A]"
           : "px-[12px] py-[8px] rounded-lg hover:bg-[#F3F4F6] dark:hover:bg-[#2A2D3A] w-full"
       }`}
+      suppressHydrationWarning
     >
       {isDark ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

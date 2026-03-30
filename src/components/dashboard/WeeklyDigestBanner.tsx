@@ -29,7 +29,7 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
 
   return (
     <div
-      className="flex items-center gap-[14px] p-[14px_18px] rounded-xl border border-[#E2E8F0] mb-[12px] bg-gradient-to-r from-[#4F7BE8]/5 to-transparent relative overflow-hidden"
+      className="flex items-center gap-[14px] p-[14px_18px] rounded-xl border border-[#E2E8F0] dark:border-[#2A2D3A] mb-[12px] bg-bg-card bg-gradient-to-r from-[#4F7BE8]/5 to-transparent relative overflow-hidden"
       style={{ borderLeftWidth: 3, borderLeftColor: "#4F7BE8", animation: "slideInFromTop 0.4s ease-out" }}
     >
       {/* Icon */}
@@ -41,11 +41,11 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-[#111111]">
+        <p className="text-[13px] font-semibold text-[#111111] dark:text-[#E8EAF0]">
           Your week in review
         </p>
-        <p className="text-[12px] text-[#64748B] mt-[2px]">
-          <span className="font-mono font-semibold text-[#111111]">{digest.responsesThisWeek}</span> response{digest.responsesThisWeek !== 1 ? "s" : ""}
+        <p className="text-[12px] text-[#64748B] dark:text-[#94A3B8] mt-[2px]">
+          <span className="font-mono font-semibold text-[#111111] dark:text-[#E8EAF0]">{digest.responsesThisWeek}</span> response{digest.responsesThisWeek !== 1 ? "s" : ""}
           {digest.earnedThisWeek > 0 && (
             <>, <span className="font-mono font-semibold text-[#34D399]">${digest.earnedThisWeek.toFixed(0)}</span> earned</>
           )}

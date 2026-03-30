@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ─── Dark mode: use .dark class, not prefers-color-scheme media query ─── */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Accessibility: respect reduced motion preference ─── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -308,6 +311,10 @@ body {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   padding-top: 12px !important;
   padding-bottom: 12px !important;
+}
+.dark .wall-header-collapsed {
+  background: rgba(26, 29, 39, 0.92) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* ─── Wall feed: bookmark bounce ─── */

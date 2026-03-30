@@ -1,4 +1,5 @@
 # VLDTA Product Vision & Strategy
+<!-- Last reviewed: 2026-03-29 -->
 
 > VLDTA is an assumption-testing engine for founders. It takes a business idea, extracts what the founder is betting on, pressure-tests those bets against real human behavior, and delivers a decision brief that says what survived and what didn't. We exist because founders don't need more opinions — they need faster access to uncomfortable truth.
 
@@ -75,17 +76,14 @@ The brief must contain:
 
 ## Build Phases
 
-### Phase 0: Validate the output (CURRENT)
-Manually write 3-5 assumption-structured briefs for existing campaigns. Show to founders. Ask: "Would this have changed your decision?" If lukewarm, the framing doesn't matter and the architecture is irrelevant.
+### Phase 0: Validate the output (PASSED WITH CAVEATS)
+Manually write 3-5 assumption-structured briefs for existing campaigns. Show to founders. Ask: "Would this have changed your decision?"
 
-**Progress:**
-- [ ] Manual brief #1 — campaign: [TBD], founder feedback: [pending]
-- [ ] Manual brief #2 — campaign: [TBD], founder feedback: [pending]
-- [ ] Manual brief #3 — campaign: [TBD], founder feedback: [pending]
-- **Gate:** 2+ founders confirm "yes, this changes my decision" → Phase 1 unblocked
-- **During Phase 0:** Focus on plumbing that enables brief writing. Do not build Phase 1 features yet.
+**Gate:** Passed with caveats (2026-03-29). Founder feedback was directionally positive. More testing planned during Phase 1 build. Brief format (Variant B "The Verdict") is green-lit for implementation.
 
-### Phase 1: Assumption extraction + Decision Brief
+**Artifacts** (in `phase-0/`): 3 briefs, simulation comparison, final template, response collection design.
+
+### Phase 1: Assumption extraction + Decision Brief (CURRENT)
 - Evolve campaign creation: AI extracts assumptions from scribble, generates questions that test them
 - Build response-to-assumption mapping: which responses provide evidence for/against which assumptions
 - Build AI synthesis layer that produces the Decision Brief
@@ -136,7 +134,7 @@ Only after Phases 1-4 work AND founders say "I wish I had expert input." Prove e
 
 - Platform takes 15% cut on all transactions
 - V2 economics: 60/40 base/bonus split, qualification-gated
-- No base pay — quality is the only path to income for respondents
+- No guaranteed base pay — qualification gates determine eligibility, quality is the path to income
 - Subsidized campaigns (first campaign) get flat $0.30/response
 - AI modules have no marginal respondent cost — major economic advantage
 - Expert crowd-sourcing must clear a high bar: prove signal justifies cost AND recruitment is viable at price point

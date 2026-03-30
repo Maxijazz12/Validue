@@ -25,6 +25,8 @@ export interface DraftQuestion {
   isBaseline: boolean;
   baselineId?: string; // references BaselineQuestion.id when swapped from library
   category?: BaselineCategory;
+  assumptionIndex?: number; // 0-based index into campaign assumptions array — which assumption this question tests
+  anchors?: string[]; // 2-3 response anchor hints for open-ended questions (e.g. "Include: what tools you used, how often, what didn't work")
 }
 
 /**

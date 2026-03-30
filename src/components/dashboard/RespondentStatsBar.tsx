@@ -66,39 +66,39 @@ export default function RespondentStatsBar({
   const quality = getQualityTrend(userProfile.average_quality_score);
 
   return (
-    <div className="wall-stats-bar flex items-center gap-[6px] p-[12px_16px] bg-[#FAF9FA] rounded-xl border border-[#E2E8F0] mb-[12px] overflow-x-auto max-h-[60px]">
+    <div className="wall-stats-bar flex items-center gap-[6px] p-[12px_16px] bg-[#FAF9FA] dark:bg-[#1A1D27] rounded-xl border border-[#E2E8F0] dark:border-[#2A2D3A] mb-[12px] overflow-x-auto max-h-[60px]">
       {/* Tier */}
-      <div className="flex items-center gap-[6px] shrink-0 pr-[12px] border-r border-[#E2E8F0]">
+      <div className="flex items-center gap-[6px] shrink-0 pr-[12px] border-r border-[#E2E8F0] dark:border-[#2A2D3A]">
         <span className="w-[8px] h-[8px] rounded-full shrink-0" style={{ backgroundColor: tierConfig.color }} />
-        <span className="text-[12px] font-semibold text-[#111111]">{tierConfig.label}</span>
-        <span className="text-[11px] text-[#94A3B8] font-mono">{Math.round(userProfile.reputation_score)}</span>
+        <span className="text-[12px] font-semibold text-[#111111] dark:text-[#E8EAF0]">{tierConfig.label}</span>
+        <span className="text-[11px] text-[#94A3B8] dark:text-[#64748B] font-mono">{Math.round(userProfile.reputation_score)}</span>
       </div>
 
       {/* Activity */}
-      <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
+      <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0] dark:border-[#2A2D3A]">
         <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ backgroundColor: activity.color }} />
-        <span className="text-[12px] text-[#64748B]">{activity.label}</span>
+        <span className="text-[12px] text-[#64748B] dark:text-[#94A3B8]">{activity.label}</span>
       </div>
 
       {/* Streak */}
       {(userProfile.current_streak ?? 0) > 0 && (
-        <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
+        <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0] dark:border-[#2A2D3A]">
           <StreakIcon pulse={(userProfile.current_streak ?? 0) >= 3} />
-          <span className="text-[12px] text-[#64748B]">{userProfile.current_streak}-day</span>
+          <span className="text-[12px] text-[#64748B] dark:text-[#94A3B8]">{userProfile.current_streak}-day</span>
         </div>
       )}
 
       {/* Quality */}
-      <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
+      <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0] dark:border-[#2A2D3A]">
         <QualityIcon direction={quality.direction} color={quality.color} />
-        <span className="text-[12px] text-[#64748B]">Quality</span>
-        <span className="text-[11px] text-[#94A3B8]">{Math.round(userProfile.average_quality_score)}</span>
+        <span className="text-[12px] text-[#64748B] dark:text-[#94A3B8]">Quality</span>
+        <span className="text-[11px] text-[#94A3B8] dark:text-[#64748B]">{Math.round(userProfile.average_quality_score)}</span>
       </div>
 
       {/* Earnings */}
-      <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0]">
-        <span className="text-[12px] text-[#64748B]">Earned</span>
-        <span className="text-[12px] text-[#111111]">${Math.round(userProfile.total_earned)}</span>
+      <div className="flex items-center gap-[4px] shrink-0 px-[12px] border-r border-[#E2E8F0] dark:border-[#2A2D3A]">
+        <span className="text-[12px] text-[#64748B] dark:text-[#94A3B8]">Earned</span>
+        <span className="text-[12px] text-[#111111] dark:text-[#E8EAF0]">${Math.round(userProfile.total_earned)}</span>
       </div>
 
       {/* Matches */}

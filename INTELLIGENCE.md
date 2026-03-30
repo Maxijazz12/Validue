@@ -1,6 +1,7 @@
 # Product Intelligence
+<!-- Last reviewed: 2026-03-29 -->
 
-Self-improving product judgment system. Loaded every session via `@INTELLIGENCE.md`. Lessons accumulate over time from real outcomes, external benchmarks, simulations, and past decisions.
+Self-improving product judgment system. Loaded on-demand via hooks. Lessons accumulate over time from real outcomes, external benchmarks, simulations, and past decisions.
 
 ## Evidence Hierarchy
 
@@ -63,35 +64,31 @@ When analyzing a product (Stripe, Linear, Notion, etc.):
 
 ## Product Lessons
 
-Each lesson: one sentence + evidence tier + source + date + status (active / hypothesis / superseded).
+**ALL lessons below are unvalidated hypotheses from LLM simulations (Tier 4) or internal reasoning (Tier 5). None have been tested against real founder behavior. Treat as hypotheses to test, not facts to rely on.**
+
+Each lesson: one sentence + evidence tier + source + date + status.
 
 ### Pricing & Monetization
-- $49 is likely viable for 3 of 4 founder segments. Skeptical/experienced founders see it as cheap insurance. First-timers see it as expensive but justified. Serial founders see it as an impulse buy only. — Tier 4, simulation 2026-03-29, hypothesis
-- A sample report on the website is likely critical for conversion. Every simulated persona said they need to see output quality before paying. — Tier 4, simulation 2026-03-29, hypothesis
-- $29 "student/first-time" tier at ~15 respondents could expand the market significantly without cannibalizing $49 tier. — Tier 4, simulation 2026-03-29, hypothesis
-
-### Onboarding & First Experience
-<!-- No lessons yet. -->
+- **[T4]** $49 is likely viable for 3 of 4 founder segments. Skeptical/experienced founders see it as cheap insurance. First-timers see it as expensive but justified. — simulation 2026-03-29, hypothesis
+- **[T4]** A sample report on the website is likely critical for conversion. Every simulated persona said they need to see output quality before paying. — simulation 2026-03-29, hypothesis
+- **[T4]** $29 "student/first-time" tier at ~15 respondents could expand the market without cannibalizing $49 tier. — simulation 2026-03-29, hypothesis
 
 ### Landing & Conversion
-- The assumption-verdict structure (extract → test → verdict per assumption) is likely the core format differentiator vs ChatGPT and generic surveys. Repeatedly cited as the thing simulated personas valued most. — Tier 4, simulation 2026-03-29, hypothesis
-- The "uncomfortable truth" section is likely the single highest-emotional-impact element. Every persona described it as the part that "hit hardest." — Tier 4, simulation 2026-03-29, hypothesis
-
-### UX & Navigation
-<!-- No lessons yet. -->
+- **[T4]** The assumption-verdict structure is likely the core format differentiator vs ChatGPT and generic surveys. — simulation 2026-03-29, hypothesis
+- **[T4]** The "uncomfortable truth" section is likely the single highest-emotional-impact element. — simulation 2026-03-29, hypothesis
 
 ### Trust & Credibility
-- Respondent transparency (who responded, sample size, caveats) likely increases trust even when revealing limitations. Honesty about weakness builds credibility. — Tier 4, simulation 2026-03-29, hypothesis
-- Competitive landscape tables from AI feel "fake-smart" and can damage credibility. Better omitted than poorly done. — Tier 4, simulation 2026-03-29, hypothesis
+- **[T4]** Respondent transparency (who responded, sample size, caveats) likely increases trust even when revealing limitations. — simulation 2026-03-29, hypothesis
+- **[T4]** Competitive landscape tables from AI feel "fake-smart" and can damage credibility. Better omitted than poorly done. — simulation 2026-03-29, hypothesis
 
 ### Feature Packaging
-- Top-line decision recommendation (PROCEED/PIVOT/PAUSE) likely increases actionability vs letting founder interpret raw verdicts. First-time founders specifically need the meta-decision. — Tier 4, simulation 2026-03-29, hypothesis
-- "Cheapest next test in 5 days" is likely more actionable than "strategic pivot recommendation." Founders want experiments, not business plans. — Tier 4, simulation 2026-03-29, hypothesis
-- Recommendations need same scrutiny as the original idea. An unvalidated pivot suggestion is "half a product." — Tier 4, simulation 2026-03-29, hypothesis
+- **[T4]** Top-line decision recommendation (PROCEED/PIVOT/PAUSE) likely increases actionability vs letting founder interpret raw verdicts. — simulation 2026-03-29, hypothesis
+- **[T4]** "Cheapest next test in 5 days" is likely more actionable than "strategic pivot recommendation." — simulation 2026-03-29, hypothesis
+- **[T4]** Recommendations need same scrutiny as the original idea. An unvalidated pivot suggestion is "half a product." — simulation 2026-03-29, hypothesis
 
 ### Architecture (User-Facing Impact)
-- Respondent quality is the #1 trust concern and the binding constraint on the product. Synthesis quality is strong; data quality is the vulnerability. The path to higher trust and pricing runs through better response collection, not better AI. — Tier 4, simulation 2026-03-29, hypothesis
-- Response collection structure (question design, behavioral probes, respondent UX) is likely the make-or-break factor. Scoring/anti-gaming catch bad responses but don't produce good ones. The input quality caps the output quality. — Tier 5, founder input (Max) 2026-03-29, hypothesis — CRITICAL: test before Phase 1 engine build
+- **[T4]** Respondent quality is the #1 trust concern and the binding constraint. The path to higher trust runs through better response collection, not better AI. — simulation 2026-03-29, hypothesis
+- **[T5]** Response collection structure (question design, behavioral probes, respondent UX) is likely the make-or-break factor. Input quality caps output quality. — founder input (Max) 2026-03-29, hypothesis — CRITICAL: test before Phase 1 engine build
 
 ---
 

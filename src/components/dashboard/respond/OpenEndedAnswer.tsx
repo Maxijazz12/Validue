@@ -10,6 +10,7 @@ type OpenEndedAnswerProps = {
   onPaste: () => void;
   onTimeUpdate: (ms: number) => void;
   placeholder?: string;
+  anchors?: string[];
 };
 
 function getCoachingTip(charCount: number, pasteDetected: boolean): { text: string; color: string } | null {
@@ -25,6 +26,7 @@ export default function OpenEndedAnswer({
   onPaste,
   onTimeUpdate,
   placeholder = "Share your honest thoughts...",
+  anchors,
 }: OpenEndedAnswerProps) {
   const startTimeRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -62,6 +64,8 @@ export default function OpenEndedAnswer({
 
   const coaching = getCoachingTip(charCount, pasteDetected);
 
+  const showAnchors = anchors && anchors.length > 0 && charCount < 100;
+
   return (
     <div>
       <textarea
@@ -72,6 +76,17 @@ export default function OpenEndedAnswer({
         rows={5}
         className="w-full px-[16px] py-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[14px] text-[#111111] leading-[1.6] resize-y focus:outline-none focus:ring-2 focus:ring-[#111111]/10 focus:border-[#111111] transition-all placeholder:text-[#94A3B8]"
       />
+
+      {/* Response anchors — fade after 100 chars */}
+      {showAnchors && (
+        <div className="flex flex-wrap gap-[6px] mt-[8px] transition-opacity duration-300" style={{ opacity: charCount > 60 ? 0.4 : 0.7 }}>
+          {anchors.map((anchor, i) => (
+            <span key={i} className="text-[11px] text-text-muted bg-bg-elevated px-[8px] py-[3px] rounded-full">
+              {anchor}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Character counter + coaching */}
       <div className="flex items-center justify-between mt-[8px]">

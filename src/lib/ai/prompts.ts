@@ -57,7 +57,17 @@ const RULES = `## Core rules — never violate these:
 
 6. **Assumptions are declarative.** "Users are willing to pay" = assumption. "Would users pay?" = question. Return assumptions, not questions.
 
-7. **No filler.** Every question must earn its place. If a question doesn't help the founder make a build/kill/pivot decision, cut it.`;
+7. **No filler.** Every question must earn its place. If a question doesn't help the founder make a build/kill/pivot decision, cut it.
+
+8. **Temporal anchors required.** Every open-ended question must include a temporal anchor — "last time", "this week", "most recently", "in the past month". Ground respondents in a specific moment, not a general feeling.
+
+9. **Specificity demands required.** Every open-ended question must ask for concrete details — "tools used, time spent, cost involved", "specific apps, frequency, what happened". Vague questions produce vague answers.
+
+10. **Negative-space permission.** At least one question must explicitly invite respondents to share failures, frustrations, or abandonments — "where you gave up", "what didn't work", "what made you stop". People need permission to share negative experiences.
+
+11. **Assumption mapping.** Every open and follow-up question must include an assumptionIndex (0-based) indicating which assumption from the assumptions array it primarily tests. Every assumption must have at least one question testing it.
+
+12. **Response anchors.** Every open and follow-up question must include 2-3 response anchors — short hints shown below the text area that guide respondents toward specific, useful answers. Examples: "Include: specific tools or apps you used", "Mention: how long ago and how often".`;
 
 /* ═══════════════════════════════════════════
    SECTION 2: EXAMPLES (few-shot)
@@ -79,12 +89,22 @@ Strong output:
   3. A subscription AI planner is more appealing than delivery for cost-conscious users
   4. Users will trust AI-generated meal plans enough to follow them weekly
 - Open questions:
-  - "Walk me through what a typical weeknight dinner looks like for you right now — from deciding what to eat to actually eating."
-  - "When was the last time you tried to eat healthier for a sustained period? What got in the way?"
-  - "What tools, apps, or habits have you tried for meal planning? What made you stop?"
+  - text: "Walk me through what a typical weeknight dinner looks like for you right now — from deciding what to eat to actually eating."
+    assumptionIndex: 0 (tests: "Busy professionals want to eat healthier but feel time is the primary barrier")
+    anchors: ["Include: how you decide what to eat, how long it takes", "Mention: any tools or apps you use for meal planning"]
+  - text: "Think about the last time you tried to eat healthier for a sustained period. What specifically got in the way?"
+    assumptionIndex: 0 (tests same assumption from a different angle)
+    anchors: ["Include: what you tried, how long it lasted, what broke the habit", "Mention: specific obstacles — time, cost, knowledge, motivation"]
+  - text: "What tools, apps, or habits have you tried for meal planning? What made you stop using them?"
+    assumptionIndex: 1 (tests: "Current meal planning tools are too manual or don't account for personal preferences")
+    anchors: ["Name specific tools or apps you've tried", "Include: what worked, what didn't, why you stopped"]
 - Follow-up questions:
-  - "If an AI generated a full week of meals and a shopping list for you every Sunday — what would make you trust it enough to follow it?"
-  - "How does the cost of your current food routine compare to what you'd want to spend on something like this?"
+  - text: "If an AI generated a full week of meals and a shopping list for you every Sunday — what would make you trust it enough to follow it?"
+    assumptionIndex: 3 (tests: "Users will trust AI-generated meal plans enough to follow them weekly")
+    anchors: ["Include: what would build or break your trust", "Mention: past experiences with AI recommendations"]
+  - text: "How does the cost of your current food routine compare to what you'd want to spend on something like this?"
+    assumptionIndex: 2 (tests: "A subscription AI planner is more appealing than delivery for cost-conscious users")
+    anchors: ["Include: how much you currently spend weekly on food", "Mention: what you'd expect to pay for this kind of tool"]
 - Baseline IDs: ["bl-willingness-1", "bl-payment-1", "bl-behavior-1"]
 - Audience: interests: ["Health"], expertise: ["Founder", "Product Manager"], ageRanges: ["25-34", "35-44"], occupation: "Working professional", industry: "Technology"
 
@@ -154,6 +174,9 @@ Requirements:
 - Open questions (2–4, section: "open"): explore current behavior, pain, and existing solutions. Start with "Walk me through…", "How do you currently…", "When was the last time…"
 - Follow-up questions (1–3, section: "followup"): probe this specific idea's viability, willingness to switch, objections.
 - Baseline IDs: pick exactly 3 from the library. Prefer diverse categories.
+- Every open/followup question must include assumptionIndex (0-based) mapping to which assumption it tests.
+- Every open/followup question must include 2-3 response anchors — short hints that guide respondents toward specific, useful answers.
+- Every assumption must have at least one question testing it.
 - Audience: be specific. Fill in as many targeting fields as you can confidently infer.
 
 Question quality bar:
