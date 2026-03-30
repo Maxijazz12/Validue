@@ -36,9 +36,7 @@
       "Read(//tmp/**)",
       "Read(//private/tmp/**)",
       "Skill(update-config:*)",
-      "Bash(node -e \"process.stdin.on\\(''''data'''',d=>console.log\\(JSON.parse\\(d\\).version\\)\\)\")",
       "Bash(git commit:*)",
-      "Bash(find /Users/maxkranstad/.claude -maxdepth 3 -type f \\\\\\(-name *.json -o -name *.md -o -name *.yaml \\\\\\) ! -path */projects/* ! -path */node_modules/*)",
       "Skill(schedule)",
       "Skill(schedule:*)",
       "Bash(claude mcp:*)",
@@ -49,26 +47,14 @@
       "Bash(trash:*)",
       "Bash(osascript:*)",
       "Bash(df:*)",
-      "Bash(grep -n \"assumptionVerdicts\\\\|assumption.*strength\\\\|signal.*assumption\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/brief/page.tsx)",
-      "Bash(for p:*)",
-      "Bash(do echo:*)",
-      "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/.claude-plugin/**)",
-      "Bash(done)",
-      "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/**)",
-      "Bash(grep -A 20 \"getRankingProgress\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/responses/actions.ts)",
-      "Bash(grep -n \"CampaignAnalytics\\\\|assumptionSignals\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/page.tsx)",
-      "Bash(grep -n \"assumption\\\\|signal\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/page.tsx)",
-      "Bash(grep -A 50 \"assumptions.length > 0\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/page.tsx)"
+      "Bash(find:*)"
     ],
     "additionalDirectories": [
       "/Users/maxkranstad/.claude",
       "/tmp",
       "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate/memory",
       "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate",
-      "/Users/maxkranstad/Desktop/AI/valdate/.claude/rules",
-      "/Users/maxkranstad",
-      "/Users/maxkranstad/Desktop/AI/valdate/src/app/api/campaigns/[id]",
-      "/Users/maxkranstad/Desktop/AI/valdate/.claude"
+      "/Users/maxkranstad"
     ]
   }
 }
