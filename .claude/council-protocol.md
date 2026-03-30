@@ -1,65 +1,42 @@
 # LLM Council Protocol
 
-Decision-quality system for catching expensive mistakes. Most decisions don't need a council.
+Use extra review only when the cost of being wrong is meaningfully high.
 
-## Models
+## Default
 
-| Level | Models | Cost |
-|-------|--------|------|
-| 0 | Claude Opus (single agent) | $0 |
-| 1 | 3x Claude Opus subagents | $0 |
-| 2 | Claude Opus + GPT-4o (manual paste) | ~$0.10 |
-| 3 | 3x Claude Opus + GPT-4o + 24hr hold | ~$0.30 |
+Level 0 is the default for normal implementation, UI, API work, migrations, tests, and bug fixes.
 
-Fan-out is free. Threshold: "is this hard to reverse?" not "can I afford it?"
+## Escalation Ladder
 
-## Decision Ladder
+### Level 1 — Fan-Out
+Use when the decision is hard to reverse, tradeoff-heavy, or likely to shape later work.
 
-### Level 0: Just Do It (90%)
-**Trigger:** Implementation, UI, API routes, components, migrations, tests, bug fixes.
-Single agent. No council. Ship it.
+Typical cases:
+- schema choices that will be painful to migrate
+- auth or permission architecture
+- new scoring or ranking mechanics
+- major integration design
+- choosing between viable approaches with materially different tradeoffs
 
-### Level 1: Fan-Out (8%)
-**Trigger:** Schema design painful to migrate, auth/permissions architecture, new scoring algorithms, integration design, choosing between viable approaches with different tradeoffs.
-**Protocol:** 3 independent Claude subagents with different framings (best solution / risks first / critique naive approach), then synthesis. Pick a side on disagreements — no hedging.
-**Time:** 15-20 min max.
+Process: run 3 independent takes, synthesize, pick a side.
 
-### Level 2: Multi-Model (2%)
-**Trigger:** ALL true: involves real money OR genuinely irreversible OR constrains 3+ months, AND cost of being wrong > $500.
-**Protocol:** Claude solves independently, Max pastes same problem (NOT Claude's answer) into ChatGPT. Compare — disagreements are the most valuable signal.
+### Level 2 — Cross-Check
+Use only when being wrong has real downside and the decision will stick.
 
-### Level 3: Full Council (2-3x per quarter)
-**Trigger:** Launch pricing, core economic model changes, platform architecture lock-in, pivots.
-**Protocol:** Level 1 + Level 2 + synthesis memo + 24-hour hold before committing.
+Typical cases:
+- money logic
+- long-lived architectural constraints
+- decisions with meaningful business downside if wrong
 
-### Escalation Rules
-- Default is Level 0. Escalate only if triggers are met.
-- If Level 1 produces 3 agreements: done. Don't escalate.
-- If Level 1 produces disagreement: escalate to Level 2 on the specific disagreement only.
-- Never escalate because it "feels important." Escalate because cost of being wrong is concrete and high.
+Process: solve independently in Claude, compare against an outside model or second independent pass, focus on disagreements.
 
-## Synthesis Memo Template
+### Level 3 — Full Council
+Use rarely for core model, pricing, major pivots, or architecture lock-in.
 
-```
-## Council Decision: [Title]
-**Level:** 1/2/3 | **Date:** YYYY-MM-DD
+## Escalation Rules
 
-### Problem
-[2-3 sentences: what decision, why now]
-
-### Recommendation
-[One sentence. No hedging.]
-
-### Why This Beats Alternatives
-[2-3 sentences. Direct comparison.]
-
-### Agreement / Disagreement
-- Agreed on: [what]
-- Diverged on: [what — most important section]
-- Unique risk surfaced by: [which run/model]
-
-### Before Committing
-[1-3 things to test/validate before locking in]
-```
-
-Keep under 20 lines. If longer, the thinking isn't clear enough.
+- Start at Level 0 unless a clear trigger is met
+- Escalate because the decision is costly and sticky, not because it feels important
+- If Level 1 converges cleanly, stop there
+- If Level 1 disagrees, escalate only on the disagreement
+- Routine edits inside risky files do not automatically require council; structural or policy changes do

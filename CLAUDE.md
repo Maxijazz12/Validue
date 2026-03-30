@@ -1,51 +1,55 @@
-# Product Context (full detail in PRODUCT.md — read it for feature/architecture decisions)
+# Product Context
 
-VLDTA is an assumption-testing engine for founders. Max is a student/young founder building this as the product. AI extracts testable assumptions from a business idea, real humans provide behavioral evidence, AI synthesizes a Decision Brief with verdicts. The brief is the product — everything else is plumbing.
+VLDTA is an assumption-testing engine for founders. AI extracts testable assumptions from an idea, real humans provide behavioral evidence, and AI synthesizes a Decision Brief. The brief is the product; everything else is supporting machinery.
 
-- **Current phase:** Phase 1 — Assumption extraction + Decision Brief (core pipeline committed, polish remaining)
-- **Phase gate:** Phase 0 passed with caveats (2026-03-29). Brief format "The Verdict" green-lit.
-- **Blocked on:** End-to-end testing with real campaign data, behavioral screening enforcement, question randomization
-- **Do not build yet:** Expert respondents, dynamic exhaustion, per-lens payouts, dashboard-as-primary-UX
-- **Success criteria:** Founders say the brief would have changed their decision
+- Current phase: Phase 1 — assumption extraction + Decision Brief
+- Blockers: end-to-end testing with real data, behavioral screening enforcement, question randomization
+- Do not build yet: expert respondents, dynamic exhaustion, per-lens payouts, dashboard-as-primary UX
+- Success criterion: founders say the brief would have changed their decision
 
-# Critical Rules (always obey)
+# Critical Rules
 
-- **PRODUCT.md is the canonical source of truth** for what to build, what not to build, and in what order. Reference before architecture or feature decisions.
-- **When a phase gate is blocked on human action**, identify work that is valuable regardless of gate outcome, or state "nothing to code — waiting for real-world input."
-- **When a hook message fires, follow its instructions literally.** COUNCIL REQUIRED = stop and ask Max. LINT ERRORS = fix before continuing. Context warnings = follow escalation protocol.
-
-# Autonomous Behaviors — Do These Without Asking
-
-- Apply all global proven patterns (Zod, rate limiting, RLS, fallbacks) on new code
-- Log new operations through ops-logger.ts
-- Before committing: verify RLS on new tables, fallbacks on AI features, no temp dev artifacts
-
-# Document Consultation
-
-Read PRODUCT.md before feature work, INTELLIGENCE.md before pricing/UX, DESIGN.md before styling, ARCHITECTURE.md before parallelization. These are on-demand — hooks inject reminders when you touch relevant files.
+- For roadmap, scope, and priority decisions, consult `PRODUCT.md`
+- When blocked on human input, either do durable adjacent work or say there is nothing to code yet
+- Follow hook messages literally
+- Preserve logging, validation, RLS, and AI fallbacks when extending the system
+- Before finishing non-trivial work, run the relevant lint/tests/checks
+- Do not casually change economics, ranking, reputation, or trust mechanics
 
 # Memory System
 
-At session start, check `memory/phase-status.md` for current gate and `memory/session-handoffs.md` for continuity. After every session with meaningful work, update `memory/session-handoffs.md`. After every council decision, add entry to `memory/decision-log.md`.
+At session start, check `memory/phase-status.md` and `memory/session-handoffs.md`.
+After meaningful work, update `session-handoffs.md`.
+After major decisions, add to `memory/decision-log.md`.
 
 # Task Classification
 
-| If the task... | Level | Parallel? | Plan mode? |
-|---|---|---|---|
-| Single file, clear change | 0 | No | No |
-| UI component, no shared imports | 0 | Worktree OK | No |
-| New API route (standalone) | 0 | Worktree OK | No |
-| Bug fix | 0 | No | No |
-| Touches economics files | 1 council | No | Yes |
-| Schema migration + code changes | 1 council | No | Yes |
-| New AI feature | 1 council | No | Yes |
-| Auth/RLS changes | 1 council | No | Yes |
-| Pricing/payout formula changes | 2 council | No | Yes |
-| Product direction change | 3 council | No | Yes |
-| Touches >3 files | — | No | Yes (auto) |
+- Economics files (payout-math, defaults, plan-guard, reach, reputation, wall-ranking): consider council. Read `.claude/council-protocol.md`.
+- Cross-cutting or unclear architectural work (>3 files): plan first.
+- Broad discovery, option comparison, or deep review: use subagents.
+- Everything else: just do it.
 
-When a Level 1+ task is identified, read `.claude/council-protocol.md` for the full decision protocol.
+# Architecture Core
 
-# Contextual Rules
+## Critical Data Flows
 
-Rules auto-load via `.claude/rules/` when editing matching files: economics lessons, Next.js gotchas, architecture maps. Read ARCHITECTURE.md before parallelization decisions.
+Campaign creation: `scribble → AI draft → draft review → funding → webhook → publish`
+Response flow: `wall → start response → save answers → submit → founder notified`
+Payout flow: `rank → AI score → qualification → payout distribution → profile/reputation update`
+
+## Parallelization
+
+- Default: single agent with subagents
+- Use subagents for discovery, comparison, review, or clearly separable leaf tasks
+- Use worktrees only for genuinely independent work with zero shared files
+- Stay inline for sequential or tightly coupled edits
+- Never parallelize shared files or uncertain coupling
+
+## High-Coupling Files
+
+- `defaults.ts` — thresholds and constants, high cascade risk
+- `payout-math.ts` — payout invariants
+- `plan-guard.ts` — plan/subsidy gating
+- `reputation.ts` / `reputation-config.ts` — trust stability
+- `wall-ranking.ts` — feed fairness
+- `ideas/new/actions.ts` and Stripe webhook paths — creation/payment state changes
