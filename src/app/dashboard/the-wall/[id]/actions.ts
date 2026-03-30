@@ -239,6 +239,55 @@ export async function submitResponse(responseId: string) {
   if (unanswered.length > 0)
     throw new Error(`${unanswered.length} questions still unanswered`);
 
+  // Behavioral screening: fetch answer metadata and check quality signals
+  const { data: answerDetails } = await supabase
+    .from("answers")
+    .select("metadata")
+    .eq("response_id", responseId);
+
+  const { data: campaign } = await supabase
+    .from("campaigns")
+    .select("economics_version, format")
+    .eq("id", response.campaign_id)
+    .single();
+
+  if (campaign?.economics_version === 2 && answerDetails) {
+    let totalTimeMs = 0;
+    let pasteHeavyCount = 0;
+
+    for (const a of answerDetails) {
+      const meta = (a.metadata || {}) as Record<string, unknown>;
+      totalTimeMs += Math.max(0, Number(meta.timeSpentMs) || 0);
+      const pasteCount = Math.max(0, Number(meta.pasteCount) || 0);
+      if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
+    }
+
+    // Hard time floor — reject impossibly fast submissions
+    const minTime =
+      campaign.format === "quick"
+        ? DEFAULTS.SUBMIT_MIN_TIME_QUICK_MS
+        : DEFAULTS.SUBMIT_MIN_TIME_STANDARD_MS;
+    if (totalTimeMs < minTime) {
+      throw new Error(
+        "Your response was submitted too quickly. Please take more time to provide thoughtful answers."
+      );
+    }
+
+    // Paste-heavy screening — reject if majority of answers are paste-heavy
+    if (
+      answerDetails.length > 0 &&
+      pasteHeavyCount / answerDetails.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO
+    ) {
+      console.log(
+        "[screening] Paste-rejected:",
+        JSON.stringify({ userId: user.id, responseId, pasteHeavyCount, totalAnswers: answerDetails.length })
+      );
+      throw new Error(
+        "Your response was flagged for excessive pasted content. Please provide original answers."
+      );
+    }
+  }
+
   // Submit
   const { error: submitError } = await supabase
     .from("responses")

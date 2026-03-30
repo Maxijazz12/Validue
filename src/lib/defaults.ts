@@ -106,6 +106,18 @@ export const DEFAULTS = {
   /** Minimum characters for at least one open-ended answer */
   MIN_OPEN_ANSWER_CHARS: 50,
 
+  /** Max paste count per answer before flagging as spam */
+  SPAM_MAX_PASTE_COUNT: 3,
+
+  /** Fraction of answers with paste detected before flagging response as spam */
+  SPAM_PASTE_ANSWER_RATIO: 0.5,
+
+  /** Minimum total time (ms) at submission — hard reject below this (Quick format) */
+  SUBMIT_MIN_TIME_QUICK_MS: 20_000,
+
+  /** Minimum total time (ms) at submission — hard reject below this (Standard format) */
+  SUBMIT_MIN_TIME_STANDARD_MS: 40_000,
+
   /** Maximum completed responses per respondent per rolling 24 hours (launch calibration) */
   MAX_DAILY_RESPONSES: 12,
 

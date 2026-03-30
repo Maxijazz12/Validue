@@ -429,15 +429,20 @@ async function suggestDistributionV2(supabase: any, campaign: any, distributable
     const answers = (r.answers || []) as { metadata: Record<string, unknown> }[];
     let totalTimeMs = 0;
     const openAnswers: { charCount: number }[] = [];
-    const spamFlagged = false;
+    let pasteHeavyCount = 0;
 
     for (const a of answers) {
       const meta = a.metadata || {};
       totalTimeMs += Math.max(0, Number(meta.timeSpentMs) || 0);
       const charCount = Math.max(0, Number(meta.charCount) || 0);
       if (charCount > 0) openAnswers.push({ charCount });
-      // Note: spam detection is handled by content filter at save time; we check the flag
+      const pasteCount = Math.max(0, Number(meta.pasteCount) || 0);
+      if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
     }
+
+    const spamFlagged =
+      answers.length > 0 &&
+      pasteHeavyCount / answers.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO;
 
     metadataMap.set(r.id, { totalTimeMs, openAnswers, spamFlagged });
   }
