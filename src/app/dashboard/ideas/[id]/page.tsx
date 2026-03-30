@@ -177,7 +177,7 @@ export default async function CampaignDetailPage({
 
   const allQuestions = questions || [];
   const openQs = allQuestions.filter(
-    (q) => !q.is_baseline && q.type === "open" && (!q.category || !["interest", "willingness", "payment", "behavior", "pain"].includes(q.category))
+    (q) => !q.is_baseline && q.type === "open"
   );
   const baselineQs = allQuestions.filter((q) => q.is_baseline);
   // followups: open questions that aren't in the "open" bucket and aren't baseline
