@@ -1,6 +1,6 @@
 # Product Context (full detail in PRODUCT.md — read it for feature/architecture decisions)
 
-VLDTA is an assumption-testing engine for founders. AI extracts testable assumptions from a business idea, real humans provide behavioral evidence, AI synthesizes a Decision Brief with verdicts. The brief is the product — everything else is plumbing.
+VLDTA is an assumption-testing engine for founders. Max is a student/young founder building this as the product. AI extracts testable assumptions from a business idea, real humans provide behavioral evidence, AI synthesizes a Decision Brief with verdicts. The brief is the product — everything else is plumbing.
 
 - **Current phase:** Phase 1 — Assumption extraction + Decision Brief (core pipeline committed, polish remaining)
 - **Phase gate:** Phase 0 passed with caveats (2026-03-29). Brief format "The Verdict" green-lit.
@@ -43,6 +43,8 @@ At session start, check `memory/phase-status.md` for current gate and `memory/se
 | Pricing/payout formula changes | 2 council | No | Yes |
 | Product direction change | 3 council | No | Yes |
 | Touches >3 files | — | No | Yes (auto) |
+
+When a Level 1+ task is identified, read `.claude/council-protocol.md` for the full decision protocol.
 
 # Contextual Rules
 

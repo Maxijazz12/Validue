@@ -112,13 +112,19 @@ export async function getEvidenceByAssumption(
   }
 
   // Re-sort each assumption's evidence by weighted score (quality × match) so
-  // the synthesis prompt sees the strongest AND most-relevant evidence first
-  for (const [, items] of evidenceMap) {
+  // the synthesis prompt sees the strongest AND most-relevant evidence first.
+  // Cap at 8 per assumption to bound token usage — evidence is sorted by weight
+  // so we keep the strongest signal and drop the weakest.
+  const MAX_EVIDENCE_PER_ASSUMPTION = 8;
+  for (const [key, items] of evidenceMap) {
     items.sort((a, b) => {
       const weightA = a.qualityScore * (0.6 + 0.4 * (a.audienceMatch / 100));
       const weightB = b.qualityScore * (0.6 + 0.4 * (b.audienceMatch / 100));
       return weightB - weightA;
     });
+    if (items.length > MAX_EVIDENCE_PER_ASSUMPTION) {
+      evidenceMap.set(key, items.slice(0, MAX_EVIDENCE_PER_ASSUMPTION));
+    }
   }
 
   return evidenceMap;

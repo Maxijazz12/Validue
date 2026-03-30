@@ -52,50 +52,9 @@ The baseline design — used when no specific reference is active for a componen
 - Ring: 3px rgba(0,0,0,0.04) on focus-within
 - Keyboard focus: 2px solid #111111 + 4px outer glow
 
-## CSS Custom Properties (from globals.css @theme)
+## CSS Custom Properties
 
-These are the actual variables — use these class names in Tailwind, not raw hex values.
-
-```
-/* Backgrounds */
---color-bg: #FFFFFF                    → bg-bg
---color-bg-elevated: #F3F4F6           → bg-bg-elevated
---color-bg-hero: #FAFAFA               → bg-bg-hero
---color-bg-card: #ffffff               → bg-bg-card
-
-/* Text */
---color-text-primary: #111111          → text-text-primary
---color-text-secondary: #64748B        → text-text-secondary
---color-text-muted: #94A3B8            → text-text-muted
-
-/* Borders */
---color-border: #E2E8F0                → border-border
---color-border-hover: #CBD5E1          → border-border-hover
---color-accent: #111111                → (CTA, dark accent)
-
-/* Brand Warm (peach) */
---color-accent-warm: #E8C1B0           → accent color, glows
---color-accent-warm-dark: #D4A494      → hover states
---color-accent-warm-light: #FBF8F8     → light tint backgrounds
---color-accent-soft: rgba(232,193,176,0.10)  → subtle overlays
---color-accent-glow: rgba(232,193,176,0.15)  → hover glows
-
-/* Brand Cool (blue) */
---color-accent-blue: #4F7BE8           → secondary accent
---color-accent-blue-dark: #3B6BD9      → hover
---color-accent-blue-soft: rgba(79,123,232,0.08)
-
-/* Surfaces */
---color-surface-warm: #FAF9FA          → warm surface tint
---color-surface-cool: #F6F7FA          → cool surface tint
---color-surface-glass: rgba(255,255,255,0.85) → glass effect (+ blur 16px)
---color-surface-glass-border: rgba(0,0,0,0.06)
-
-/* Fonts */
---font-sans: DM Sans                   → font-sans (body)
---font-mono: Space Grotesk             → font-mono (technical)
---font-display: Instrument Serif       → font-display (hero headings)
-```
+Defined in `src/app/globals.css` under `@theme inline`. Read that file for current values. Use Tailwind class names (e.g., `bg-bg-elevated`, `text-text-primary`), not raw hex values.
 
 ## Component Patterns (from globals.css)
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getClient, isAIAvailable, MODELS } from "@/lib/ai/client";
-import { SYSTEM_PROMPT, buildRegenerateQuestionPrompt } from "@/lib/ai/prompts";
+import { QUESTION_REGEN_SYSTEM_PROMPT, buildRegenerateQuestionPrompt } from "@/lib/ai/prompts";
 import { AIRegeneratedQuestionSchema, REGENERATE_QUESTION_TOOL } from "@/lib/ai/schemas";
 import { logGeneration } from "@/lib/ai/logger";
 import type { DraftQuestion, RegenerateQuestionRequest } from "@/lib/ai/types";
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: MODELS.light,
       max_tokens: 512,
-      system: SYSTEM_PROMPT,
+      system: QUESTION_REGEN_SYSTEM_PROMPT,
       messages: [
         {
           role: "user",

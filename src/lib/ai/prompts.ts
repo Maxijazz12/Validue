@@ -1,12 +1,4 @@
 import { BASELINE_QUESTIONS } from "@/lib/baseline-questions";
-import {
-  CATEGORY_OPTIONS,
-  INTEREST_OPTIONS,
-  EXPERTISE_OPTIONS,
-  AGE_RANGE_OPTIONS,
-  INDUSTRY_OPTIONS,
-  EXPERIENCE_LEVEL_OPTIONS,
-} from "@/lib/constants";
 import type { DraftQuestion, DraftAudience } from "./types";
 
 /* ─── Versioning ─── */
@@ -127,23 +119,29 @@ ${RULES}
 
 ${FEW_SHOT_EXAMPLE}`;
 
+/* ─── Focused System Prompts (token-efficient variants for sub-tasks) ─── */
+
+export const QUESTION_REGEN_SYSTEM_PROMPT = `You are a validation question writer. Generate behavior-based, non-leading questions for founder validation campaigns.
+
+Key rules:
+- Behavior over opinion. Ask what people DO, not what they THINK.
+- Non-leading only. Never "Don't you think…" or "Wouldn't you agree…"
+- Temporal anchors required: "last time", "this week", "most recently".
+- Specificity demands required: ask for concrete details — tools, time, cost.
+- Every question must help the founder make a build/kill/pivot decision.
+- No filler, no hypotheticals unless tied to a concrete scenario.`;
+
+export const AUDIENCE_IMPROVE_SYSTEM_PROMPT = `You are an audience targeting specialist for founder validation campaigns. Improve targeting to reach people who actually experience the problem being validated.
+
+Key rules:
+- Narrow broad selections (>4 interests → 2-3 most relevant).
+- Fill empty fields with specific suggestions based on the idea.
+- Suggest a niche qualifier if the audience is generic.
+- Optimize for respondent quality, not volume.`;
+
 /* ═══════════════════════════════════════════
    SECTION 4: OPTION LISTS (injected into prompts)
    ═══════════════════════════════════════════ */
-
-const OPTIONS_BLOCK = `## Valid option lists (you MUST pick from these):
-
-Categories: ${CATEGORY_OPTIONS.join(", ")}
-
-Interest tags: ${INTEREST_OPTIONS.join(", ")}
-
-Expertise types: ${EXPERTISE_OPTIONS.join(", ")}
-
-Age ranges: ${AGE_RANGE_OPTIONS.join(", ")}
-
-Industries: ${INDUSTRY_OPTIONS.join(", ")}
-
-Experience levels: ${EXPERIENCE_LEVEL_OPTIONS.join(", ")}`;
 
 const BASELINE_BLOCK = `## Baseline Question Library
 
@@ -151,7 +149,7 @@ Pick exactly 3 by their ID. Choose the most relevant ones for this specific idea
 
 ${BASELINE_QUESTIONS.map(
   (q) =>
-    `- ID: "${q.id}" | Category: ${q.category} | "${q.text}" → [${q.options.join(", ")}]`
+    `- ID: "${q.id}" | ${q.category} | "${q.text}" → [${q.options.join(", ")}]`
 ).join("\n")}`;
 
 /* ═══════════════════════════════════════════
@@ -194,8 +192,6 @@ Question quality bar:
 - At least one question per assumption must be a disconfirmation probe (evidenceCategory: "negative").
 - No hypotheticals unless they're tied to a concrete scenario.
 - No generic questions like "What do you think?" or "Any feedback?"
-
-${OPTIONS_BLOCK}
 
 ${BASELINE_BLOCK}`;
 }
@@ -290,7 +286,5 @@ Improve this audience targeting:
 - Optimize for reaching people who actually experience the problem described
 - Do NOT just paraphrase — make changes that would improve respondent quality
 
-Call the improve_audience tool with your suggestions.
-
-${OPTIONS_BLOCK}`;
+Call the improve_audience tool with your suggestions.`;
 }

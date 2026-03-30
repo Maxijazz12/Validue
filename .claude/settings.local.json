@@ -54,7 +54,11 @@
       "Bash(do echo:*)",
       "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/.claude-plugin/**)",
       "Bash(done)",
-      "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/**)"
+      "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/**)",
+      "Bash(grep -A 20 \"getRankingProgress\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/responses/actions.ts)",
+      "Bash(grep -n \"CampaignAnalytics\\\\|assumptionSignals\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/page.tsx)",
+      "Bash(grep -n \"assumption\\\\|signal\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/page.tsx)",
+      "Bash(grep -A 50 \"assumptions.length > 0\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/page.tsx)"
     ],
     "additionalDirectories": [
       "/Users/maxkranstad/.claude",
@@ -62,7 +66,9 @@
       "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate/memory",
       "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate",
       "/Users/maxkranstad/Desktop/AI/valdate/.claude/rules",
-      "/Users/maxkranstad"
+      "/Users/maxkranstad",
+      "/Users/maxkranstad/Desktop/AI/valdate/src/app/api/campaigns/[id]",
+      "/Users/maxkranstad/Desktop/AI/valdate/.claude"
     ]
   }
 }

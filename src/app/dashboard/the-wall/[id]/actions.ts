@@ -281,6 +281,7 @@ export async function submitResponse(responseId: string) {
   }
 
   revalidatePath("/dashboard/the-wall");
+  revalidatePath(`/dashboard/ideas/${response.campaign_id}`);
 
   return { success: true };
 }

@@ -12,6 +12,7 @@ import { WELCOME_BONUS } from "@/lib/plans";
 
 import sql from "@/lib/db";
 import { completeCampaign } from "./campaign-actions";
+import AssumptionSignal from "@/components/dashboard/AssumptionSignal";
 
 /* ─── Helpers ─── */
 
@@ -135,44 +136,14 @@ export default async function CampaignDetailPage({
     .eq("campaign_id", id)
     .order("sort_order", { ascending: true });
 
-  // Per-assumption signal stats (only if campaign has responses)
-  type AssumptionSignal = {
-    responseCount: number;
-    avgQuality: number;
-    categories: string[];
-    hasNegative: boolean;
-  };
-
-  const assumptionSignals = new Map<number, AssumptionSignal>();
+  // Per-assumption coverage (reuses evidence pipeline — includes audience match)
   const assumptions: string[] = campaign.key_assumptions || [];
 
+  let assumptionCoverage: import("@/lib/ai/assumption-evidence").AssumptionCoverage[] = [];
   if (assumptions.length > 0 && campaign.current_responses > 0) {
-    const signalRows = await sql`
-      SELECT
-        q.assumption_index,
-        COUNT(DISTINCT r.id)         AS response_count,
-        ROUND(AVG(r.quality_score))  AS avg_quality,
-        ARRAY_AGG(DISTINCT q.category) FILTER (WHERE q.category IS NOT NULL) AS categories
-      FROM answers a
-      JOIN questions q ON q.id = a.question_id
-      JOIN responses r ON r.id = a.response_id
-      WHERE r.campaign_id = ${id}
-        AND r.status IN ('submitted', 'ranked')
-        AND q.assumption_index IS NOT NULL
-        AND a.text IS NOT NULL AND a.text <> ''
-      GROUP BY q.assumption_index
-      ORDER BY q.assumption_index
-    `;
-
-    for (const row of signalRows) {
-      const cats = (row.categories as string[]) ?? [];
-      assumptionSignals.set(row.assumption_index as number, {
-        responseCount: Number(row.response_count ?? 0),
-        avgQuality: Number(row.avg_quality ?? 0),
-        categories: cats,
-        hasNegative: cats.includes("negative"),
-      });
-    }
+    const { getEvidenceByAssumption, computeAllCoverage } = await import("@/lib/ai/assumption-evidence");
+    const evidenceMap = await getEvidenceByAssumption(id);
+    assumptionCoverage = computeAllCoverage(evidenceMap, assumptions.length);
   }
 
   const allQuestions = questions || [];
@@ -586,71 +557,21 @@ export default async function CampaignDetailPage({
         )}
       </div>
 
-      {/* ─── Assumption Signal Dashboard ─── */}
-      {assumptions.length > 0 && (
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px] mb-[24px]">
-          <h2 className="text-[16px] font-semibold text-[#111111] mb-[16px]">
-            Assumption Signal
-          </h2>
-          <div className="flex flex-col gap-[16px]">
-            {assumptions.map((a, i) => {
-              const signal = assumptionSignals.get(i);
-              const responseCount = signal?.responseCount ?? 0;
-              const avgQuality = signal?.avgQuality ?? 0;
-              const categoryCount = signal?.categories.length ?? 0;
-              const hasNegative = signal?.hasNegative ?? false;
-
-              // Signal strength: 0-100 based on response count, category diversity, and quality
-              const countScore = Math.min(responseCount / 8, 1) * 40;
-              const catScore = Math.min(categoryCount / 3, 1) * 30;
-              const qualScore = (avgQuality / 100) * 30;
-              const strength = Math.round(countScore + catScore + qualScore);
-
-              const strengthColor = strength >= 60 ? "#22c55e" : strength >= 30 ? "#E5654E" : "#94A3B8";
-
-              return (
-                <div key={i} className="border border-[#F1F5F9] rounded-xl p-[16px]">
-                  <div className="flex items-start gap-[10px] mb-[10px]">
-                    <span className="text-[12px] text-[#94A3B8] font-mono w-[20px] shrink-0 mt-[2px]">
-                      {i + 1}.
-                    </span>
-                    <p className="text-[14px] text-[#111111] leading-[1.5] flex-1">{a}</p>
-                  </div>
-
-                  {responseCount > 0 ? (
-                    <div className="ml-[30px]">
-                      {/* Strength bar */}
-                      <div className="flex items-center gap-[8px] mb-[8px]">
-                        <div className="flex-1 h-[4px] rounded-full bg-[#F1F5F9] overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${strength}%`, backgroundColor: strengthColor }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-bold w-[24px] text-right" style={{ color: strengthColor }}>
-                          {strength}
-                        </span>
-                      </div>
-
-                      {/* Stats row */}
-                      <div className="flex flex-wrap gap-x-[16px] gap-y-[4px] text-[11px] text-[#64748B]">
-                        <span>{responseCount} response{responseCount !== 1 ? "s" : ""}</span>
-                        <span>{categoryCount} categor{categoryCount !== 1 ? "ies" : "y"}</span>
-                        <span>avg quality {avgQuality}</span>
-                        {!hasNegative && categoryCount > 0 && (
-                          <span className="text-[#E5654E]">no disconfirmation</span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="ml-[30px] text-[11px] text-[#94A3B8]">No evidence yet</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* ─── Assumption Signal Dashboard (live polling) ─── */}
+      <AssumptionSignal
+        campaignId={campaign.id}
+        assumptions={assumptions}
+        initialCoverage={assumptionCoverage.map((c) => ({
+          responseCount: c.responseCount,
+          avgQuality: c.avgQuality,
+          avgMatch: c.avgMatch,
+          categoryCount: c.categoryCount,
+          categories: c.categories,
+          hasNegative: c.hasNegative,
+          strength: c.strength,
+        }))}
+        isActive={campaign.status === "active"}
+      />
 
       {/* ─── Survey Questions ─── */}
       <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px] mb-[24px]">

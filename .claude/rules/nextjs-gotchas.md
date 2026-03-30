@@ -1,6 +1,6 @@
 ---
 description: VLDTA-specific Next.js/React gotchas and project conventions
-globs: ["src/**/*.{ts,tsx}"]
+globs: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"]
 ---
 
 # VLDTA Gotchas
