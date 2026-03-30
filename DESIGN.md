@@ -25,4 +25,4 @@ Use `globals.css` as the source of truth for actual tokens and values. Prefer Ta
 - draft review flow
 - `globals.css`
 
-When changing product-facing UI, preserve clarity, trust, and perceived signal quality over decorative novelty.
+When changing product-facing UI, consult `PRODUCT.md` for product direction and preserve signal quality over decorative novelty.
