@@ -167,7 +167,7 @@ export async function seedAnswer(
   };
   await sql`
     INSERT INTO answers (response_id, question_id, text, metadata)
-    VALUES (${responseId}::uuid, ${questionId}::uuid, ${text}, ${JSON.stringify(defaultMeta)}::jsonb)
+    VALUES (${responseId}::uuid, ${questionId}::uuid, ${text}, ${sql.json(defaultMeta)})
     ON CONFLICT (response_id, question_id) DO NOTHING
   `;
 }
