@@ -114,24 +114,17 @@ export default function CampaignDetail({
         </span>
       </div>
 
-      {/* Description */}
-      {campaign.description && (
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[24px] mb-[16px]">
-          <p className="text-[14px] text-[#64748B] leading-[1.6]">
-            {campaign.description}
-          </p>
-          {campaign.tags.length > 0 && (
-            <div className="flex flex-wrap gap-[6px] mt-[12px]">
-              {campaign.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[11px] px-[8px] py-[3px] rounded-full bg-[#F3F4F6] text-[#64748B]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+      {/* Category + tags only — founder pitch hidden to avoid anchoring bias */}
+      {campaign.tags.length > 0 && (
+        <div className="flex flex-wrap gap-[6px] mb-[16px]">
+          {campaign.tags.map((tag) => (
+            <span
+              key={tag}
+              className="text-[11px] px-[8px] py-[3px] rounded-full bg-[#F3F4F6] text-[#64748B]"
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       )}
 

@@ -5,6 +5,7 @@ import type { SuggestedCampaign } from "./ResponseFlow";
 
 type SubmissionConfirmationProps = {
   campaignTitle?: string;
+  campaignDescription?: string | null;
   rewardAmount?: number;
   rewardType?: string | null;
   questionCount?: number;
@@ -22,6 +23,7 @@ function formatTime(ms: number): string {
 
 export default function SubmissionConfirmation({
   campaignTitle,
+  campaignDescription,
   rewardAmount,
   rewardType,
   questionCount,
@@ -92,11 +94,23 @@ export default function SubmissionConfirmation({
           </p>
         )}
 
-        <p className="text-[13px] text-[#94A3B8] mb-[32px]">
+        <p className="text-[13px] text-[#94A3B8] mb-[16px]">
           {hasReward
             ? "Higher quality responses earn more. Take your time and share real experiences."
             : "Good feedback makes good products. Thanks for being part of it."}
         </p>
+
+        {/* Post-submission idea reveal */}
+        {campaignDescription && (
+          <div className="text-left bg-white border border-[#E2E8F0] rounded-xl p-[16px] mb-[24px]">
+            <p className="text-[11px] uppercase tracking-[1px] text-[#94A3B8] font-semibold mb-[8px]">
+              The idea you helped test
+            </p>
+            <p className="text-[13px] text-[#64748B] leading-[1.6]">
+              {campaignDescription}
+            </p>
+          </div>
+        )}
 
         {/* Suggested next campaigns */}
         {suggestedCampaigns && suggestedCampaigns.length > 0 ? (

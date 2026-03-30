@@ -147,6 +147,7 @@ export default function ResponseFlow({
       {stage === "submitted" && (
         <SubmissionConfirmation
           campaignTitle={campaign.title}
+          campaignDescription={campaign.description}
           rewardAmount={campaign.rewardAmount}
           rewardType={campaign.rewardType}
           questionCount={questions.length}
