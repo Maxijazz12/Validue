@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { updateRespondentProfile } from "@/app/dashboard/settings/actions";
 import ChipSelect from "@/components/ui/ChipSelect";
 import {
@@ -27,6 +28,11 @@ export default function RespondentProfileForm({
   const [interests, setInterests] = useState(initialInterests);
   const [expertise, setExpertise] = useState(initialExpertise);
   const [ageRange, setAgeRange] = useState(initialAgeRange || "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const isComplete = interests.length > 0 && expertise.length > 0;
 
@@ -48,7 +54,23 @@ export default function RespondentProfileForm({
         you.
       </p>
 
-      <form action={updateRespondentProfile} className="flex flex-col gap-[24px]">
+      <form
+        ref={formRef}
+        action={async (formData: FormData) => {
+          setSaving(true);
+          setSaved(false);
+          try {
+            await updateRespondentProfile(formData);
+            setSaved(true);
+            if (searchParams.get("complete-profile") === "true") {
+              setTimeout(() => router.push("/dashboard/the-wall"), 1000);
+            }
+          } finally {
+            setSaving(false);
+          }
+        }}
+        className="flex flex-col gap-[24px]"
+      >
         <ChipSelect
           label="Your interests (select all that apply)"
           name="interests"
@@ -115,12 +137,20 @@ export default function RespondentProfileForm({
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-lg text-[14px] font-semibold bg-[#111111] text-white hover:bg-[#222222] transition-all cursor-pointer border-none mt-[4px]"
-        >
-          Save Matching Profile
-        </button>
+        <div className="flex items-center gap-[12px] mt-[4px]">
+          <button
+            type="submit"
+            disabled={saving}
+            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-lg text-[14px] font-semibold bg-[#111111] text-white hover:bg-[#222222] transition-all cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving..." : "Save Matching Profile"}
+          </button>
+          {saved && (
+            <span className="text-[13px] text-[#22c55e] font-medium animate-in fade-in">
+              Profile updated
+            </span>
+          )}
+        </div>
       </form>
     </div>
   );

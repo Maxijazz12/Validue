@@ -191,7 +191,7 @@ export default function QuestionStepper({
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] text-[#94A3B8] mb-[4px]">Question {i + 1}</p>
                     <p className="text-[14px] font-medium text-[#111111] mb-[6px]">{q.text}</p>
-                    <p className="text-[13px] text-[#64748B] line-clamp-2">
+                    <p className="text-[13px] text-[#64748B] whitespace-pre-wrap">
                       {answer?.text || <span className="italic text-[#CBD5E1]">No answer</span>}
                     </p>
                   </div>

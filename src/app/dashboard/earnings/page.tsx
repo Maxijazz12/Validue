@@ -207,7 +207,7 @@ export default async function EarningsPage() {
                         </span>
                       )}
                       {state === "not_qualified" && (
-                        <span className="text-[13px] text-[#94A3B8]">&mdash;</span>
+                        <span className="text-[13px] text-[#94A3B8]">$0.00</span>
                       )}
                       <span className={`px-[6px] py-[2px] rounded-full text-[10px] font-semibold uppercase tracking-[0.5px] ${config.bg} ${config.text}`}>
                         {config.label}

@@ -23,9 +23,18 @@ export default function GeneratingStep() {
     requestAnimationFrame(() => setMounted(true));
   }, []);
 
+  // Advance through first 3 stages on a timer, then hold on "Quality check"
+  // until the actual API response arrives (parent unmounts this component).
+  // This avoids showing "Final polish" before the API has responded.
   useEffect(() => {
     const interval = setInterval(() => {
-      setStageIndex((prev) => Math.min(prev + 1, PROGRESS_STAGES.length - 1));
+      setStageIndex((prev) => {
+        if (prev >= 3) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -131,6 +140,13 @@ export default function GeneratingStep() {
           ))}
         </div>
       </div>
+
+      {/* Time estimate */}
+      {stageIndex >= 3 && (
+        <p className="text-[12px] text-[#94A3B8] mb-[24px]">
+          Almost there — this usually takes 10-15 seconds
+        </p>
+      )}
 
       {/* Fact card */}
       <div className="w-full max-w-[520px] text-center relative">

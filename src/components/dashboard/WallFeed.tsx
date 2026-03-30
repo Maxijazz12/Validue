@@ -575,7 +575,7 @@ export default function WallFeed({
         </div>
       ) : (
         <div className="py-[48px] text-center">
-          <p className="text-[14px] text-[#94A3B8] mb-[4px]">{showSaved ? "No saved ideas yet. Bookmark ideas to find them here." : "No ideas match this filter yet."}</p>
+          <p className="text-[14px] text-[#94A3B8] mb-[4px]">{showSaved ? "No saved ideas yet. Bookmark ideas to find them here." : (hasActiveFilters || query) ? "No ideas match this filter yet." : "No campaigns available right now. Check back soon."}</p>
           {(hasActiveFilters || query || showSaved) && (
             <button onClick={clearFilters} className="text-[13px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer underline transition-colors">Clear filters</button>
           )}

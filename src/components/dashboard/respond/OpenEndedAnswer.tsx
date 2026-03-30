@@ -32,6 +32,7 @@ export default function OpenEndedAnswer({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [charCount, setCharCount] = useState(value.length);
   const [pasteDetected, setPasteDetected] = useState(false);
+  const pastedTextRef = useRef<string>("");
   const meetsMin = charCount >= MIN_CHARS;
 
   useEffect(() => {
@@ -49,15 +50,23 @@ export default function OpenEndedAnswer({
       const val = e.target.value;
       onChange(val);
       setCharCount(val.length);
+      // Reset paste warning if pasted content was removed
+      if (pasteDetected && pastedTextRef.current && !val.includes(pastedTextRef.current)) {
+        setPasteDetected(false);
+        pastedTextRef.current = "";
+      }
     },
-    [onChange]
+    [onChange, pasteDetected]
   );
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
-      void e;
-      onPaste();
-      setPasteDetected(true);
+      const pasted = e.clipboardData.getData("text");
+      if (pasted.length > 10) {
+        pastedTextRef.current = pasted.slice(0, 50); // track first 50 chars for detection
+        onPaste();
+        setPasteDetected(true);
+      }
     },
     [onPaste]
   );
