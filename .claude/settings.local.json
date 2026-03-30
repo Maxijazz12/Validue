@@ -48,14 +48,21 @@
       "Bash(du:*)",
       "Bash(trash:*)",
       "Bash(osascript:*)",
-      "Bash(df:*)"
+      "Bash(df:*)",
+      "Bash(grep -n \"assumptionVerdicts\\\\|assumption.*strength\\\\|signal.*assumption\" /Users/maxkranstad/Desktop/AI/valdate/src/app/dashboard/ideas/[id]/brief/page.tsx)",
+      "Bash(for p:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/.claude-plugin/**)",
+      "Bash(done)",
+      "Read(//Users/maxkranstad/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/$p/**)"
     ],
     "additionalDirectories": [
       "/Users/maxkranstad/.claude",
       "/tmp",
       "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate/memory",
       "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate",
-      "/Users/maxkranstad/Desktop/AI/valdate/.claude/rules"
+      "/Users/maxkranstad/Desktop/AI/valdate/.claude/rules",
+      "/Users/maxkranstad"
     ]
   }
 }

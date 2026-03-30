@@ -17,12 +17,6 @@ When Max references another product's design ("use Linear's design", "give this 
 
 When reskinning multiple components, use worktree agents in parallel — each component is independent once tokens are defined. If the reference is vague ("make it more premium"), ask which product Max has in mind.
 
-## Product Intelligence Protocol
+## Product Intelligence
 
-INTELLIGENCE.md contains accumulated product lessons, evidence hierarchy, and simulation rules.
-
-**Invoke when:** pricing/packaging decisions, landing page work, onboarding/conversion, UX flow design, trust-building, feature prioritization.
-
-**Simulate before committing:** Spawn 3 agents with distinct founder personas (skeptical, first-time, experienced PM). Tag results [SIMULATED]. Use to narrow options and generate better real-world tests.
-
-**After real outcomes:** Update INTELLIGENCE.md with actual data (Tier 1-2). Supersede simulated hypotheses that real data contradicts.
+Read INTELLIGENCE.md before pricing/packaging, landing page, onboarding/conversion, or UX flow decisions.
