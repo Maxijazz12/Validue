@@ -25,7 +25,7 @@ export default function SubmissionConfirmation({
   campaignTitle,
   campaignDescription,
   rewardAmount,
-  rewardType,
+  rewardType: _rewardType,
   questionCount,
   totalTimeMs,
   suggestedCampaigns,

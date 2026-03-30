@@ -294,11 +294,7 @@ export async function GET(request: Request) {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  logOps({
-    event: "cron.expire_campaigns",
-    ...results,
-  } as any);
+  console.log("[expire-campaigns] Completed:", JSON.stringify(results));
 
   return NextResponse.json({ ok: true, ...results });
 }

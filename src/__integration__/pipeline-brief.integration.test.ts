@@ -6,7 +6,6 @@ import {
   seedUser,
   seedRespondent,
   seedCampaign,
-  seedResponse,
   seedAnswer,
   cleanupCampaignData,
   cleanupAll,

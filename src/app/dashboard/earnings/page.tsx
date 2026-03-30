@@ -52,10 +52,6 @@ export default async function EarningsPage() {
     .filter((p) => p.status === "completed")
     .reduce((sum, p) => sum + Number(p.amount), 0);
 
-  const pendingAmount = allPayouts
-    .filter((p) => p.status === "pending")
-    .reduce((sum, p) => sum + Number(p.amount), 0);
-
   const totalPayouts = allPayouts.length;
   const hasEarnings = totalPayouts > 0;
 

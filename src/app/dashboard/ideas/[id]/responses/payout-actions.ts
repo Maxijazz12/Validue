@@ -429,7 +429,7 @@ async function suggestDistributionV2(supabase: any, campaign: any, distributable
     const answers = (r.answers || []) as { metadata: Record<string, unknown> }[];
     let totalTimeMs = 0;
     const openAnswers: { charCount: number }[] = [];
-    let spamFlagged = false;
+    const spamFlagged = false;
 
     for (const a of answers) {
       const meta = a.metadata || {};
