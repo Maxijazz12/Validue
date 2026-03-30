@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getClient, isAIAvailable, MODELS } from "@/lib/ai/client";
+import { getClient, isAIAvailable, MODELS, cachedSystem, cachedTools } from "@/lib/ai/client";
 import { AUDIENCE_IMPROVE_SYSTEM_PROMPT, buildImproveAudiencePrompt } from "@/lib/ai/prompts";
 import { AIImprovedAudienceSchema, IMPROVE_AUDIENCE_TOOL } from "@/lib/ai/schemas";
 import { logGeneration } from "@/lib/ai/logger";
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: MODELS.light,
       max_tokens: 512,
-      system: AUDIENCE_IMPROVE_SYSTEM_PROMPT,
+      system: cachedSystem(AUDIENCE_IMPROVE_SYSTEM_PROMPT),
       messages: [
         {
           role: "user",
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
           ),
         },
       ],
-      tools: [IMPROVE_AUDIENCE_TOOL],
+      tools: cachedTools([IMPROVE_AUDIENCE_TOOL]),
       tool_choice: { type: "tool", name: "improve_audience" },
     });
 

@@ -9,6 +9,34 @@ export const MODELS = {
   light: "claude-haiku-4-5-20251001" as const,
 } as const;
 
+/* ─── Prompt Caching Helpers ─── */
+
+/**
+ * Wrap a system prompt string as a cached content block array.
+ * Anthropic caches matching prefixes for 5 min at 10% of input token cost.
+ */
+export function cachedSystem(text: string) {
+  return [
+    {
+      type: "text" as const,
+      text,
+      cache_control: { type: "ephemeral" as const },
+    },
+  ];
+}
+
+/**
+ * Add cache_control to the last tool definition (Anthropic caches by prefix,
+ * so the breakpoint goes on the final static block in the request).
+ */
+export function cachedTools<T extends Record<string, unknown>>(tools: T[]): T[] {
+  return tools.map((t, i) =>
+    i === tools.length - 1
+      ? { ...t, cache_control: { type: "ephemeral" as const } }
+      : t
+  );
+}
+
 /* ─── Singleton Client ─── */
 
 let _client: Anthropic | null = null;

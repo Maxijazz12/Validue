@@ -1,4 +1,4 @@
-import { getClient, isAIAvailable, MODELS } from "./client";
+import { getClient, isAIAvailable, MODELS, cachedSystem, cachedTools } from "./client";
 import { SCORE_RESPONSE_TOOL, ResponseScoreSchema } from "./schemas";
 import { logGeneration } from "./logger";
 import type { ResponseScore, AnswerWithMeta } from "./types";
@@ -111,8 +111,8 @@ export async function scoreResponseWithAI(
   const response = await client.messages.create({
     model: MODELS.light,
     max_tokens: 512,
-    system: RANKING_SYSTEM_PROMPT,
-    tools: [SCORE_RESPONSE_TOOL],
+    system: cachedSystem(RANKING_SYSTEM_PROMPT),
+    tools: cachedTools([SCORE_RESPONSE_TOOL]),
     tool_choice: { type: "tool", name: "score_response" },
     messages: [
       {

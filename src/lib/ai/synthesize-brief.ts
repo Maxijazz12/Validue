@@ -1,4 +1,4 @@
-import { getClient, isAIAvailable, MODELS } from "./client";
+import { getClient, isAIAvailable, MODELS, cachedSystem, cachedTools } from "./client";
 import { SYNTHESIZE_BRIEF_TOOL, DecisionBriefSchema } from "./brief-schemas";
 import type { DecisionBrief } from "./brief-schemas";
 import { BRIEF_SYSTEM_PROMPT, buildSynthesisPrompt } from "./brief-prompts";
@@ -93,8 +93,8 @@ async function callSynthesis(
   const response = await client.messages.create({
     model: MODELS.generation,
     max_tokens: 4096,
-    system: BRIEF_SYSTEM_PROMPT,
-    tools: [SYNTHESIZE_BRIEF_TOOL],
+    system: cachedSystem(BRIEF_SYSTEM_PROMPT),
+    tools: cachedTools([SYNTHESIZE_BRIEF_TOOL]),
     tool_choice: { type: "tool", name: "create_decision_brief" },
     messages: [{ role: "user", content: userMessage }],
   });

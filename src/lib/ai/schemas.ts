@@ -181,26 +181,26 @@ export const GENERATE_CAMPAIGN_TOOL = {
             },
             assumptionIndex: {
               type: "number" as const,
-              description: "0-based index into the assumptions array. Which assumption does this question primarily test?",
+              description: "0-based index into the assumptions array",
             },
             anchors: {
               type: "array" as const,
               items: { type: "string" as const },
               minItems: 2,
               maxItems: 3,
-              description: "2-3 response anchor hints shown below the text area to guide respondent answers (e.g. 'Include: specific tools or apps you used', 'Mention: how often and how long ago')",
+              description: "Response anchors — same format as openQuestions",
             },
             evidenceCategory: {
               type: "string" as const,
               enum: ["behavior", "attempts", "willingness", "price", "pain", "negative"],
-              description: "What type of evidence this question gathers: behavior (current habits), attempts (past solutions tried), willingness (openness to switching), price (spending/WTP), pain (problem severity), negative (disconfirmation — evidence AGAINST the assumption)",
+              description: "Evidence type — same enum as openQuestions",
             },
           },
         },
         minItems: 1,
         maxItems: 3,
         description:
-          "1–3 follow-up questions specific to this idea. Probe deeper into willingness, use cases, or objections.",
+          "1–3 follow-up questions. Probe willingness, use cases, or objections.",
       },
       baselineQuestionIds: {
         type: "array" as const,

@@ -145,11 +145,10 @@ Key rules:
 
 const BASELINE_BLOCK = `## Baseline Question Library
 
-Pick exactly 3 by their ID. Choose the most relevant ones for this specific idea. Do NOT invent new baseline questions. Pick from diverse categories when possible.
+Pick exactly 3 by ID. Do NOT invent new baselines. Prefer diverse categories.
 
 ${BASELINE_QUESTIONS.map(
-  (q) =>
-    `- ID: "${q.id}" | ${q.category} | "${q.text}" → [${q.options.join(", ")}]`
+  (q) => `- "${q.id}" | ${q.category} | ${q.description.split("—")[0].trim()}`
 ).join("\n")}`;
 
 /* ═══════════════════════════════════════════
@@ -177,12 +176,7 @@ Requirements:
 - Open questions (2–4, section: "open"): explore current behavior, pain, and existing solutions. Start with "Walk me through…", "How do you currently…", "When was the last time…"
 - Follow-up questions (1–3, section: "followup"): probe this specific idea's viability, willingness to switch, objections.
 - Baseline IDs: pick exactly 3 from the library. Prefer diverse categories.
-- Every open/followup question must include assumptionIndex (0-based) mapping to which assumption it tests.
-- Every open/followup question must include 2-3 response anchors — short hints that guide respondents toward specific, useful answers.
-- Every open/followup question must include an evidenceCategory: behavior, attempts, willingness, price, pain, or negative.
-- Every assumption must have at least one question testing it.
-- Every assumption must have ≥3 distinct evidence categories across its questions.
-- Every assumption must have at least one "negative" question (designed to find evidence AGAINST the assumption).
+- Apply all assumption-mapping, anchor, and evidence category rules from Core Rules above.
 - Audience: be specific. Fill in as many targeting fields as you can confidently infer.
 
 Question quality bar:

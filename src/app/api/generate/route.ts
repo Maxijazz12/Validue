@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getClient, isAIAvailable, MODELS } from "@/lib/ai/client";
+import { getClient, isAIAvailable, MODELS, cachedSystem, cachedTools } from "@/lib/ai/client";
 import { SYSTEM_PROMPT, buildGeneratePrompt, PROMPT_VERSION, GENERATION_VERSION } from "@/lib/ai/prompts";
 import { AICampaignDraftSchema, GENERATE_CAMPAIGN_TOOL } from "@/lib/ai/schemas";
 import { BASELINE_QUESTIONS, recommendBaseline } from "@/lib/baseline-questions";
@@ -82,11 +82,11 @@ export async function POST(request: Request) {
     const response = await client.messages.create({
       model: MODELS.generation,
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: cachedSystem(SYSTEM_PROMPT),
       messages: [
         { role: "user", content: buildGeneratePrompt(scribbleText) },
       ],
-      tools: [GENERATE_CAMPAIGN_TOOL],
+      tools: cachedTools([GENERATE_CAMPAIGN_TOOL]),
       tool_choice: { type: "tool", name: "create_campaign_draft" },
     });
 

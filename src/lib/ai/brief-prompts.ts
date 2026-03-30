@@ -134,10 +134,11 @@ Relevant responses: ${evidence.length}`;
       block += "\n(No responses mapped to this assumption)";
     } else {
       for (const e of evidence) {
+        const weight = Math.round(e.qualityScore * (0.6 + 0.4 * (e.audienceMatch / 100)));
         block += `
 
 **Q [${e.evidenceCategory}]:** ${sanitizeForPrompt(e.questionText)}
-**A (${e.respondentLabel}, quality=${e.qualityScore}, depth=${e.depthScore}, authenticity=${e.authenticityScore}, match=${e.audienceMatch}, weight=${Math.round(e.qualityScore * (0.6 + 0.4 * (e.audienceMatch / 100)))}):** ${sanitizeForPrompt(e.answerText)}`;
+**A (${e.respondentLabel}, weight=${weight}, match=${e.audienceMatch}):** ${sanitizeForPrompt(e.answerText)}`;
       }
     }
 
