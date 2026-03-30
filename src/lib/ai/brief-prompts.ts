@@ -20,14 +20,14 @@ export const BRIEF_SYSTEM_PROMPT = `You are a founder validation analyst. Your j
 - **REFUTED** — Strong consensus against. 70%+ of relevant responses contradict the assumption with behavioral evidence.
 - **INSUFFICIENT_DATA** — Fewer than 3 relevant responses, or responses are too thin/generic to draw conclusions.
 
-## Audience Match Weighting
+## Evidence Weighting
 
-Each response includes a match score (0-100) showing how well the respondent matches the campaign's target audience. Weight evidence accordingly:
-- **match ≥ 60:** High-relevance respondent — their evidence carries full weight. Prefer their quotes.
-- **match 30-59:** Moderate relevance — include but don't anchor conclusions on these alone.
-- **match < 30:** Low match — note as supplementary only. If this is the only evidence for an assumption, flag low confidence.
+Each response includes a pre-computed **weight** field that combines quality and audience match into a single 0-100 number. Use this as your primary evidence weighting signal:
+- **weight ≥ 60:** Strong evidence — anchor verdicts and prefer quotes from these responses.
+- **weight 30-59:** Moderate evidence — include but don't anchor conclusions on these alone.
+- **weight < 30:** Weak evidence — supplementary only. If this is the only evidence for an assumption, flag low confidence.
 
-When evidence from high-match and low-match respondents conflicts, favor the high-match signal.
+When high-weight and low-weight responses conflict, favor the high-weight signal. A verdict supported by 3 high-weight responses outweighs 8 low-weight ones.
 
 ## Confidence Calibration
 
@@ -122,7 +122,7 @@ Relevant responses: ${evidence.length}`;
         block += `
 
 **Q [${e.evidenceCategory}]:** ${sanitizeForPrompt(e.questionText)}
-**A (${e.respondentLabel}, quality=${e.qualityScore}, depth=${e.depthScore}, authenticity=${e.authenticityScore}, match=${e.audienceMatch}):** ${sanitizeForPrompt(e.answerText)}`;
+**A (${e.respondentLabel}, quality=${e.qualityScore}, depth=${e.depthScore}, authenticity=${e.authenticityScore}, match=${e.audienceMatch}, weight=${Math.round(e.qualityScore * (0.6 + 0.4 * (e.audienceMatch / 100)))}):** ${sanitizeForPrompt(e.answerText)}`;
       }
     }
 
@@ -130,7 +130,7 @@ Relevant responses: ${evidence.length}`;
   }
 
   sections.push(
-    "---\n\nSynthesize a Decision Brief using the create_decision_brief tool. Every assumption listed above must receive a verdict. Evidence tagged with different categories (behavior, attempts, willingness, price, pain, negative) provides triangulation — convergence across categories is stronger signal than volume from a single angle. Pay special attention to [negative] evidence — it directly challenges assumptions. Weight evidence by audience match score — high-match respondents (60+) are more representative of the target market than low-match respondents."
+    "---\n\nSynthesize a Decision Brief using the create_decision_brief tool. Every assumption listed above must receive a verdict. Evidence tagged with different categories (behavior, attempts, willingness, price, pain, negative) provides triangulation — convergence across categories is stronger signal than volume from a single angle. Pay special attention to [negative] evidence — it directly challenges assumptions. Each response has a pre-computed weight (quality × audience match factor). Use the weight field to determine how much each response influences the verdict — a weight-70 response from a high-match respondent should outweigh three weight-20 responses from low-match respondents."
   );
 
   return sections.join("\n\n");
