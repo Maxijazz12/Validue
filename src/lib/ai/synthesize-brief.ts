@@ -11,6 +11,7 @@ import type { ConsistencyReport } from "./detect-consistency-gaps";
 import { detectSegmentDisagreements } from "./segment-disagreements";
 import type { SegmentReport } from "./segment-disagreements";
 import { logGeneration } from "./logger";
+import { checkGrounding, applyGroundingCorrections, formatGroundingFeedback } from "./grounding-check";
 import sql from "@/lib/db";
 
 /* ─── Prior Round Types ─── */
@@ -94,11 +95,12 @@ async function callSynthesis(
   priceSignal: PriceSignal | null,
   consistencyReport: ConsistencyReport | null,
   segmentReport: SegmentReport | null,
-  priorRoundVerdicts: PriorRoundVerdicts | null = null
+  priorRoundVerdicts: PriorRoundVerdicts | null = null,
+  groundingFeedback: string | null = null
 ): Promise<DecisionBrief> {
   const client = getClient();
 
-  const userMessage = buildSynthesisPrompt(
+  let userMessage = buildSynthesisPrompt(
     campaignTitle,
     campaignDescription,
     assumptions,
@@ -109,6 +111,10 @@ async function callSynthesis(
     segmentReport,
     priorRoundVerdicts
   );
+
+  if (groundingFeedback) {
+    userMessage += `\n\n${groundingFeedback}`;
+  }
 
   const response = await client.messages.create({
     model: MODELS.generation,
@@ -242,7 +248,7 @@ export async function synthesizeBrief(
   if (isAIAvailable()) {
     // First attempt
     try {
-      const brief = await callSynthesis(
+      let brief = await callSynthesis(
         campaignTitle,
         campaignDescription,
         assumptions,
@@ -253,13 +259,45 @@ export async function synthesizeBrief(
         segmentReport,
         parentVerdicts
       );
+
+      // Grounding check: verify AI output is faithful to evidence
+      const grounding = checkGrounding(brief, evidenceByAssumption);
+
+      if (!grounding.passed) {
+        // Re-synthesize with grounding feedback
+        try {
+          const feedback = formatGroundingFeedback(grounding.failures);
+          brief = await callSynthesis(
+            campaignTitle,
+            campaignDescription,
+            assumptions,
+            evidenceByAssumption,
+            methodology,
+            priceSignal,
+            consistencyReport,
+            segmentReport,
+            parentVerdicts,
+            feedback
+          );
+
+          // Check again — if still failing, apply deterministic corrections
+          const recheck = checkGrounding(brief, evidenceByAssumption);
+          if (!recheck.passed) {
+            brief = applyGroundingCorrections(brief, recheck.failures);
+          }
+        } catch {
+          // Re-synthesis failed — apply corrections to original brief
+          brief = applyGroundingCorrections(brief, grounding.failures);
+        }
+      }
+
       logGeneration({
         event: "response.ranked",
         campaignId,
         responseId: "brief-synthesis",
         score: methodology.avgQuality,
         source: "ai",
-        confidence: 1,
+        confidence: grounding.passed ? 1 : 0.7,
         latencyMs: Date.now() - start,
       });
 
@@ -268,7 +306,7 @@ export async function synthesizeBrief(
 
       return { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
     } catch {
-      // Retry once
+      // Retry once (synthesis itself failed, not grounding)
       try {
         const brief = await callSynthesis(
           campaignTitle,
@@ -281,20 +319,27 @@ export async function synthesizeBrief(
           segmentReport,
           parentVerdicts
         );
+
+        // Run grounding on retry too — apply corrections if needed
+        const grounding = checkGrounding(brief, evidenceByAssumption);
+        const finalBrief = grounding.passed
+          ? brief
+          : applyGroundingCorrections(brief, grounding.failures);
+
         logGeneration({
           event: "response.ranked",
           campaignId,
           responseId: "brief-synthesis-retry",
           score: methodology.avgQuality,
           source: "ai",
-          confidence: 1,
+          confidence: grounding.passed ? 1 : 0.7,
           latencyMs: Date.now() - start,
         });
 
         // Persist verdict summary (write-once)
-        persistVerdicts(campaignId, brief);
+        persistVerdicts(campaignId, finalBrief);
 
-        return { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+        return { brief: finalBrief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
       } catch {
         // Fall through to fallback
       }

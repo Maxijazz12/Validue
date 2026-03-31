@@ -27,10 +27,38 @@ const MIN_SEGMENT_SIZE = 2;
 
 /* ─── Helpers ─── */
 
+/** Phrases in open-ended answers that signal contradicting evidence,
+ *  even when the question category is not "negative". */
+const CONTRADICTING_PHRASES = [
+  "would never",
+  "wouldn't use",
+  "wouldn't pay",
+  "not interested",
+  "don't need",
+  "don't have this problem",
+  "waste of money",
+  "no need",
+  "wouldn't buy",
+  "not worth",
+  "don't see the point",
+  "wouldn't switch",
+];
+
 function classifyEvidence(
-  evidenceCategory: string
+  evidenceCategory: string,
+  answerText?: string
 ): "supporting" | "contradicting" {
-  return evidenceCategory === "negative" ? "contradicting" : "supporting";
+  if (evidenceCategory === "negative") return "contradicting";
+
+  // Check answer content for contradicting signals regardless of category
+  if (answerText) {
+    const lower = answerText.toLowerCase();
+    if (CONTRADICTING_PHRASES.some((phrase) => lower.includes(phrase))) {
+      return "contradicting";
+    }
+  }
+
+  return "supporting";
 }
 
 interface SegmentStats {
@@ -41,7 +69,7 @@ interface SegmentStats {
 function computeSegmentRatios(bucket: AssumptionEvidence[]): SegmentStats {
   if (bucket.length === 0) return { count: 0, supportRatio: 0 };
   const supportCount = bucket.filter(
-    (e) => classifyEvidence(e.evidenceCategory) === "supporting"
+    (e) => classifyEvidence(e.evidenceCategory, e.answerText) === "supporting"
   ).length;
   return {
     count: bucket.length,

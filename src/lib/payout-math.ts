@@ -234,7 +234,10 @@ export function defaultTargetResponses(
     format === "quick"
       ? DEFAULTS.TARGET_AVG_PAYOUT_QUICK
       : DEFAULTS.TARGET_AVG_PAYOUT_STANDARD;
-  return Math.max(DEFAULTS.MIN_TARGET_RESPONSES_V2, Math.floor(distributable / targetAvg));
+  return Math.min(
+    DEFAULTS.MAX_TARGET_RESPONSES,
+    Math.max(DEFAULTS.MIN_TARGET_RESPONSES_V2, Math.floor(distributable / targetAvg))
+  );
 }
 
 /**

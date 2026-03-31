@@ -44,6 +44,22 @@ describe("classifyEvidence", () => {
       expect(classifyEvidence(cat)).toBe("supporting");
     }
   });
+
+  it("classifies behavior answer with contradicting phrase as contradicting", () => {
+    expect(classifyEvidence("behavior", "I would never use something like this")).toBe("contradicting");
+  });
+
+  it("classifies willingness answer with 'not interested' as contradicting", () => {
+    expect(classifyEvidence("willingness", "I'm not interested in paying for this")).toBe("contradicting");
+  });
+
+  it("keeps positive behavior answer as supporting", () => {
+    expect(classifyEvidence("behavior", "I use this kind of tool every day")).toBe("supporting");
+  });
+
+  it("is case-insensitive for contradicting phrases", () => {
+    expect(classifyEvidence("price", "I WOULDN'T PAY for this ever")).toBe("contradicting");
+  });
 });
 
 /* ─── computeSegmentRatios ─── */

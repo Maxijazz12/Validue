@@ -113,9 +113,11 @@ export async function getEvidenceByAssumption(
 
   // Re-sort each assumption's evidence by weighted score (quality × match) so
   // the synthesis prompt sees the strongest AND most-relevant evidence first.
-  // Cap at 8 per assumption to bound token usage — evidence is sorted by weight
-  // so we keep the strongest signal and drop the weakest.
+  // Cap at 8 per assumption to bound token usage. Reserve at least 1 slot for
+  // "negative" category evidence to preserve disconfirming signal that might
+  // otherwise be dropped when all high-weight evidence is same-category.
   const MAX_EVIDENCE_PER_ASSUMPTION = 8;
+  const MIN_NEGATIVE_SLOTS = 1;
   for (const [key, items] of evidenceMap) {
     items.sort((a, b) => {
       const weightA = a.qualityScore * (0.6 + 0.4 * (a.audienceMatch / 100));
@@ -123,7 +125,17 @@ export async function getEvidenceByAssumption(
       return weightB - weightA;
     });
     if (items.length > MAX_EVIDENCE_PER_ASSUMPTION) {
-      evidenceMap.set(key, items.slice(0, MAX_EVIDENCE_PER_ASSUMPTION));
+      // Separate negative evidence from the rest
+      const negative = items.filter((e) => e.evidenceCategory === "negative");
+      const nonNegative = items.filter((e) => e.evidenceCategory !== "negative");
+
+      if (negative.length > 0 && negative.length <= MIN_NEGATIVE_SLOTS) {
+        // Guarantee negative evidence survives the cap
+        const remaining = MAX_EVIDENCE_PER_ASSUMPTION - negative.length;
+        evidenceMap.set(key, [...nonNegative.slice(0, remaining), ...negative]);
+      } else {
+        evidenceMap.set(key, items.slice(0, MAX_EVIDENCE_PER_ASSUMPTION));
+      }
     }
   }
 
