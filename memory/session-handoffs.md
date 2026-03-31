@@ -27,9 +27,28 @@ Phase 1-3 complete. Phase 4 shipped.
 
 ### Stats
 - 240 tests passing across 13 test files. Lint + build clean.
-- Migration pending: `029_longitudinal.sql` needs `supabase db push` or manual apply
+
+## 2026-03-31 — Infrastructure + autonomous setup
+
+### DB Schema Sync
+- Migration 029 applied (longitudinal columns were already on remote)
+- Migration history repaired: 001-029 all synced between local and remote
+- **Migration 030 (`030_schema_repair.sql`)**: idempotent repair that applied missing DDL from migrations 016-028 to remote DB. Added ~30 columns, 3 tables (`campaign_reactions`, `notifications`, `reach_impressions`), constraints, indexes, triggers, RLS policies.
+- **Generated `src/lib/supabase/database.types.ts`**: 837-line Supabase types file as schema reference. NOT wired into clients (would cause ~30 nullable type errors across 15+ files). Exists as documentation to prevent column name hallucination.
+
+### Fixes
+- Lazy-load `db.ts` in `detect-consistency-gaps.ts` (dynamic import) — fixed test crash when env vars missing
+- Replaced `useEffect` setState with lazy initializers in `ThemeToggle` and `WeeklyDigestBanner` (lint fix)
+
+### Autonomous Agent Setup
+- Remote trigger `vldta-brief-test-suite` created and fired (Sonnet, `auto/brief-test-suite` branch)
+- Task: write test suites for `brief-schemas.ts`, `synthesize-brief.ts` fallback logic, optionally `extract-price-signal.ts`
+- Agent works off GitHub `main` — all local changes pushed in commit `8efec0f`
+- Trigger is disabled (one-shot). Check `auto/brief-test-suite` branch for results.
 
 ### What's next
-- Apply migration 029 to database
+- Check `auto/brief-test-suite` branch for agent results, merge if clean
+- Real campaign testing across all 4 phases
 - Phase 5: expand signal sources (per PRODUCT.md)
+- Consider: wire `Database` type into Supabase clients (requires null-handling pass across ~15 files)
 - Known gap: `it.skipIf(!dbAvailable)` pattern always skips in integration tests
