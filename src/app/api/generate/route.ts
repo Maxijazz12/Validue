@@ -163,6 +163,7 @@ export async function POST(request: Request) {
     }
 
     // ─── Assemble CampaignDraft ───
+    const maxAssumptionIndex = Math.max(0, raw.assumptions.length - 1);
     const openQuestions: DraftQuestion[] = raw.openQuestions.map((q) => ({
       id: uid(),
       text: q.text,
@@ -170,7 +171,7 @@ export async function POST(request: Request) {
       options: null,
       section: q.section as "open" | "followup",
       isBaseline: false,
-      assumptionIndex: q.assumptionIndex,
+      assumptionIndex: Math.min(q.assumptionIndex, maxAssumptionIndex),
       anchors: q.anchors,
       category: q.evidenceCategory,
     }));
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
         options: null,
         section: "followup" as const,
         isBaseline: false,
-        assumptionIndex: q.assumptionIndex,
+        assumptionIndex: Math.min(q.assumptionIndex, maxAssumptionIndex),
         anchors: q.anchors,
         category: q.evidenceCategory,
       })

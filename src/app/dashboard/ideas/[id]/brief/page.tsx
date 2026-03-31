@@ -6,6 +6,9 @@ import type { BriefResult } from "@/lib/ai/synthesize-brief";
 import type { DecisionBrief, AssumptionVerdict, NextStep } from "@/lib/ai/brief-schemas";
 import type { AssumptionCoverage } from "@/lib/ai/assumption-evidence";
 import type { PriceSignal } from "@/lib/ai/extract-price-signal";
+import type { ConsistencyReport } from "@/lib/ai/detect-consistency-gaps";
+import type { SegmentReport } from "@/lib/ai/segment-disagreements";
+import type { PriorRoundVerdicts } from "@/lib/ai/synthesize-brief";
 import sql from "@/lib/db";
 
 /* ─── Verdict colors ─── */
@@ -118,6 +121,10 @@ export default async function BriefPage({
   let brief: DecisionBrief;
   let coverage: AssumptionCoverage[] = [];
   let priceSignal: PriceSignal | null = null;
+  let consistencyReport: ConsistencyReport | null = null;
+  let segmentReport: SegmentReport | null = null;
+  let roundNumber = 1;
+  let parentVerdicts: PriorRoundVerdicts | null = null;
   let synthesisError = false;
 
   try {
@@ -130,6 +137,10 @@ export default async function BriefPage({
     brief = result.brief;
     coverage = result.coverage;
     priceSignal = result.priceSignal;
+    consistencyReport = result.consistencyReport;
+    segmentReport = result.segmentReport;
+    roundNumber = result.roundNumber;
+    parentVerdicts = result.parentVerdicts;
   } catch {
     synthesisError = true;
     brief = {
@@ -200,6 +211,12 @@ export default async function BriefPage({
             <span className="text-[#94A3B8] block mb-0.5">Assumptions tested</span>
             <span className="text-[#111111] font-semibold">{assumptions.length}</span>
           </div>
+          {roundNumber > 1 && (
+            <div>
+              <span className="text-[#94A3B8] block mb-0.5">Round</span>
+              <span className="text-[#3b82f6] font-semibold">{roundNumber}</span>
+            </div>
+          )}
         </div>
         <p className="text-[12px] text-[#94A3B8] mt-4 leading-relaxed">
           Findings are directional signal, not statistical proof. Treat verdicts as hypotheses to test further, not conclusions to bet on.
@@ -356,6 +373,64 @@ export default async function BriefPage({
         </div>
       </section>
 
+      {/* ─── Verdict Changes (Round 2+) ─── */}
+      {parentVerdicts && parentVerdicts.verdicts.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-[13px] uppercase tracking-[0.1em] text-[#94A3B8] font-medium mb-3">
+            Changes from Round {roundNumber - 1}
+          </h2>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-[24px]">
+            {/* Recommendation change */}
+            {parentVerdicts.recommendation !== brief.recommendation && (
+              <div className="rounded-xl bg-[#F1F5F9] border border-[#E2E8F0] px-4 py-3 mb-4 text-[14px]">
+                <span className="text-[#94A3B8]">Recommendation: </span>
+                <span className="font-semibold text-[#64748B]">{parentVerdicts.recommendation}</span>
+                <span className="mx-2 text-[#94A3B8]">&rarr;</span>
+                <span className={`font-semibold ${recommendationColors[brief.recommendation]}`}>{brief.recommendation}</span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {brief.assumptionVerdicts.map((v) => {
+                // Match by text, fallback to index
+                const prev = parentVerdicts.verdicts.find((pv) => pv.assumption === v.assumption)
+                  ?? parentVerdicts.verdicts[v.assumptionIndex];
+                if (!prev) return null;
+
+                const changed = prev.verdict !== v.verdict;
+                const improved = (prev.verdict === "REFUTED" || prev.verdict === "CHALLENGED" || prev.verdict === "INSUFFICIENT_DATA")
+                  && (v.verdict === "CONFIRMED" || (prev.verdict === "REFUTED" && v.verdict === "CHALLENGED"));
+                const regressed = (prev.verdict === "CONFIRMED" || prev.verdict === "CHALLENGED")
+                  && (v.verdict === "REFUTED" || (prev.verdict === "CONFIRMED" && v.verdict === "CHALLENGED"));
+
+                return (
+                  <div
+                    key={v.assumptionIndex}
+                    className={`rounded-xl px-4 py-3 text-[13px] leading-relaxed ${
+                      !changed
+                        ? "bg-[#F1F5F9] border border-[#E2E8F0] text-[#64748B]"
+                        : improved
+                          ? "bg-[#22c55e]/5 border border-[#22c55e]/15 text-[#15803d]"
+                          : regressed
+                            ? "bg-[#FEF2F2] border border-[#ef4444]/10 text-[#ef4444]/80"
+                            : "bg-[#FEF3C7] border border-[#F59E0B]/20 text-[#92400E]"
+                    }`}
+                  >
+                    <span className="font-medium block mb-1">{v.assumption}</span>
+                    <span className="text-[12px]">
+                      {prev.verdict}
+                      <span className="mx-1.5">&rarr;</span>
+                      {v.verdict}
+                      {!changed && " (unchanged)"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ─── The Uncomfortable Truth ─── */}
       <section className="mb-8">
         <h2 className="text-[13px] uppercase tracking-[0.1em] text-[#94A3B8] font-medium mb-3">
@@ -447,6 +522,47 @@ export default async function BriefPage({
               </div>
             )}
 
+            {priceSignal.forwardWtpDistribution && Object.keys(priceSignal.forwardWtpDistribution).length > 0 && (
+              <div className="mb-4">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-[#94A3B8] font-medium mb-2">
+                  Forward WTP (what they&apos;d pay)
+                </p>
+                <div className="space-y-1.5">
+                  {Object.entries(priceSignal.forwardWtpDistribution).map(([tier, count]) => (
+                    <div key={tier} className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[13px] text-[#64748B]">{tier}</span>
+                          <span className="text-[12px] text-[#94A3B8] font-medium">{count}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-[#E2E8F0]">
+                          <div
+                            className="h-1.5 rounded-full bg-[#22c55e]"
+                            style={{ width: `${(count / priceSignal.respondentCount) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {priceSignal.preferredModelDistribution && Object.keys(priceSignal.preferredModelDistribution).length > 0 && (
+              <div className="mb-4">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-[#94A3B8] font-medium mb-2">
+                  Preferred payment model
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(priceSignal.preferredModelDistribution).map(([model, count]) => (
+                    <span key={model} className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-3 py-1 text-[12px] text-[#64748B]">
+                      {model} <span className="font-semibold text-[#111111]">{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {priceSignal.matchSkew && (
               <div className="rounded-xl bg-[#FEF3C7] border border-[#F59E0B]/20 px-4 py-3 text-[13px] text-[#92400E] leading-relaxed">
                 {priceSignal.matchSkew}
@@ -456,6 +572,75 @@ export default async function BriefPage({
             <p className="text-[11px] text-[#94A3B8] mt-3">
               Based on {priceSignal.respondentCount} respondent{priceSignal.respondentCount === 1 ? "" : "s"} who answered baseline price questions.
             </p>
+          </div>
+        </section>
+      )}
+
+      {/* ─── Behavioral Consistency ─── */}
+      {consistencyReport && consistencyReport.gaps.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-[13px] uppercase tracking-[0.1em] text-[#94A3B8] font-medium mb-3">
+            Behavioral Consistency
+          </h2>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-[24px]">
+            <p className="text-[15px] text-[#111111] leading-relaxed font-medium mb-4">
+              {consistencyReport.summary}
+            </p>
+            <div className="space-y-3">
+              {consistencyReport.gaps.map((gap, i) => (
+                <div
+                  key={i}
+                  className={`rounded-xl px-4 py-3 text-[13px] leading-relaxed ${
+                    gap.severity === "high"
+                      ? "bg-[#FEF2F2] border border-[#ef4444]/10 text-[#ef4444]/80"
+                      : "bg-[#FEF3C7] border border-[#F59E0B]/20 text-[#92400E]"
+                  }`}
+                >
+                  <span className="font-medium">
+                    {gap.respondentLabel}
+                  </span>
+                  {" "}said &ldquo;{gap.statedAnswer}&rdquo; but &ldquo;{gap.behavioralAnswer}&rdquo;
+                  <span className="block text-[11px] mt-1 opacity-70">
+                    {gap.gapType.replace("_", " ")} · quality {gap.qualityScore}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ─── Audience Segment Disagreements ─── */}
+      {segmentReport && segmentReport.disagreements.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-[13px] uppercase tracking-[0.1em] text-[#94A3B8] font-medium mb-3">
+            Audience Segments
+          </h2>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-[24px]">
+            <p className="text-[15px] text-[#111111] leading-relaxed font-medium mb-4">
+              {segmentReport.summary}
+            </p>
+            <div className="space-y-3">
+              {segmentReport.disagreements.map((d, i) => (
+                <div
+                  key={i}
+                  className={`rounded-xl px-4 py-3 text-[13px] leading-relaxed ${
+                    d.severity === "high"
+                      ? "bg-[#FEF2F2] border border-[#ef4444]/10 text-[#ef4444]/80"
+                      : "bg-[#FEF3C7] border border-[#F59E0B]/20 text-[#92400E]"
+                  }`}
+                >
+                  <span className="font-medium">
+                    {d.assumption}
+                  </span>
+                  <p className="mt-1">{d.signal}</p>
+                  <div className="flex gap-4 text-[11px] mt-2 opacity-70">
+                    <span>High-match: {Math.round(d.highMatchSupportRatio * 100)}% support (n={d.highMatchCount})</span>
+                    <span>Low-match: {Math.round(d.lowMatchSupportRatio * 100)}% support (n={d.lowMatchCount})</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}

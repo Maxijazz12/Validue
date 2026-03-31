@@ -6,7 +6,19 @@ import { getEvidenceByAssumption, getBriefMethodology, computeAllCoverage } from
 import type { AssumptionCoverage } from "./assumption-evidence";
 import { extractPriceSignal } from "./extract-price-signal";
 import type { PriceSignal } from "./extract-price-signal";
+import { detectConsistencyGaps } from "./detect-consistency-gaps";
+import type { ConsistencyReport } from "./detect-consistency-gaps";
+import { detectSegmentDisagreements } from "./segment-disagreements";
+import type { SegmentReport } from "./segment-disagreements";
 import { logGeneration } from "./logger";
+import sql from "@/lib/db";
+
+/* ─── Prior Round Types ─── */
+
+export interface PriorRoundVerdicts {
+  recommendation: string;
+  verdicts: { assumption: string; verdict: string; confidence: string }[];
+}
 
 /* ─── Fallback Brief ─── */
 
@@ -79,7 +91,10 @@ async function callSynthesis(
   assumptions: string[],
   evidenceByAssumption: Awaited<ReturnType<typeof getEvidenceByAssumption>>,
   methodology: Awaited<ReturnType<typeof getBriefMethodology>>,
-  priceSignal: PriceSignal | null
+  priceSignal: PriceSignal | null,
+  consistencyReport: ConsistencyReport | null,
+  segmentReport: SegmentReport | null,
+  priorRoundVerdicts: PriorRoundVerdicts | null = null
 ): Promise<DecisionBrief> {
   const client = getClient();
 
@@ -89,7 +104,10 @@ async function callSynthesis(
     assumptions,
     evidenceByAssumption,
     methodology,
-    priceSignal
+    priceSignal,
+    consistencyReport,
+    segmentReport,
+    priorRoundVerdicts
   );
 
   const response = await client.messages.create({
@@ -122,6 +140,14 @@ export interface BriefResult {
   coverage: AssumptionCoverage[];
   /** Willingness-to-pay signal extracted from baseline price questions */
   priceSignal: PriceSignal | null;
+  /** Stated-vs-behavioral consistency gaps across respondents */
+  consistencyReport: ConsistencyReport | null;
+  /** High-match vs low-match audience segment disagreements */
+  segmentReport: SegmentReport | null;
+  /** Which round this campaign is (1 = first, 2+ = retest) */
+  roundNumber: number;
+  /** Cached verdict summary from the parent campaign's brief (null if round 1 or parent has no brief) */
+  parentVerdicts: PriorRoundVerdicts | null;
 }
 
 /* ─── Main Entry Point ─── */
@@ -145,17 +171,39 @@ export async function synthesizeBrief(
 ): Promise<BriefResult> {
   const start = Date.now();
 
+  // Fetch longitudinal context (round number + parent verdicts)
+  let roundNumber = 1;
+  let parentVerdicts: PriorRoundVerdicts | null = null;
+  try {
+    const [campaignMeta] = await sql`
+      SELECT parent_campaign_id, round_number FROM campaigns WHERE id = ${campaignId}
+    `;
+    roundNumber = Number(campaignMeta?.round_number ?? 1);
+    if (campaignMeta?.parent_campaign_id) {
+      const [parent] = await sql`
+        SELECT brief_verdicts FROM campaigns WHERE id = ${campaignMeta.parent_campaign_id}
+      `;
+      if (parent?.brief_verdicts) {
+        parentVerdicts = parent.brief_verdicts as PriorRoundVerdicts;
+      }
+    }
+  } catch {
+    // Non-critical — proceed without longitudinal context
+  }
+
   // Gather evidence
   let evidenceByAssumption: Awaited<ReturnType<typeof getEvidenceByAssumption>>;
   let methodology: Awaited<ReturnType<typeof getBriefMethodology>>;
 
   let priceSignal: PriceSignal | null = null;
+  let consistencyReport: ConsistencyReport | null = null;
 
   try {
-    [evidenceByAssumption, methodology, priceSignal] = await Promise.all([
+    [evidenceByAssumption, methodology, priceSignal, consistencyReport] = await Promise.all([
       getEvidenceByAssumption(campaignId),
       getBriefMethodology(campaignId),
       extractPriceSignal(campaignId),
+      detectConsistencyGaps(campaignId),
     ]);
   } catch {
     // DB query failed — return minimal fallback
@@ -169,11 +217,12 @@ export async function synthesizeBrief(
       latencyMs: Date.now() - start,
     });
     const emptyCoverage = computeAllCoverage(new Map(), assumptions.length);
-    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage, priceSignal: null };
+    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage, priceSignal: null, consistencyReport: null, segmentReport: null, roundNumber, parentVerdicts };
   }
 
-  // Compute coverage from evidence (deterministic — same regardless of AI/fallback path)
+  // Compute coverage and segment analysis from evidence (deterministic — same regardless of AI/fallback path)
   const coverage = computeAllCoverage(evidenceByAssumption, assumptions.length);
+  const segmentReport = detectSegmentDisagreements(evidenceByAssumption, assumptions);
 
   // Too few responses for meaningful synthesis
   if (methodology.responseCount < 3) {
@@ -186,7 +235,7 @@ export async function synthesizeBrief(
       confidence: 0,
       latencyMs: Date.now() - start,
     });
-    return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal };
+    return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
   }
 
   // Attempt AI synthesis
@@ -199,7 +248,10 @@ export async function synthesizeBrief(
         assumptions,
         evidenceByAssumption,
         methodology,
-        priceSignal
+        priceSignal,
+        consistencyReport,
+        segmentReport,
+        parentVerdicts
       );
       logGeneration({
         event: "response.ranked",
@@ -211,7 +263,10 @@ export async function synthesizeBrief(
         latencyMs: Date.now() - start,
       });
 
-      return { brief, coverage, priceSignal };
+      // Persist verdict summary (write-once)
+      persistVerdicts(campaignId, brief);
+
+      return { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
     } catch {
       // Retry once
       try {
@@ -221,7 +276,10 @@ export async function synthesizeBrief(
           assumptions,
           evidenceByAssumption,
           methodology,
-          priceSignal
+          priceSignal,
+          consistencyReport,
+          segmentReport,
+          parentVerdicts
         );
         logGeneration({
           event: "response.ranked",
@@ -233,7 +291,10 @@ export async function synthesizeBrief(
           latencyMs: Date.now() - start,
         });
 
-        return { brief, coverage, priceSignal };
+        // Persist verdict summary (write-once)
+        persistVerdicts(campaignId, brief);
+
+        return { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
       } catch {
         // Fall through to fallback
       }
@@ -251,5 +312,30 @@ export async function synthesizeBrief(
     latencyMs: Date.now() - start,
   });
 
-  return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal };
+  return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+}
+
+/* ─── Verdict Persistence ─── */
+
+/**
+ * Persist a lightweight verdict summary to the campaign row.
+ * Write-once: only writes if brief_verdicts is currently NULL.
+ * Fire-and-forget — never blocks brief rendering.
+ */
+function persistVerdicts(campaignId: string, brief: DecisionBrief): void {
+  const summary: PriorRoundVerdicts = {
+    recommendation: brief.recommendation,
+    verdicts: brief.assumptionVerdicts.map((v) => ({
+      assumption: v.assumption,
+      verdict: v.verdict,
+      confidence: v.confidence,
+    })),
+  };
+
+  sql`
+    UPDATE campaigns SET brief_verdicts = ${JSON.stringify(summary)}::jsonb
+    WHERE id = ${campaignId} AND brief_verdicts IS NULL
+  `.catch(() => {
+    // Non-critical — verdict caching failure should never break brief rendering
+  });
 }

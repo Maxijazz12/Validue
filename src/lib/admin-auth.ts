@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "crypto";
+import { env } from "@/lib/env";
 
-const ADMIN_KEY = process.env.ADMIN_API_KEY;
+const ADMIN_KEY = env().ADMIN_API_KEY;
 
 /**
  * Timing-safe admin key verification.

@@ -46,6 +46,13 @@ type AudienceImproved = {
   source: "ai" | "fallback";
 };
 
+type AssumptionImproved = {
+  event: "assumption.improved";
+  latencyMs: number;
+  model: string;
+  source: "ai" | "fallback";
+};
+
 type QualityScored = {
   event: "quality.scores";
   scores: {
@@ -76,6 +83,7 @@ type GenerationEvent =
   | GenerationValidationFailed
   | QuestionRegenerated
   | AudienceImproved
+  | AssumptionImproved
   | QualityScored
   | ResponseRanked;
 

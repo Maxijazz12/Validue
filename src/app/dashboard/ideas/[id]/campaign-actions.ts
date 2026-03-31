@@ -119,6 +119,98 @@ export async function resumeCampaign(
   return { success: true };
 }
 
+export async function retestCampaign(campaignId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated." };
+
+  // Fetch original campaign
+  const { data: original } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .eq("creator_id", user.id)
+    .single();
+
+  if (!original) return { error: "Campaign not found." };
+  if (original.status !== "completed") return { error: "Only completed campaigns can be retested." };
+
+  // Rate limit: reuse same clone bucket
+  const rl = rateLimit(`clone:${user.id}`, 3600000, 10);
+  if (!rl.allowed) return { error: "Too many operations. Please wait." };
+
+  // Compute round number and title
+  const newRound = (original.round_number ?? 1) + 1;
+  const strippedTitle = (original.title as string).replace(/^Round \d+: /, "");
+  const newTitle = `Round ${newRound}: ${strippedTitle}`;
+
+  // Fetch original questions
+  const { data: questions } = await supabase
+    .from("questions")
+    .select("text, type, sort_order, options, is_baseline, category, assumption_index, anchors")
+    .eq("campaign_id", campaignId)
+    .order("sort_order", { ascending: true });
+
+  let newId: string;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+    const result = await sql.begin(async (tx: any) => {
+      const [campaign] = await tx`
+        INSERT INTO campaigns (
+          creator_id, title, description, status, category, tags,
+          estimated_minutes, reward_amount, reward_type,
+          bonus_available, rewards_top_answers,
+          target_interests, target_expertise, target_age_ranges, target_location,
+          key_assumptions,
+          audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
+          quality_scores, quality_score,
+          parent_campaign_id, round_number
+        ) VALUES (
+          ${user.id}, ${newTitle}, ${original.description}, 'draft',
+          ${original.category}, ${original.tags},
+          ${original.estimated_minutes}, 0, ${original.reward_type},
+          ${original.bonus_available}, ${original.rewards_top_answers},
+          ${original.target_interests}, ${original.target_expertise}, ${original.target_age_ranges}, ${original.target_location},
+          ${original.key_assumptions},
+          ${original.audience_occupation}, ${original.audience_industry}, ${original.audience_experience_level}, ${original.audience_niche_qualifier},
+          ${original.quality_scores}, ${original.quality_score},
+          ${campaignId}, ${newRound}
+        )
+        RETURNING id
+      `;
+
+      for (const q of questions || []) {
+        await tx`
+          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
+          VALUES (${campaign.id}, ${q.text}, ${q.type}, ${q.sort_order}, ${q.options}::jsonb, ${q.is_baseline}, ${q.category}, ${q.assumption_index}, ${q.anchors}::jsonb)
+        `;
+      }
+
+      return campaign;
+    });
+
+    newId = result.id;
+
+    logOps({
+      event: "campaign.retested",
+      originalCampaignId: campaignId,
+      newCampaignId: newId,
+      creatorId: user.id,
+      roundNumber: newRound,
+    });
+  } catch (err) {
+    console.error("[retestCampaign] DB error:", err);
+    captureWarning(`retestCampaign failed: ${(err as Error).message}`, { campaignId, operation: "campaign.retest" });
+    return { error: "Failed to create retest campaign." };
+  }
+
+  redirect(`/dashboard/ideas/${newId}`);
+}
+
 export async function cloneCampaign(campaignId: string) {
   const supabase = await createClient();
   const {

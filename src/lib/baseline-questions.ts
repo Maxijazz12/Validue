@@ -78,6 +78,34 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
     description:
       "Establishes price ceiling from real purchase history.",
   },
+  {
+    id: "bl-payment-3",
+    category: "price",
+    text: "If a tool solved this problem well, what would you realistically pay per month?",
+    options: [
+      "$0 — I'd only use it if free",
+      "Under $10/month",
+      "$10–$25/month",
+      "$25–$50/month",
+      "$50+/month",
+    ],
+    description:
+      "Forward-looking WTP — reveals price expectations independent of past spending.",
+  },
+  {
+    id: "bl-payment-4",
+    category: "price",
+    text: "Which payment model would you prefer for a tool like this?",
+    options: [
+      "Monthly subscription",
+      "Annual subscription (discounted)",
+      "One-time purchase",
+      "Free with ads",
+      "Free basic / paid premium",
+    ],
+    description:
+      "Payment model preference — reveals business model fit beyond just price point.",
+  },
 
   // ─── Behavior ───
   {
@@ -174,12 +202,30 @@ export function recommendBaseline(scribbleText: string): BaselineQuestion[] {
     .slice(0, 3)
     .map(([cat]) => cat);
 
-  // Pick the first question from each top category
+  // Pick the best question from each top category
   const selected: BaselineQuestion[] = [];
   for (const cat of topCategories) {
-    const q = BASELINE_QUESTIONS.find((bq) => bq.category === cat);
-    if (q) selected.push(q);
+    if (cat === "price") {
+      selected.push(pickPriceQuestion(text));
+    } else {
+      const q = BASELINE_QUESTIONS.find((bq) => bq.category === cat);
+      if (q) selected.push(q);
+    }
   }
 
   return selected;
+}
+
+/**
+ * Context-aware price question selection.
+ * Picks the most relevant WTP question based on the founder's scribble.
+ */
+function pickPriceQuestion(scribbleText: string): BaselineQuestion {
+  if (/subscri|recurring|monthly|saas|per month|annual/.test(scribbleText)) {
+    return BASELINE_QUESTIONS.find((q) => q.id === "bl-payment-3")!;
+  }
+  if (/pric|monetiz|revenue|charge|business model|freemium|free.*vs/.test(scribbleText)) {
+    return BASELINE_QUESTIONS.find((q) => q.id === "bl-payment-2")!;
+  }
+  return BASELINE_QUESTIONS.find((q) => q.id === "bl-payment-1")!;
 }

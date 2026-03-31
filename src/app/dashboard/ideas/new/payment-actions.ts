@@ -6,6 +6,7 @@ import sql from "@/lib/db";
 import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
 import { validateFunding } from "@/lib/reach";
 import { WELCOME_BONUS } from "@/lib/plans";
+import { env } from "@/lib/env";
 
 export async function createFundingSession(
   campaignId: string
@@ -132,8 +133,8 @@ export async function createFundingSession(
       welcomeCredit: useWelcomeCredit ? "true" : "false",
       platformCreditCents: platformCreditCents > 0 ? String(platformCreditCents) : "0",
     },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
+    success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
+    cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
   });
 
   if (!session.url) return { error: "Failed to create checkout session." };
@@ -199,8 +200,8 @@ export async function createSubscriptionSession(
       type: "subscription",
       tier,
     },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?subscribed=${tier}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?subscribed=false`,
+    success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?subscribed=${tier}`,
+    cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?subscribed=false`,
   });
 
   if (!session.url) return { error: "Failed to create checkout session." };

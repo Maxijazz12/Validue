@@ -67,6 +67,44 @@ export default function DraftReviewStep({
   }
 
   /* ─── Assumption editing ─── */
+  const [improvingAssumption, setImprovingAssumption] = useState<number | null>(null);
+  const [improveError, setImproveError] = useState<string | null>(null);
+
+  async function handleImproveAssumption(index: number) {
+    setImprovingAssumption(index);
+    setImproveError(null);
+    try {
+      const audienceSummary = [
+        draft.audience.interests.join(", "),
+        draft.audience.expertise.join(", "),
+        draft.audience.ageRanges.join(", "),
+        draft.audience.occupation,
+      ].filter(Boolean).join(" | ");
+
+      const res = await fetch("/api/generate/assumption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scribbleText: draft.summary,
+          currentAssumption: draft.assumptions[index],
+          allAssumptions: draft.assumptions,
+          audienceSummary,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const { assumption } = await res.json();
+      const next = [...draft.assumptions];
+      next[index] = assumption;
+      updateField("assumptions", next);
+    } catch {
+      setImproveError("AI improvement failed — try editing manually.");
+      setTimeout(() => setImproveError(null), 4000);
+    } finally {
+      setImprovingAssumption(null);
+    }
+  }
+
   function updateAssumption(index: number, value: string) {
     const next = [...draft.assumptions];
     next[index] = value;
@@ -228,6 +266,26 @@ export default function DraftReviewStep({
                       className="flex-1 px-[12px] py-[8px] rounded-lg border border-[#E2E8F0] bg-white text-[13px] text-[#111111] font-sans outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all"
                     />
                     <button
+                      onClick={() => handleImproveAssumption(i)}
+                      disabled={improvingAssumption === i}
+                      className={`w-[28px] h-[28px] rounded-md flex items-center justify-center transition-all cursor-pointer border-none bg-transparent ${
+                        improvingAssumption === i
+                          ? "animate-spin text-[#a855f7]"
+                          : "text-[#94A3B8] hover:bg-[#f3e8ff] hover:text-[#a855f7]"
+                      }`}
+                      title="AI improve"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {improvingAssumption === i ? (
+                          <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M6.34 6.34L3.51 3.51" />
+                        ) : (
+                          <>
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                    <button
                       onClick={() => removeAssumption(i)}
                       className="text-[#94A3B8] hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent p-[4px]"
                     >
@@ -247,6 +305,9 @@ export default function DraftReviewStep({
                     </button>
                   </div>
                 ))}
+                {improveError && (
+                  <p className="text-[12px] text-[#ef4444] mt-[2px]">{improveError}</p>
+                )}
                 {draft.assumptions.length < 5 && (
                   <button
                     onClick={addAssumption}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { runQualityPass } from "../ai/quality-pass";
 import type { CampaignDraft, DraftQuestion, EvidenceCategory } from "../ai/types";
-import { BASELINE_QUESTIONS } from "../baseline-questions";
+import { BASELINE_QUESTIONS, recommendBaseline } from "../baseline-questions";
 
 /* ─── Helpers ─── */
 
@@ -298,5 +298,129 @@ describe("generation-quality: DraftQuestion type supports new fields", () => {
     const q = makeOpenQuestion(0, "test question", 0);
     expect(q.anchors).toHaveLength(2);
     expect(q.anchors![0]).toContain("Include:");
+  });
+});
+
+/* ─── Assumption Specificity ─── */
+
+describe("generation-quality: assumption specificity", () => {
+  it("specific assumptions score high", () => {
+    const draft = makeDraft({
+      assumptions: [
+        "Freelance designers currently spend >3 hours/week manually resizing images for different social media platforms",
+        "Students pay $10-30/month for study tools but switch providers every 6 months on average",
+      ],
+    });
+    const { scores } = runQualityPass(draft, "test scribble");
+    expect(scores.assumptionSpecificity).toBeGreaterThanOrEqual(70);
+  });
+
+  it("vague assumptions score low", () => {
+    const draft = makeDraft({
+      assumptions: [
+        "Users want a better solution",
+        "People need this product",
+        "There is a market for this",
+      ],
+    });
+    const { scores } = runQualityPass(draft, "test scribble");
+    expect(scores.assumptionSpecificity).toBeLessThan(40);
+  });
+
+  it("weasel words produce a warning", () => {
+    const draft = makeDraft({
+      assumptions: [
+        "Some users probably want to switch to a better tool for managing tasks",
+      ],
+    });
+    const { scores } = runQualityPass(draft, "test scribble");
+    const weaselWarnings = scores.warnings.filter(
+      (w) => w.dimension === "assumptions" && (w.message.includes("vague") || w.message.includes("specific"))
+    );
+    expect(weaselWarnings.length).toBeGreaterThan(0);
+  });
+
+  it("feature requests produce a warning", () => {
+    const draft = makeDraft({
+      assumptions: [
+        "Users want a dashboard feature for tracking habits",
+      ],
+    });
+    const { scores } = runQualityPass(draft, "test scribble");
+    const frWarnings = scores.warnings.filter(
+      (w) => w.dimension === "assumptions" && (w.message.includes("vague") || w.message.includes("specific"))
+    );
+    expect(frWarnings.length).toBeGreaterThan(0);
+  });
+
+  it("short assumptions get flagged", () => {
+    const draft = makeDraft({
+      assumptions: [
+        "Users pay for tools", // < 40 chars
+      ],
+    });
+    const { scores } = runQualityPass(draft, "test scribble");
+    expect(scores.assumptionSpecificity).toBeLessThan(50);
+  });
+
+  it("mixed assumptions average correctly", () => {
+    const draft = makeDraft({
+      assumptions: [
+        "Freelance designers currently spend >3 hours/week manually resizing images", // strong
+        "Users want this", // weak
+      ],
+    });
+    const { scores } = runQualityPass(draft, "test scribble");
+    expect(scores.assumptionSpecificity).toBeGreaterThanOrEqual(30);
+    expect(scores.assumptionSpecificity).toBeLessThanOrEqual(80);
+  });
+
+  it("new dimension is included in overall score", () => {
+    const draft = makeDraft();
+    const { scores } = runQualityPass(draft, "test scribble");
+    expect(scores.assumptionSpecificity).toBeDefined();
+    // Overall should still be reasonable
+    expect(scores.overall).toBeGreaterThan(0);
+  });
+});
+
+/* ─── Baseline Recommendation ─── */
+
+describe("generation-quality: baseline recommendation", () => {
+  it("subscription keyword selects bl-payment-3", () => {
+    const baselines = recommendBaseline("a monthly subscription saas tool for designers");
+    const priceQ = baselines.find((b) => b.category === "price");
+    expect(priceQ).toBeDefined();
+    expect(priceQ!.id).toBe("bl-payment-3");
+  });
+
+  it("pricing keyword selects bl-payment-2", () => {
+    const baselines = recommendBaseline("pricing strategy for a monetization platform");
+    const priceQ = baselines.find((b) => b.category === "price");
+    expect(priceQ).toBeDefined();
+    expect(priceQ!.id).toBe("bl-payment-2");
+  });
+
+  it("default selects bl-payment-1", () => {
+    const baselines = recommendBaseline("a tool for students to organize their homework");
+    const priceQ = baselines.find((b) => b.category === "price");
+    // Price may or may not be in top 3; if it is, it should be bl-payment-1
+    if (priceQ) {
+      expect(priceQ.id).toBe("bl-payment-1");
+    }
+  });
+
+  it("always returns exactly 3 baselines", () => {
+    const baselines = recommendBaseline("anything");
+    expect(baselines).toHaveLength(3);
+  });
+
+  it("new baselines do not use hypothetical framing", () => {
+    const payment3 = BASELINE_QUESTIONS.find((q) => q.id === "bl-payment-3")!;
+    const payment4 = BASELINE_QUESTIONS.find((q) => q.id === "bl-payment-4")!;
+    expect(payment3.text).not.toMatch(/^Would you/i);
+    expect(payment4.text).not.toMatch(/^Would you/i);
+    expect(payment3.text).not.toMatch(/^Do you think/i);
+    expect(payment4.text).not.toMatch(/^Do you think/i);
   });
 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG } from "@/lib/plans";
+import { rateLimit } from "@/lib/rate-limit";
 
 function escapeCsv(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -23,6 +24,12 @@ export async function GET(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit: 10 exports per user per minute
+  const limit = rateLimit(`export:${user.id}`, 60000, 10);
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   // Check plan tier allows export

@@ -57,11 +57,16 @@ const RULES = `## Core rules — never violate these:
 
 10. **Negative-space permission.** At least one question must explicitly invite respondents to share failures, frustrations, or abandonments — "where you gave up", "what didn't work", "what made you stop". People need permission to share negative experiences.
 
-11. **Assumption mapping.** Every open and follow-up question must include an assumptionIndex (0-based) indicating which assumption from the assumptions array it primarily tests. Every assumption must have at least one question testing it.
+11. **Assumption mapping.** Every open and follow-up question must include an assumptionIndex (0-based, max = assumptions.length − 1) indicating which assumption from the assumptions array it primarily tests. Every assumption must have at least one question testing it. Do NOT use an index ≥ assumptions.length.
 
 12. **Response anchors.** Every open and follow-up question must include 2-3 response anchors — short hints shown below the text area that guide respondents toward specific, useful answers. Examples: "Include: specific tools or apps you used", "Mention: how long ago and how often".
 
-13. **Evidence categories required.** Every open and follow-up question must include exactly one evidenceCategory from: behavior (current habits/routines), attempts (past solutions tried), willingness (openness to switching/trying), price (spending habits/WTP), pain (problem severity/frequency), negative (disconfirmation — designed to find evidence AGAINST the assumption). Per assumption: use ≥3 distinct categories across its questions. Every assumption must have at least one "negative" question — phrased to surface evidence that would disprove the assumption.`;
+13. **Evidence categories required.** Every open and follow-up question must include exactly one evidenceCategory from: behavior, attempts, willingness, price, pain, negative. **Hard structural rule:** for EACH assumption, its mapped questions must span ≥3 distinct categories AND include exactly one "negative" (disconfirmation — designed to find evidence AGAINST the assumption). Plan your question-to-assumption mapping BEFORE generating questions to ensure coverage.
+
+14. **Assumptions must be specific and testable.** Every assumption must include ALL THREE of: (a) a specific audience segment (not "users" or "people"), (b) a behavioral verb (spend, use, pay, switch, search, try, track, manage), (c) a temporal or quantitative marker (weekly, >3 hours, $20/month, currently). Drop an assumption rather than include a vague one. Bad → Good examples:
+  - "Consumers buy products based on influencer recommendations" → "Trend-conscious shoppers aged 18–34 currently purchase ≥1 product per month directly from influencer links on Instagram or TikTok"
+  - "People are willing to pay for this" → "Freelance designers currently spend $15–50/month on image editing tools and would switch to an AI alternative at the same price point"
+  - "There is demand for a better solution" → "Solo founders spend >2 hours per validation cycle manually analyzing survey responses and have tried ≥2 tools in the past year"`;
 
 /* ═══════════════════════════════════════════
    SECTION 2: EXAMPLES (few-shot)
@@ -77,35 +82,34 @@ Strong output:
 - Summary: "An AI-powered weekly meal planner that generates personalized meal plans and shopping lists for busy professionals who want to eat healthier but don't have time to plan. Competes with food delivery by being cheaper and healthier."
 - Category: Health
 - Tags: ["Health-Conscious Professionals", "Busy Parents", "Fitness Enthusiasts"]
-- Assumptions:
-  1. Busy professionals want to eat healthier but feel time is the primary barrier
-  2. Current meal planning tools are too manual or don't account for personal preferences
-  3. A subscription AI planner is more appealing than delivery for cost-conscious users
-  4. Users will trust AI-generated meal plans enough to follow them weekly
-- Open questions:
+- Assumptions (note: specific audience + behavioral verb + temporal/quantitative marker):
+  1. Working professionals aged 25–44 currently spend >30 minutes per weeknight deciding what to cook and default to takeout ≥3 times per week
+  2. People who have tried meal planning apps in the past 12 months abandon them within 3 weeks because the plans don't match their dietary preferences or schedule
+  3. Health-conscious professionals currently spending $50–150/week on delivery would switch to a $15/month AI planner if it saved them ≥2 hours per week
+- Open questions (evidence category coverage per assumption shown):
   - text: "Walk me through what a typical weeknight dinner looks like for you right now — from deciding what to eat to actually eating."
     assumptionIndex: 0, evidenceCategory: "behavior"
     anchors: ["Include: how you decide what to eat, how long it takes", "Mention: any tools or apps you use for meal planning"]
-  - text: "Think about the last time you tried to eat healthier for a sustained period. What specifically got in the way?"
-    assumptionIndex: 0, evidenceCategory: "pain"
-    anchors: ["Include: what you tried, how long it lasted, what broke the habit", "Mention: specific obstacles — time, cost, knowledge, motivation"]
-  - text: "What tools, apps, or habits have you tried for meal planning? What made you stop using them?"
+  - text: "Think about the last time you tried to eat healthier for a sustained period. What specifically made you stop?"
+    assumptionIndex: 1, evidenceCategory: "pain"
+    anchors: ["Include: what you tried, how long it lasted, what broke the habit", "Mention: specific obstacles — time, cost, taste, variety"]
+  - text: "What tools, apps, or habits have you tried for meal planning in the past year? What made you quit each one?"
     assumptionIndex: 1, evidenceCategory: "attempts"
-    anchors: ["Name specific tools or apps you've tried", "Include: what worked, what didn't, why you stopped"]
-  - text: "What would make you NOT switch from your current routine, even if a better option existed?"
+    anchors: ["Name specific tools or apps", "Include: what worked, what didn't, why you stopped"]
+  - text: "What would make you NOT switch from your current food routine, even if a cheaper and healthier option existed?"
     assumptionIndex: 0, evidenceCategory: "negative"
-    anchors: ["Include: specific things you'd lose by switching", "Mention: habits or workflows that are hard to change"]
+    anchors: ["Include: specific things you'd lose by switching", "Mention: habits or convenience factors that are hard to give up"]
 - Follow-up questions:
-  - text: "If an AI generated a full week of meals and a shopping list for you every Sunday — what would make you trust it enough to follow it?"
-    assumptionIndex: 3, evidenceCategory: "willingness"
-    anchors: ["Include: what would build or break your trust", "Mention: past experiences with AI recommendations"]
-  - text: "How does the cost of your current food routine compare to what you'd want to spend on something like this?"
+  - text: "How much do you currently spend per week on food delivery, and what would a meal planning tool need to do to be worth switching?"
     assumptionIndex: 2, evidenceCategory: "price"
-    anchors: ["Include: how much you currently spend weekly on food", "Mention: what you'd expect to pay for this kind of tool"]
-- Baseline IDs: ["bl-willingness-1", "bl-price-1", "bl-behavior-1"]
+    anchors: ["Include: your actual weekly delivery spend", "Mention: what 'worth it' means to you — time saved, money saved, health"]
+  - text: "What's a reason you'd try an AI meal planner for a week and then never open it again?"
+    assumptionIndex: 1, evidenceCategory: "negative"
+    anchors: ["Include: specific dealbreakers or frustrations", "Mention: past experiences where you abandoned a similar tool"]
+- Baseline IDs: ["bl-willingness-1", "bl-payment-1", "bl-behavior-1"]
 - Audience: interests: ["Health"], expertise: ["Founder", "Product Manager"], ageRanges: ["25-34", "35-44"], occupation: "Working professional", industry: "Technology"
 
-Notice: every question is grounded in behavior. No "Would you like an AI meal planner?" — that's leading and hypothetical.`;
+Notice: assumptions are specific (audience + action + number). Questions are grounded in behavior. Two assumptions have "negative" disconfirmation questions. No "Would you like an AI meal planner?" — that's leading and hypothetical.`;
 
 /* ═══════════════════════════════════════════
    SECTION 3: SYSTEM PROMPT (assembled)
@@ -130,6 +134,20 @@ Key rules:
 - Specificity demands required: ask for concrete details — tools, time, cost.
 - Every question must help the founder make a build/kill/pivot decision.
 - No filler, no hypotheticals unless tied to a concrete scenario.`;
+
+export const ASSUMPTION_IMPROVE_SYSTEM_PROMPT = `You are a founder validation specialist. Rewrite a vague or weak assumption to be specific, testable, and measurable.
+
+Rules:
+- Return a declarative statement, not a question
+- Include a temporal marker (weekly, currently, per month, in the past year)
+- Include a quantitative or measurable detail (numbers, dollar amounts, frequency, percentages)
+- Reference a specific audience segment, not just "users"
+- Include a behavioral verb (spend, use, pay, switch, search, try, track, manage)
+- Avoid weasel words: some, many, most, generally, probably
+- Must be falsifiable — 5-10 real respondents could confirm or refute it
+- Keep it to one sentence, under 200 characters
+- Preserve the core hypothesis — improve specificity, don't change the meaning
+- Ground it in observable behavior, not opinions or desires`;
 
 export const AUDIENCE_IMPROVE_SYSTEM_PROMPT = `You are an audience targeting specialist for founder validation campaigns. Improve targeting to reach people who actually experience the problem being validated.
 
@@ -172,20 +190,21 @@ Requirements:
 - Summary: polished 2–3 sentences. Explain the idea, the problem, and who it's for.
 - Category: pick the single best match from the valid list.
 - Tags: 1–5 descriptive audience tags (e.g. "Freelance Designers", "SaaS Founders").
-- Assumptions: 2–5 testable, declarative statements this campaign will validate. No questions.
-- Open questions (2–4, section: "open"): explore current behavior, pain, and existing solutions. Start with "Walk me through…", "How do you currently…", "When was the last time…"
-- Follow-up questions (1–3, section: "followup"): probe this specific idea's viability, willingness to switch, objections.
+- Assumptions: 2–3 testable, declarative statements this campaign will validate. No questions. Fewer strong assumptions beat many weak ones — each assumption needs ≥3 evidence categories across its questions, so keep assumptions tight.
+- Open questions (3–4, section: "open"): explore current behavior, pain, and existing solutions. Start with "Walk me through…", "How do you currently…", "When was the last time…"
+- Follow-up questions (1–2, section: "followup"): probe this specific idea's viability, willingness to switch, objections.
 - Baseline IDs: pick exactly 3 from the library. Prefer diverse categories.
 - Apply all assumption-mapping, anchor, and evidence category rules from Core Rules above.
 - Audience: be specific. Fill in as many targeting fields as you can confidently infer.
 
-Question quality bar:
-- Every question must help the founder make a build, kill, or pivot decision.
+Structural requirements (non-negotiable):
+- For EACH assumption: its questions must use ≥3 distinct evidence categories AND include one "negative" category question. Plan this mapping before writing questions.
+- Every assumption must have at least one question testing it. No orphan assumptions.
 - At least one question must ask about CURRENT behavior (what they do today).
 - At least one question must probe PAIN or URGENCY (what frustrates them, how often).
-- At least one question per assumption must be a disconfirmation probe (evidenceCategory: "negative").
-- No hypotheticals unless they're tied to a concrete scenario.
-- No generic questions like "What do you think?" or "Any feedback?"
+- At least one question should use evidenceCategory: "price" — explore spending habits, not just "how much would you pay."
+- No hypotheticals unless tied to a concrete scenario. No generic questions like "What do you think?"
+- Every question must help the founder make a build, kill, or pivot decision.
 
 ${BASELINE_BLOCK}`;
 }
@@ -281,4 +300,35 @@ Improve this audience targeting:
 - Do NOT just paraphrase — make changes that would improve respondent quality
 
 Call the improve_audience tool with your suggestions.`;
+}
+
+/* ─── Assumption Improvement (context-aware) ─── */
+
+export function buildImproveAssumptionPrompt(
+  scribbleText: string,
+  currentAssumption: string,
+  allAssumptions: string[],
+  audienceSummary: string
+): string {
+  const input = sanitizeInput(scribbleText);
+  const otherAssumptions = allAssumptions
+    .filter((a) => a !== currentAssumption)
+    .map((a) => `- ${sanitizeField(a)}`)
+    .join("\n");
+
+  return `A founder is building a validation campaign for this idea:
+
+---
+${input}
+---
+
+Target audience: ${sanitizeField(audienceSummary)}
+
+Other assumptions in this campaign:
+${otherAssumptions || "(none)"}
+
+Rewrite this assumption to be more specific and testable:
+"${sanitizeField(currentAssumption)}"
+
+Call the improve_assumption tool with the improved version.`;
 }

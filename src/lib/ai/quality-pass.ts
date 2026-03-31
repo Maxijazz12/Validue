@@ -232,6 +232,78 @@ function scoreMonetizationCoverage(draft: CampaignDraft): { score: number; warni
   return { score: Math.min(score, 100), warnings };
 }
 
+/* ─── Assumption Specificity Scoring ─── */
+
+const GENERIC_OPENER =
+  /^(Users want|People need|There is a market for|Customers want|Everyone needs)/i;
+
+const FEATURE_REQUEST =
+  /^(Users want|People want|Customers want) .{0,20}(feature|tool|app|product|solution)/i;
+
+const WEASEL_WORDS =
+  /\b(some|many|most|generally|probably|might|could)\b/i;
+
+const BEHAVIORAL_VERBS =
+  /\b(spend|use|pay|switch|search|try|buy|adopt|cancel|abandon|choose|prefer|track|manage|handle|solve|waste|lose|save|invest|subscribe|download|visit|complete|skip|ignore|avoid)\b/i;
+
+const TEMPORAL_MARKERS =
+  /\b(weekly|daily|monthly|per month|per week|per day|currently|right now|every|annually|quarterly|each time)\b/i;
+
+const QUANTITATIVE_MARKERS =
+  /(\d+|[$%]|\bhours?\b|\bminutes?\b|\btimes?\b)/i;
+
+const SPECIFIC_AUDIENCE =
+  /\b(freelancers?|founders?|parents?|teachers?|developers?|designers?|managers?|students?|professionals?|teams?|startups?|agencies?|creators?|marketers?|engineers?|writers?|coaches?|consultants?|retailers?|artists?)\b/i;
+
+function scoreAssumptionSpecificity(draft: CampaignDraft): { score: number; warnings: QualityWarning[] } {
+  const warnings: QualityWarning[] = [];
+  const { assumptions } = draft;
+
+  if (assumptions.length === 0) return { score: 0, warnings: [] };
+
+  let totalScore = 0;
+
+  for (const assumption of assumptions) {
+    let s = 50; // neutral baseline
+
+    // Vagueness deductions
+    if (assumption.length < 40) s -= 15;
+    if (GENERIC_OPENER.test(assumption)) s -= 20;
+    if (WEASEL_WORDS.test(assumption)) s -= 10;
+    if (FEATURE_REQUEST.test(assumption)) s -= 15;
+    if (!BEHAVIORAL_VERBS.test(assumption)) s -= 10;
+
+    // Specificity bonuses
+    if (TEMPORAL_MARKERS.test(assumption)) s += 15;
+    if (QUANTITATIVE_MARKERS.test(assumption)) s += 15;
+    if (BEHAVIORAL_VERBS.test(assumption)) s += 10;
+    if (SPECIFIC_AUDIENCE.test(assumption)) s += 10;
+
+    s = Math.min(Math.max(s, 0), 100);
+
+    if (s < 40) {
+      warnings.push({
+        severity: "high",
+        dimension: "assumptions",
+        message: `Assumption is vague — make it specific and testable: "${assumption.slice(0, 60)}…"`,
+      });
+    } else if (s < 60) {
+      warnings.push({
+        severity: "medium",
+        dimension: "assumptions",
+        message: `Assumption could be more specific: "${assumption.slice(0, 60)}…"`,
+      });
+    }
+
+    totalScore += s;
+  }
+
+  return {
+    score: Math.min(Math.max(Math.round(totalScore / assumptions.length), 0), 100),
+    warnings,
+  };
+}
+
 /* ─── Assumption Quality Check ─── */
 
 function checkAssumptions(draft: CampaignDraft): QualityWarning[] {
@@ -312,6 +384,9 @@ function checkEvidenceCategories(draft: CampaignDraft): QualityWarning[] {
   const warnings: QualityWarning[] = [];
   const nonBaseline = draft.questions.filter((q) => !q.isBaseline);
 
+  let lowCategoryCount = 0;
+  let noNegativeCount = 0;
+
   // Per-assumption: check category diversity and negative coverage
   for (let i = 0; i < draft.assumptions.length; i++) {
     const questionsForAssumption = nonBaseline.filter((q) => q.assumptionIndex === i);
@@ -319,26 +394,34 @@ function checkEvidenceCategories(draft: CampaignDraft): QualityWarning[] {
 
     const categories = new Set(questionsForAssumption.map((q) => q.category).filter(Boolean));
 
-    if (categories.size < 3) {
-      warnings.push({
-        severity: "high",
-        dimension: "evidence",
-        message: `Assumption "${draft.assumptions[i].slice(0, 50)}…" has only ${categories.size} evidence category${categories.size === 1 ? "" : "ies"} — need ≥3 for triangulation.`,
-      });
-    }
+    if (categories.size < 3) lowCategoryCount++;
+    if (!categories.has("negative")) noNegativeCount++;
+  }
 
-    if (!categories.has("negative")) {
-      warnings.push({
-        severity: "high",
-        dimension: "evidence",
-        message: `Assumption "${draft.assumptions[i].slice(0, 50)}…" has no disconfirmation question — add a "negative" category question to test against it.`,
-      });
-    }
+  // Emit one aggregated warning per issue type
+  if (lowCategoryCount > 0) {
+    warnings.push({
+      severity: "high",
+      dimension: "evidence",
+      message: lowCategoryCount === 1
+        ? `1 assumption lacks evidence category triangulation — need ≥3 categories per assumption.`
+        : `${lowCategoryCount} assumptions lack evidence category triangulation — need ≥3 categories each.`,
+    });
+  }
+
+  if (noNegativeCount > 0) {
+    warnings.push({
+      severity: "high",
+      dimension: "evidence",
+      message: noNegativeCount === 1
+        ? `1 assumption has no disconfirmation question — add a "negative" category question to test against it.`
+        : `${noNegativeCount} assumptions have no disconfirmation question — add "negative" category questions.`,
+    });
   }
 
   // Campaign-wide: warn if no negative questions at all
   const hasAnyNegative = nonBaseline.some((q) => q.category === "negative");
-  if (!hasAnyNegative) {
+  if (!hasAnyNegative && noNegativeCount === 0) {
     warnings.push({
       severity: "medium",
       dimension: "evidence",
@@ -379,6 +462,7 @@ export function runQualityPass(
   const questionQuality = scoreQuestionQuality(patchedDraft);
   const behavioral = scoreBehavioralCoverage(patchedDraft);
   const monetization = scoreMonetizationCoverage(patchedDraft);
+  const assumptionSpec = scoreAssumptionSpecificity(patchedDraft);
 
   // Collect all warnings
   const allWarnings: QualityWarning[] = [
@@ -386,6 +470,7 @@ export function runQualityPass(
     ...questionQuality.warnings,
     ...behavioral.warnings,
     ...monetization.warnings,
+    ...assumptionSpec.warnings,
     ...checkAssumptions(patchedDraft),
     ...checkBaselines(patchedDraft),
     ...checkAssumptionCoverage(patchedDraft),
@@ -394,10 +479,11 @@ export function runQualityPass(
 
   // Weighted overall score
   const overall = Math.round(
-    audience.score * 0.25 +
-    questionQuality.score * 0.30 +
-    behavioral.score * 0.25 +
-    monetization.score * 0.20
+    audience.score * 0.20 +
+    questionQuality.score * 0.25 +
+    behavioral.score * 0.20 +
+    monetization.score * 0.20 +
+    assumptionSpec.score * 0.15
   );
 
   const scores: QualityScores = {
@@ -405,6 +491,7 @@ export function runQualityPass(
     questionQuality: questionQuality.score,
     behavioralCoverage: behavioral.score,
     monetizationCoverage: monetization.score,
+    assumptionSpecificity: assumptionSpec.score,
     overall: Math.min(Math.max(overall, 0), 100),
     warnings: allWarnings,
   };

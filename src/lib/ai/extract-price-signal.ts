@@ -28,6 +28,14 @@ export interface PriceSignal {
   matchSkew: string | null;
   /** One-line interpretation for the brief */
   interpretation: string;
+  /** Distribution of forward WTP answers (bl-payment-3) */
+  forwardWtpDistribution?: Record<string, number>;
+  /** Distribution of preferred payment model answers (bl-payment-4) */
+  preferredModelDistribution?: Record<string, number>;
+  /** Dominant forward WTP tier */
+  dominantForwardWtp?: string | null;
+  /** Dominant preferred payment model */
+  dominantPreferredModel?: string | null;
 }
 
 /* ─── Price Tier Ordering ─── */
@@ -74,7 +82,13 @@ export async function extractPriceSignal(
   if (rows.length === 0) return null;
 
   // Group by respondent
-  const respondentMap = new Map<string, { pastSpending: string | null; priceCeiling: string | null; qualityScore: number }>();
+  const respondentMap = new Map<string, {
+    pastSpending: string | null;
+    priceCeiling: string | null;
+    forwardWtp: string | null;
+    preferredModel: string | null;
+    qualityScore: number;
+  }>();
 
   for (const row of rows) {
     const rid = row.respondent_id as string;
@@ -82,6 +96,8 @@ export async function extractPriceSignal(
       respondentMap.set(rid, {
         pastSpending: null,
         priceCeiling: null,
+        forwardWtp: null,
+        preferredModel: null,
         qualityScore: Number(row.quality_score ?? 0),
       });
     }
@@ -94,6 +110,10 @@ export async function extractPriceSignal(
       entry.pastSpending = answer;
     } else if (question.includes("most you've paid") || question.includes("single tool")) {
       entry.priceCeiling = answer;
+    } else if (question.includes("realistically pay per month") || question.includes("solved this problem well")) {
+      entry.forwardWtp = answer;
+    } else if (question.includes("payment model") || question.includes("Which payment model")) {
+      entry.preferredModel = answer;
     }
   }
 
@@ -102,6 +122,8 @@ export async function extractPriceSignal(
   // Build distributions
   const pastSpendingDist: Record<string, number> = {};
   const priceCeilingDist: Record<string, number> = {};
+  const forwardWtpDist: Record<string, number> = {};
+  const preferredModelDist: Record<string, number> = {};
 
   for (const [, data] of respondentMap) {
     if (data.pastSpending) {
@@ -109,6 +131,12 @@ export async function extractPriceSignal(
     }
     if (data.priceCeiling) {
       priceCeilingDist[data.priceCeiling] = (priceCeilingDist[data.priceCeiling] || 0) + 1;
+    }
+    if (data.forwardWtp) {
+      forwardWtpDist[data.forwardWtp] = (forwardWtpDist[data.forwardWtp] || 0) + 1;
+    }
+    if (data.preferredModel) {
+      preferredModelDist[data.preferredModel] = (preferredModelDist[data.preferredModel] || 0) + 1;
     }
   }
 
@@ -144,6 +172,26 @@ export async function extractPriceSignal(
     }
   }
 
+  // Find dominant forward WTP
+  let dominantForwardWtp: string | null = null;
+  let forwardWtpMaxCount = 0;
+  for (const [tier, count] of Object.entries(forwardWtpDist)) {
+    if (count > forwardWtpMaxCount) {
+      forwardWtpMaxCount = count;
+      dominantForwardWtp = tier;
+    }
+  }
+
+  // Find dominant preferred model
+  let dominantPreferredModel: string | null = null;
+  let modelMaxCount = 0;
+  for (const [tier, count] of Object.entries(preferredModelDist)) {
+    if (count > modelMaxCount) {
+      modelMaxCount = count;
+      dominantPreferredModel = tier;
+    }
+  }
+
   // Build interpretation
   const total = respondentMap.size;
   let interpretation: string;
@@ -163,6 +211,17 @@ export async function extractPriceSignal(
     interpretation = `Mixed price signals across ${total} respondents: ${tiers}.`;
   }
 
+  // Append forward WTP context
+  if (Object.keys(forwardWtpDist).length > 0) {
+    const freeCount = forwardWtpDist["$0 — I'd only use it if free"] ?? 0;
+    const paidCount = total - freeCount;
+    if (paidCount > freeCount) {
+      interpretation += ` Forward-looking: ${paidCount}/${total} would pay for a solution.`;
+    } else {
+      interpretation += ` Forward-looking: majority would only use a free tool.`;
+    }
+  }
+
   return {
     respondentCount: total,
     pastSpendingDistribution: pastSpendingDist,
@@ -170,5 +229,9 @@ export async function extractPriceSignal(
     dominantCeiling,
     matchSkew,
     interpretation,
+    forwardWtpDistribution: Object.keys(forwardWtpDist).length > 0 ? forwardWtpDist : undefined,
+    preferredModelDistribution: Object.keys(preferredModelDist).length > 0 ? preferredModelDist : undefined,
+    dominantForwardWtp,
+    dominantPreferredModel,
   };
 }

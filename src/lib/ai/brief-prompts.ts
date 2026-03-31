@@ -1,6 +1,9 @@
 import { sanitizeForPrompt } from "./sanitize-prompt";
 import type { AssumptionEvidence, BriefMethodology } from "./assumption-evidence";
 import type { PriceSignal } from "./extract-price-signal";
+import type { ConsistencyReport } from "./detect-consistency-gaps";
+import type { SegmentReport } from "./segment-disagreements";
+import type { PriorRoundVerdicts } from "./synthesize-brief";
 
 /* ─── System Prompt ─── */
 
@@ -107,7 +110,10 @@ export function buildSynthesisPrompt(
   assumptions: string[],
   evidenceByAssumption: Map<number, AssumptionEvidence[]>,
   methodology: BriefMethodology,
-  priceSignal?: PriceSignal | null
+  priceSignal?: PriceSignal | null,
+  consistencyReport?: ConsistencyReport | null,
+  segmentReport?: SegmentReport | null,
+  priorRoundVerdicts?: PriorRoundVerdicts | null
 ): string {
   const sections: string[] = [];
 
@@ -165,13 +171,66 @@ Relevant responses: ${evidence.length}`;
       }
     }
 
+    if (priceSignal.forwardWtpDistribution && Object.keys(priceSignal.forwardWtpDistribution).length > 0) {
+      priceBlock += "\n\nForward WTP (what they'd pay for a solution):";
+      for (const [tier, count] of Object.entries(priceSignal.forwardWtpDistribution)) {
+        priceBlock += `\n- ${tier}: ${count}`;
+      }
+    }
+
+    if (priceSignal.preferredModelDistribution && Object.keys(priceSignal.preferredModelDistribution).length > 0) {
+      priceBlock += "\n\nPreferred payment model:";
+      for (const [tier, count] of Object.entries(priceSignal.preferredModelDistribution)) {
+        priceBlock += `\n- ${tier}: ${count}`;
+      }
+    }
+
     if (priceSignal.matchSkew) {
       priceBlock += `\n\nNote: ${priceSignal.matchSkew}`;
     }
 
-    priceBlock += "\n\nUse this pricing data when evaluating assumptions related to willingness to pay, pricing, or monetization. Reference specific price tiers in your verdicts and next steps where relevant.";
+    priceBlock += "\n\nUse this pricing data when evaluating assumptions related to willingness to pay, pricing, or monetization. Compare forward WTP expectations against actual past spending to assess price realism. Reference specific price tiers and preferred payment models in your verdicts and next steps where relevant.";
 
     sections.push(priceBlock);
+  }
+
+  // Consistency gaps (if available)
+  if (consistencyReport && consistencyReport.gaps.length > 0) {
+    let consistencyBlock = `## Behavioral Consistency Gaps\n${consistencyReport.summary}\n`;
+
+    for (const gap of consistencyReport.gaps) {
+      consistencyBlock += `\n- **${gap.respondentLabel}** (quality=${gap.qualityScore}, ${gap.severity} severity): Said "${sanitizeForPrompt(gap.statedAnswer)}" for "${sanitizeForPrompt(gap.statedQuestion)}" but "${sanitizeForPrompt(gap.behavioralAnswer)}" for "${sanitizeForPrompt(gap.behavioralQuestion)}" (${gap.gapType})`;
+    }
+
+    consistencyBlock += "\n\nUse these contradictions when evaluating assumption verdicts. A respondent who contradicts themselves on price or urgency provides weaker support for willingness/pricing assumptions. Flag these in contradictingSignal where relevant.";
+
+    sections.push(consistencyBlock);
+  }
+
+  // Audience segment disagreements (if available)
+  if (segmentReport && segmentReport.disagreements.length > 0) {
+    let segmentBlock = `## Audience Segment Disagreements\n${segmentReport.summary}\n`;
+
+    for (const d of segmentReport.disagreements) {
+      segmentBlock += `\n- **Assumption ${d.assumptionIndex} — "${sanitizeForPrompt(d.assumption)}"** (${d.severity} severity): ${d.signal}. High-match support: ${Math.round(d.highMatchSupportRatio * 100)}% (n=${d.highMatchCount}), Low-match support: ${Math.round(d.lowMatchSupportRatio * 100)}% (n=${d.lowMatchCount})`;
+    }
+
+    segmentBlock += "\n\nWhen high-match respondents contradict an assumption but low-match respondents support it, the founder's optimism may be anchored to the wrong audience. Flag this prominently in the relevant assumption verdict's contradictingSignal and factor it into confidence levels.";
+
+    sections.push(segmentBlock);
+  }
+
+  // Prior round context (for round 2+ campaigns)
+  if (priorRoundVerdicts && priorRoundVerdicts.verdicts.length > 0) {
+    let priorBlock = `## Prior Round Context\nPrevious recommendation: **${priorRoundVerdicts.recommendation}**\n\nPrevious assumption verdicts:`;
+
+    for (const v of priorRoundVerdicts.verdicts) {
+      priorBlock += `\n- "${sanitizeForPrompt(v.assumption)}": ${v.verdict} (${v.confidence} confidence)`;
+    }
+
+    priorBlock += "\n\nReference how verdicts changed between rounds. If an assumption was CHALLENGED previously and is now CONFIRMED, highlight this as evidence of real progress. If an assumption was CONFIRMED previously but is now REFUTED, flag this prominently as a reversal that demands attention. Use phrases like \"Previously CHALLENGED, now CONFIRMED\" in your evidence summaries where relevant.";
+
+    sections.push(priorBlock);
   }
 
   sections.push(

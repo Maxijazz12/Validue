@@ -58,11 +58,12 @@ export interface QualityWarning {
 }
 
 export interface QualityScores {
-  audienceClarity: number;       // 0–100
-  questionQuality: number;       // 0–100
-  behavioralCoverage: number;    // 0–100
-  monetizationCoverage: number;  // 0–100
-  overall: number;               // 0–100
+  audienceClarity: number;         // 0–100
+  questionQuality: number;         // 0–100
+  behavioralCoverage: number;      // 0–100
+  monetizationCoverage: number;    // 0–100
+  assumptionSpecificity: number;   // 0–100
+  overall: number;                 // 0–100
   warnings: QualityWarning[];
 }
 
@@ -100,6 +101,7 @@ export interface SignalStrengthResult {
     questionQuality: number;
     behavioralCoverage: number;
     monetizationCoverage: number;
+    assumptionSpecificity: number;
   };
 }
 

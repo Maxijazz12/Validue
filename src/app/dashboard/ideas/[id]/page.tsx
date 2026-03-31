@@ -4,6 +4,7 @@ import Link from "next/link";
 import FundCampaignButton from "@/components/dashboard/FundCampaignButton";
 import { CompleteCampaignButton, PauseCampaignButton, ResumeCampaignButton } from "@/components/dashboard/CampaignStatusButtons";
 import CloneCampaignButton from "@/components/dashboard/CloneCampaignButton";
+import RetestCampaignButton from "@/components/dashboard/RetestCampaignButton";
 import CampaignAnalytics from "@/components/dashboard/CampaignAnalytics";
 import { getCampaignStrength, getStrengthLabel, estimateFillSpeed, getQualityModifier } from "@/lib/reach";
 import { getStrengthColors } from "@/lib/strength-colors";
@@ -171,6 +172,7 @@ export default async function CampaignDetailPage({
     questionQuality?: number;
     behavioralCoverage?: number;
     monetizationCoverage?: number;
+    assumptionSpecificity?: number;
     overall?: number;
   } | null;
 
@@ -225,7 +227,15 @@ export default async function CampaignDetailPage({
           <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
             <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">{campaign.title}</h1>
             <div className="flex items-center gap-[8px] shrink-0">
+              {campaign.status === "completed" && (
+                <RetestCampaignButton campaignId={campaign.id} />
+              )}
               <CloneCampaignButton campaignId={campaign.id} />
+              {(campaign.round_number ?? 1) > 1 && (
+                <span className="px-[12px] py-[5px] rounded-full text-[12px] font-semibold bg-[#3b82f6]/10 text-[#3b82f6]">
+                  Round {campaign.round_number}
+                </span>
+              )}
               <span
                 className={`px-[12px] py-[5px] rounded-full text-[12px] font-semibold uppercase tracking-[0.5px] ${
                   statusColors[campaign.status] || statusColors.draft
@@ -237,6 +247,21 @@ export default async function CampaignDetailPage({
           </div>
         </div>
       </div>
+
+      {/* ─── Parent Round Link ─── */}
+      {campaign.parent_campaign_id && (
+        <div className="mb-[12px]">
+          <Link
+            href={`/dashboard/ideas/${campaign.parent_campaign_id}`}
+            className="inline-flex items-center gap-[6px] text-[13px] text-[#3b82f6] hover:text-[#2563eb] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Previous round
+          </Link>
+        </div>
+      )}
 
       {/* ─── Funding Banner ─── */}
       {funded === "true" && campaign.status === "active" && (
@@ -751,6 +776,13 @@ export default async function CampaignDetailPage({
                 label="Monetization"
                 score={qualityScores.monetizationCoverage}
                 tooltip="How well your rewards motivate thoughtful responses"
+              />
+            )}
+            {qualityScores.assumptionSpecificity !== undefined && (
+              <DimensionBar
+                label="Assumptions"
+                score={qualityScores.assumptionSpecificity}
+                tooltip="How specific and testable your assumptions are"
               />
             )}
           </div>

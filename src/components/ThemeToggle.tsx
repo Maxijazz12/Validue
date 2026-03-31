@@ -5,7 +5,7 @@ import { useTheme } from "./ThemeProvider";
 
 export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, toggle } = useTheme();
-  const [mounted] = useState(() => typeof window !== "undefined");
+  const [mounted, setMounted] = useState(() => typeof window !== "undefined");
 
   // Avoid hydration mismatch — render neutral state until mounted
   const isDark = mounted ? theme === "dark" : false;

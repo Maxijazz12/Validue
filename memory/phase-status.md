@@ -4,8 +4,8 @@
 All blockers resolved: question randomization, behavioral screening, e2e testing.
 
 ## Phase 2 — IN PROGRESS
-First module shipped: WTP signal extraction + pricing-aware synthesis.
-Remaining candidates: behavioral consistency, audience segmentation.
-Needs real campaign validation before building more.
+Shipped modules: WTP signal extraction, behavioral consistency gaps.
+Remaining candidate: audience segmentation.
+
 
 ## Phase 3+ — NOT STARTED

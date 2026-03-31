@@ -11,18 +11,8 @@
       "Read(//dev/**)",
       "Read(//tmp/**)",
       "Read(//private/tmp/**)",
-      "Skill(update-config:*)",
       "Skill(schedule)",
-      "Skill(schedule:*)",
-      "Read(//Users/maxkranstad/Desktop/AI/valdate/**)"
-    ],
-    "additionalDirectories": [
-      "/Users/maxkranstad/.claude",
-      "/tmp",
-      "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate/memory",
-      "/Users/maxkranstad/.claude/projects/-Users-maxkranstad-Desktop-AI-Valdate",
-      "/Users/maxkranstad",
-      "/Users/maxkranstad/.claude/plans"
+      "Skill(schedule:*)"
     ]
   }
 }

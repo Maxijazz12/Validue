@@ -26,6 +26,9 @@ export function computeSignalStrength(draft: CampaignDraft): SignalStrengthResul
   if (scores.questionQuality >= 80) {
     tips.push({ type: "success", message: "Strong question quality — non-leading and specific." });
   }
+  if (scores.assumptionSpecificity >= 70) {
+    tips.push({ type: "success", message: "Well-defined, testable assumptions." });
+  }
 
   // ─── Actionable engagement tips ───
   // Reward-based tips
@@ -53,11 +56,12 @@ export function computeSignalStrength(draft: CampaignDraft): SignalStrengthResul
     tips.push({ type: "success", message: "Strong targeting — you'll reach the right respondents." });
   }
 
-  // Question count
-  if (draft.questions.length < 3) {
-    tips.push({ type: "info", message: "Consider adding more questions — 4-6 questions is the sweet spot for actionable insights." });
-  } else if (draft.questions.length > 8) {
-    tips.push({ type: "warning", message: "Surveys with 8+ questions see higher drop-off. Consider trimming to your best questions." });
+  // Question count (exclude baselines — founder didn't choose those)
+  const customQuestionCount = draft.questions.filter((q) => !q.isBaseline).length;
+  if (customQuestionCount < 3) {
+    tips.push({ type: "info", message: "Consider adding more questions — 4-6 custom questions is the sweet spot for actionable insights." });
+  } else if (customQuestionCount > 6) {
+    tips.push({ type: "warning", message: "Too many custom questions — consider trimming to your best 4-6 for higher completion rates." });
   }
 
   const score = scores.overall;
@@ -88,6 +92,7 @@ export function computeSignalStrength(draft: CampaignDraft): SignalStrengthResul
       questionQuality: scores.questionQuality,
       behavioralCoverage: scores.behavioralCoverage,
       monetizationCoverage: scores.monetizationCoverage,
+      assumptionSpecificity: scores.assumptionSpecificity,
     },
   };
 }

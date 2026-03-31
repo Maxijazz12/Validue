@@ -5,6 +5,7 @@ import { DEFAULTS } from "@/lib/defaults";
 import type Stripe from "stripe";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
+import { env } from "@/lib/env";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      env().STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

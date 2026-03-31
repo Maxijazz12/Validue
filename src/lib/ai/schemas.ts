@@ -34,7 +34,7 @@ export const EVIDENCE_CATEGORIES = ["behavior", "attempts", "willingness", "pric
 export const AIOpenQuestionSchema = z.object({
   text: z.string().min(10),
   section: z.enum(["open", "followup"]),
-  assumptionIndex: z.number().int().min(0).max(4),
+  assumptionIndex: z.number().int().min(0).max(9),
   anchors: z.array(z.string()).min(2).max(3),
   evidenceCategory: z.enum(EVIDENCE_CATEGORIES),
 });
@@ -50,9 +50,9 @@ export const AICampaignDraftSchema = z.object({
   summary: z.string().min(20).max(500),
   category: z.enum(asWritable(CATEGORY_OPTIONS)),
   tags: z.array(z.string()).min(1).max(5),
-  assumptions: z.array(z.string().min(10)).min(2).max(5),
-  openQuestions: z.array(AIOpenQuestionSchema).min(2).max(4),
-  followupQuestions: z.array(AIOpenQuestionSchema).min(1).max(3),
+  assumptions: z.array(z.string().min(10)).min(2).max(3),
+  openQuestions: z.array(AIOpenQuestionSchema).min(3).max(4),
+  followupQuestions: z.array(AIOpenQuestionSchema).min(1).max(2),
   baselineQuestionIds: z.array(z.string()).length(3),
   audience: AIDraftAudienceSchema,
 });
@@ -121,9 +121,9 @@ export const GENERATE_CAMPAIGN_TOOL = {
         type: "array" as const,
         items: { type: "string" as const },
         minItems: 2,
-        maxItems: 5,
+        maxItems: 3,
         description:
-          "2–5 testable assumptions this campaign validates. Each should be a declarative statement, not a question.",
+          "2–3 testable assumptions this campaign validates. Each should be a declarative statement, not a question. Fewer strong assumptions > many weak ones.",
       },
       openQuestions: {
         type: "array" as const,
@@ -159,10 +159,10 @@ export const GENERATE_CAMPAIGN_TOOL = {
             },
           },
         },
-        minItems: 2,
+        minItems: 3,
         maxItems: 4,
         description:
-          "2–4 open-ended validation questions. Must be behavior-based, non-leading, and help the founder understand current behavior and pain.",
+          "3–4 open-ended validation questions. Must be behavior-based, non-leading, and help the founder understand current behavior and pain.",
       },
       followupQuestions: {
         type: "array" as const,
@@ -198,9 +198,9 @@ export const GENERATE_CAMPAIGN_TOOL = {
           },
         },
         minItems: 1,
-        maxItems: 3,
+        maxItems: 2,
         description:
-          "1–3 follow-up questions. Probe willingness, use cases, or objections.",
+          "1–2 follow-up questions. Probe willingness, use cases, or objections.",
       },
       baselineQuestionIds: {
         type: "array" as const,
@@ -298,6 +298,31 @@ export const IMPROVE_AUDIENCE_TOOL = {
   input_schema: {
     ...GENERATE_CAMPAIGN_TOOL.input_schema.properties.audience,
     required: ["interests", "expertise", "ageRanges"],
+  },
+};
+
+/* ─── Assumption Improvement ─── */
+
+export const AIImprovedAssumptionSchema = z.object({
+  assumption: z.string().min(40).max(300),
+});
+
+export type AIImprovedAssumptionRaw = z.infer<typeof AIImprovedAssumptionSchema>;
+
+export const IMPROVE_ASSUMPTION_TOOL = {
+  name: "improve_assumption" as const,
+  description:
+    "Rewrite a vague assumption to be specific, testable, and measurable. Return a single declarative statement grounded in observable behavior.",
+  input_schema: {
+    type: "object" as const,
+    required: ["assumption"],
+    properties: {
+      assumption: {
+        type: "string" as const,
+        description:
+          "The improved assumption — a specific, testable, declarative statement (40-300 characters). Must include a temporal marker, quantitative detail, and behavioral verb.",
+      },
+    },
   },
 };
 

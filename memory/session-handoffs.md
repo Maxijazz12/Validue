@@ -1,21 +1,35 @@
 # Session Handoffs
 
-## 2026-03-30 — Phase 1 complete + Phase 2 WTP module
+## Prior context
+Phase 1-3 complete. Phase 4 shipped.
 
-### Done
-- **Phase 1 blockers cleared**: question randomization (was already done), behavioral screening enforcement (submission-time gate + spam flag fix in payout-actions), e2e testing (full lifecycle integration test)
-- **Phase 2 WTP module**: `src/lib/ai/extract-price-signal.ts` extracts price ceiling + past spending from baseline answers, displayed in brief UI, fed into synthesis prompt so Claude references pricing in verdicts
-- **Brief improvements**: per-assumption confidence rendered, contradicting signal prompt requires specifics (what/who/match-level), next steps must target specific assumptions, cheapest test names which assumption it validates
-- **Infrastructure**: husky pre-commit (lint-staged + vitest), prompt caching (`cachedSystem`/`cachedTools`), headless runner script, Claude config consolidation
-- **Bug fixes**: seedAnswer metadata double-encoding, spamFlagged hardcoded to false, unused imports/vars, theme hydration simplification
+## 2026-03-30 — Phase 2-4 marathon session
+
+### Phase 2 (complete)
+- Audience segmentation: `segment-disagreements.ts` — high-match vs low-match disagreement analysis
+
+### Phase 3 (complete)
+- Assumption specificity validation: 5th quality dimension in `quality-pass.ts`
+- Better WTP probing: `bl-payment-3` (forward WTP), `bl-payment-4` (payment model), context-aware `recommendBaseline()`
+- Forward price mismatch consistency gap detector
+- Assumption auto-improvement: `/api/generate/assumption` route + star button in DraftReviewStep
+
+### Phase 4 (complete) — Longitudinal Validation
+- **Migration `029_longitudinal.sql`**: added `parent_campaign_id`, `round_number`, `brief_verdicts` to campaigns
+- **`retestCampaign()` server action**: creates linked round 2+ campaign from completed campaign, strips/re-prefixes title, clones questions with assumption_index + anchors
+- **Brief verdict persistence**: `persistVerdicts()` writes `{ recommendation, verdicts }` JSONB to campaign row on first AI synthesis (write-once, fire-and-forget)
+- **Parent verdict fetching**: `synthesizeBrief()` queries parent's cached verdicts for round 2+ campaigns, passes to prompt builder
+- **Prior round prompt context**: Claude sees previous verdicts and is instructed to reference changes (CHALLENGED→CONFIRMED = progress, CONFIRMED→REFUTED = reversal)
+- **`RetestCampaignButton`**: blue "Retest" button on completed campaigns
+- **Campaign page**: Round N badge, "Previous round" link when parent exists
+- **Brief page**: "Changes from Round N-1" section with per-assumption verdict arrows (green for improvements, red for regressions, neutral for unchanged), recommendation change indicator, round number in methodology stats
+- **`BriefResult`** extended with `roundNumber` and `parentVerdicts`
+
+### Stats
+- 240 tests passing across 13 test files. Lint + build clean.
+- Migration pending: `029_longitudinal.sql` needs `supabase db push` or manual apply
 
 ### What's next
-- **Real campaign testing** — the brief is significantly improved but needs validation with real founder usage. Run 2-3 real campaigns and check if briefs are actionable
-- **Phase 2 candidates** (if brief passes real usage test): behavioral consistency checking (stated vs actual), audience segment analysis (high-match vs low-match disagreements)
-- **Phase 3 preview**: better WTP probing questions, assumption specificity validation at generation time
-- **Known gap**: `it.skipIf(!dbAvailable)` pattern in pipeline-brief.integration.test.ts evaluates at describe time (always skips). The full-lifecycle test uses `if (!dbAvailable) return` guard instead. Could fix the older tests
-
-### Context
-- All 187 unit tests + 36 integration tests passing
-- PRODUCT.md Phase 1 blockers down to zero
-- Brief now has: recommendation, per-assumption verdicts with confidence, evidence strength, WTP signal section, contradicting signals, assumption-linked next steps
+- Apply migration 029 to database
+- Phase 5: expand signal sources (per PRODUCT.md)
+- Known gap: `it.skipIf(!dbAvailable)` pattern always skips in integration tests

@@ -39,9 +39,14 @@ function DimensionBar({
 export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps) {
   const result = useMemo(() => computeSignalStrength(draft), [draft]);
 
-  const warnings = result.tips.filter((t) => t.type === "warning");
+  const MAX_WARNINGS = 5;
+  const MAX_INFOS = 3;
+  const allWarnings = result.tips.filter((t) => t.type === "warning");
+  const allInfos = result.tips.filter((t) => t.type === "info");
+  const warnings = allWarnings.slice(0, MAX_WARNINGS);
+  const infos = allInfos.slice(0, MAX_INFOS);
   const successes = result.tips.filter((t) => t.type === "success");
-  const infos = result.tips.filter((t) => t.type === "info");
+  const hiddenCount = (allWarnings.length - warnings.length) + (allInfos.length - infos.length);
 
   return (
     <div className="bg-white border border-[#E5654E]/30 rounded-xl p-[20px]">
@@ -191,6 +196,12 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
             </span>
           </div>
         ))}
+
+        {hiddenCount > 0 && (
+          <p className="text-[10px] text-[#94A3B8] mt-[2px]">
+            + {hiddenCount} more {hiddenCount === 1 ? "suggestion" : "suggestions"}
+          </p>
+        )}
 
         {result.tips.length === 0 && (
           <p className="text-[11px] text-[#94A3B8]">

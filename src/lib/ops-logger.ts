@@ -135,11 +135,20 @@ type CampaignCloned = {
   creatorId: string;
 };
 
+type CampaignRetested = {
+  event: "campaign.retested";
+  originalCampaignId: string;
+  newCampaignId: string;
+  creatorId: string;
+  roundNumber: number;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
   | CampaignStatusChanged
   | CampaignCloned
+  | CampaignRetested
   | RankingStarted
   | RankingCompleted
   | RankingFailed

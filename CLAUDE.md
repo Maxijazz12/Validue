@@ -12,50 +12,30 @@ VLDTA is an assumption-testing engine for founders. AI extracts testable assumpt
 - Do not casually change economics, ranking, reputation, or trust mechanics
 - When blocked on human input, either do durable adjacent work or say there is nothing to code yet
 
-# Context Management
+# Session Continuity
 
-If you estimate your context usage is approaching 200k tokens, stop current work and do a clean handoff:
-1. Commit any in-progress work to the current branch
-2. Append a detailed handoff entry to `session-handoffs.md` (what's done, what's in progress, what remains, any tricky context the next session needs)
-3. Tell the user to start a new session to continue
-
-Do not wait for compression. Hand off early with full context rather than late with lossy context.
-
-# Memory System
-
-At session start, check `memory/phase-status.md` and `memory/session-handoffs.md`.
-After meaningful work, **append** a dated entry to `session-handoffs.md` (never overwrite previous entries).
-Keep only the last 5 entries — summarize older entries into one "prior context" line.
-After major decisions, add to `memory/decision-log.md`.
+After meaningful work, append a dated entry to `memory/session-handoffs.md` (keep last 5, summarize older).
+Near 200k tokens: commit work, write handoff, tell Max to start a new session.
 
 # Autonomous Execution
 
-When running headless or unsupervised:
-
-## Workflow
-- Create branch `auto/<description>` — never commit to main
+When headless: branch `auto/<description>`, never commit to main, PR when done, never merge without human.
 - Run tests + lint before every commit; never bypass hooks
-- Create PR with description when done — never merge without human approval
-- Append dated entry to `session-handoffs.md` before session ends
-- Use Sonnet by default, Opus for architecture decisions
-
-## Scope
-- Do only what was asked — no bonus refactoring
-- If blocked or ambiguous, log and stop — do not guess
-
-## Error Recovery
-- Build failure: retry once, then stop and log
-- Test failure: do not commit, investigate, log to handoff
-- Migration failure: never auto-retry, wait for human
-- Unknown error: stop, log full context, leave clean state
+- Do only what was asked — no bonus refactoring. If blocked, log and stop.
+- Build failure: retry once then stop. Test failure: investigate, don't commit. Migration failure: wait for human.
+- Append dated entry to `session-handoffs.md` before session ends.
 
 # Task Classification
 
-- Economics files (payout-math, defaults, plan-guard, reach, reputation, wall-ranking): consider council. Read `.claude/council-protocol.md`.
-- Cross-cutting or unclear **code** architecture (>3 files of code changes): plan first.
-- Config, docs, rules, and settings changes: just do it — no plan mode even if >3 files.
-- Broad discovery in unknown code: use subagents. Known file paths: use direct Read.
-- Everything else: just do it.
+- L0 (default): just do it. Direct tools only.
+- L1 (economics, architecture, pricing): hard-to-reverse — pause and reason carefully inline. No agents, just slower thinking.
+- Economics files (payout-math, defaults, plan-guard, reach, reputation, wall-ranking): always L1.
+
+# Token Efficiency
+
+- Use Grep/Glob/Read directly. Never spawn agents unless Max explicitly asks for one.
+- Use `offset+limit` for files >100 lines when you know which section you need
+- After editing a file, trust your own edits — don't re-read unless something else changed it
 
 # Architecture Core
 
@@ -65,16 +45,7 @@ Campaign creation: `scribble → AI draft → draft review → funding → webho
 Response flow: `wall → start response → save answers → submit → founder notified`
 Payout flow: `rank → AI score → qualification → payout distribution → profile/reputation update`
 
-## Parallelization
-
-- Default: single agent with subagents
-- Use subagents for discovery, comparison, review, or clearly separable leaf tasks
-- Use worktrees only for genuinely independent work with zero shared files
-- Stay inline for sequential or tightly coupled edits
-- Never parallelize shared files or uncertain coupling
-
-Safe for parallel worktrees (zero coupling): `src/components/landing/*`, `src/components/ui/*`, new API routes, new lib utilities before anything imports them, test suites in `src/lib/__tests__/`, new dashboard pages with new components.
-
 ## High-Coupling Files
 
-Economics files are listed in `.claude/rules/economics.md` — the PreToolUse hook enforces this. Additionally: `ideas/new/actions.ts` and Stripe webhook paths are creation/payment state-sensitive.
+Economics files: `.claude/rules/economics.md` — PreToolUse hook enforces.
+Also high-coupling: `ideas/new/actions.ts`, Stripe webhook paths.
