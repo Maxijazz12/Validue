@@ -36,7 +36,9 @@ export default function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   // Sync DOM class whenever theme changes
+  // Skip if immersive mode is active (it forces dark)
   useEffect(() => {
+    if (document.documentElement.hasAttribute("data-immersive")) return;
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 

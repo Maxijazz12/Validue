@@ -7,12 +7,10 @@ type AvatarProps = {
   className?: string;
 };
 
-const peachTints = [
-  { stroke0: "#E5654E", stroke1: "#E8C1B0", fill0: "#E5654E", fill1: "#EDD5C8" }, // coral (default)
-  { stroke0: "#7BAAAE", stroke1: "#B5D5D8", fill0: "#7BAAAE", fill1: "#D4E8EA" }, // teal
-  { stroke0: "#4F7BE8", stroke1: "#8BAAF0", fill0: "#4F7BE8", fill1: "#B8CFF7" }, // blue
-  { stroke0: "#6BA887", stroke1: "#A8D4BC", fill0: "#6BA887", fill1: "#C8E6D5" }, // sage
-  { stroke0: "#C4859A", stroke1: "#DBAEBB", fill0: "#C4859A", fill1: "#EDCFD8" }, // mauve
+const warmTints = [
+  { stroke0: "#E8C1B0", stroke1: "#D4A494", fill0: "#E8C1B0", fill1: "#EDD5C8" },
+  { stroke0: "#C4A99A", stroke1: "#B09080", fill0: "#C4A99A", fill1: "#DDD0C8" },
+  { stroke0: "#D4B4A4", stroke1: "#C09888", fill0: "#D4B4A4", fill1: "#E8D8D0" },
 ];
 
 function hashName(name: string) {
@@ -38,7 +36,7 @@ export default function Avatar({ name, imageUrl, size = 36, className = "" }: Av
   }
 
   const hash = hashName(name);
-  const tint = peachTints[hash % peachTints.length];
+  const tint = warmTints[hash % warmTints.length];
   const id = `av-${hash}`;
 
   return (
@@ -59,9 +57,7 @@ export default function Avatar({ name, imageUrl, size = 36, className = "" }: Av
           <stop offset="100%" stopColor={tint.fill1} stopOpacity="0.06" />
         </linearGradient>
       </defs>
-      {/* Peach body */}
       <ellipse cx="32" cy="32" rx="27" ry="27" fill={`url(#${id}-f)`} stroke={`url(#${id}-s)`} strokeWidth="3" />
-      {/* Crease */}
       <path d="M32 6 Q29 30 32 58" stroke={`url(#${id}-s)`} strokeWidth="1.8" fill="none" opacity="0.3" />
     </svg>
   );

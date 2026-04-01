@@ -225,7 +225,7 @@ export default async function CampaignDetailPage({
         <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] relative overflow-hidden">
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
           <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-            <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">{campaign.title}</h1>
+            <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">{campaign.title}</h1>
             <div className="flex items-center gap-[8px] shrink-0">
               {campaign.status === "completed" && (
                 <RetestCampaignButton campaignId={campaign.id} />
@@ -248,6 +248,21 @@ export default async function CampaignDetailPage({
         </div>
       </div>
 
+      {/* ─── Draft Banner ─── */}
+      {campaign.status === "draft" && (
+        <div className="mb-[16px] px-[16px] py-[14px] rounded-xl bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-between gap-[12px]">
+          <p className="text-[13px] text-[#64748B]">
+            This campaign is a draft. Edit and publish it when you&apos;re ready.
+          </p>
+          <Link
+            href={`/dashboard/ideas/${campaign.id}/edit`}
+            className="shrink-0 inline-flex items-center justify-center px-[20px] py-[8px] rounded-xl text-[13px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] transition-all duration-200 no-underline"
+          >
+            Edit Draft
+          </Link>
+        </div>
+      )}
+
       {/* ─── Parent Round Link ─── */}
       {campaign.parent_campaign_id && (
         <div className="mb-[12px]">
@@ -265,13 +280,13 @@ export default async function CampaignDetailPage({
 
       {/* ─── Funding Banner ─── */}
       {funded === "true" && campaign.status === "active" && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 text-[13px] text-[#22c55e] font-medium">
+        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-[#22c55e]/10 border border-[#22c55e]/20 text-[13px] text-[#22c55e] font-medium">
           You&apos;re live! Your campaign is now visible to matched respondents.
         </div>
       )}
 
       {funded === "true" && campaign.status === "pending_funding" && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-lg bg-[#E5654E]/10 border border-[#E5654E]/20 text-[13px] text-[#CC5340] font-medium">
+        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-[#E5654E]/10 border border-[#E5654E]/20 text-[13px] text-[#CC5340] font-medium">
           Payment confirmed — your campaign is going live now. This page will refresh shortly.
         </div>
       )}
@@ -474,7 +489,7 @@ export default async function CampaignDetailPage({
       {campaign.current_responses >= 3 && (
         <Link
           href={`/dashboard/ideas/${campaign.id}/brief`}
-          className="block bg-[#111111] rounded-2xl p-[20px] mb-[16px] hover:bg-[#222222] hover:-translate-y-[1px] transition-all duration-300 no-underline group"
+          className="block bg-[#111111] rounded-2xl p-[20px] mb-[16px] hover:bg-[#1a1a1a] hover:-translate-y-[1px] transition-all duration-200 no-underline group"
         >
           <div className="flex items-center justify-between">
             <div>

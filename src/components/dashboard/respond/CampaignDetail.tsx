@@ -99,7 +99,7 @@ export default function CampaignDetail({
       {/* Title */}
       <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[16px] relative overflow-hidden">
         <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
-        <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">{campaign.title}</h1>
+        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">{campaign.title}</h1>
       </div>
 
       {/* Creator */}

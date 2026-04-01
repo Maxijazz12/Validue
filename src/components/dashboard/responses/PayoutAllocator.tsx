@@ -403,7 +403,7 @@ export default function PayoutAllocator({
                   type="button"
                   onClick={handleConfirm}
                   disabled={isPending}
-                  className={`flex-1 py-[10px] text-[13px] font-semibold text-white bg-[#E5654E] rounded-lg cursor-pointer hover:bg-[#D4544D] transition-colors border-none ${
+                  className={`flex-1 py-[10px] text-[13px] font-medium text-white bg-[#E5654E] rounded-xl cursor-pointer hover:bg-[#D4544D] transition-all duration-200 border-none ${
                     isPending ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >

@@ -88,6 +88,12 @@ Use the create_decision_brief tool. Every assumption provided must receive a ver
 
 /* ─── Helpers ─── */
 
+/** Truncate text to a max length, adding ellipsis if trimmed. */
+function truncate(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen - 1) + "\u2026";
+}
+
 function computeAvgMatch(
   evidenceByAssumption: Map<number, AssumptionEvidence[]>
 ): number {
@@ -145,8 +151,8 @@ Relevant responses: ${evidence.length}`;
         const weight = Math.round(e.qualityScore * (0.6 + 0.4 * (e.audienceMatch / 100)));
         block += `
 
-**Q [${e.evidenceCategory}]:** ${sanitizeForPrompt(e.questionText)}
-**A (${e.respondentLabel}, weight=${weight}, match=${e.audienceMatch}):** ${sanitizeForPrompt(e.answerText)}`;
+**Q [${e.evidenceCategory}]:** ${truncate(sanitizeForPrompt(e.questionText), 150)}
+**A (${e.respondentLabel}, w=${weight}, m=${e.audienceMatch}):** ${truncate(sanitizeForPrompt(e.answerText), 200)}`;
       }
     }
 
@@ -189,7 +195,7 @@ Relevant responses: ${evidence.length}`;
       priceBlock += `\n\nNote: ${priceSignal.matchSkew}`;
     }
 
-    priceBlock += "\n\nUse this pricing data when evaluating assumptions related to willingness to pay, pricing, or monetization. Compare forward WTP expectations against actual past spending to assess price realism. Reference specific price tiers and preferred payment models in your verdicts and next steps where relevant.";
+    priceBlock += "\n\nFactor this into WTP/pricing verdicts. Compare forward WTP against past spending.";
 
     sections.push(priceBlock);
   }
@@ -199,10 +205,10 @@ Relevant responses: ${evidence.length}`;
     let consistencyBlock = `## Behavioral Consistency Gaps\n${consistencyReport.summary}\n`;
 
     for (const gap of consistencyReport.gaps) {
-      consistencyBlock += `\n- **${gap.respondentLabel}** (quality=${gap.qualityScore}, ${gap.severity} severity): Said "${sanitizeForPrompt(gap.statedAnswer)}" for "${sanitizeForPrompt(gap.statedQuestion)}" but "${sanitizeForPrompt(gap.behavioralAnswer)}" for "${sanitizeForPrompt(gap.behavioralQuestion)}" (${gap.gapType})`;
+      consistencyBlock += `\n- **${gap.respondentLabel}** (q=${gap.qualityScore}, ${gap.severity}): "${truncate(sanitizeForPrompt(gap.statedAnswer), 100)}" vs "${truncate(sanitizeForPrompt(gap.behavioralAnswer), 100)}" (${gap.gapType})`;
     }
 
-    consistencyBlock += "\n\nUse these contradictions when evaluating assumption verdicts. A respondent who contradicts themselves on price or urgency provides weaker support for willingness/pricing assumptions. Flag these in contradictingSignal where relevant.";
+    consistencyBlock += "\n\nFactor contradictions into verdict confidence and contradictingSignal.";
 
     sections.push(consistencyBlock);
   }
@@ -215,7 +221,7 @@ Relevant responses: ${evidence.length}`;
       segmentBlock += `\n- **Assumption ${d.assumptionIndex} — "${sanitizeForPrompt(d.assumption)}"** (${d.severity} severity): ${d.signal}. High-match support: ${Math.round(d.highMatchSupportRatio * 100)}% (n=${d.highMatchCount}), Low-match support: ${Math.round(d.lowMatchSupportRatio * 100)}% (n=${d.lowMatchCount})`;
     }
 
-    segmentBlock += "\n\nWhen high-match respondents contradict an assumption but low-match respondents support it, the founder's optimism may be anchored to the wrong audience. Flag this prominently in the relevant assumption verdict's contradictingSignal and factor it into confidence levels.";
+    segmentBlock += "\n\nHigh-match contradictions are more threatening than low-match. Factor into verdicts.";
 
     sections.push(segmentBlock);
   }
@@ -228,13 +234,13 @@ Relevant responses: ${evidence.length}`;
       priorBlock += `\n- "${sanitizeForPrompt(v.assumption)}": ${v.verdict} (${v.confidence} confidence)`;
     }
 
-    priorBlock += "\n\nReference how verdicts changed between rounds. If an assumption was CHALLENGED previously and is now CONFIRMED, highlight this as evidence of real progress. If an assumption was CONFIRMED previously but is now REFUTED, flag this prominently as a reversal that demands attention. Use phrases like \"Previously CHALLENGED, now CONFIRMED\" in your evidence summaries where relevant.";
+    priorBlock += "\n\nNote verdict changes between rounds (e.g. \"Previously CHALLENGED, now CONFIRMED\").";
 
     sections.push(priorBlock);
   }
 
   sections.push(
-    "---\n\nSynthesize a Decision Brief using the create_decision_brief tool. Every assumption listed above must receive a verdict. Evidence tagged with different categories (behavior, attempts, willingness, price, pain, negative) provides triangulation — convergence across categories is stronger signal than volume from a single angle. Pay special attention to [negative] evidence — it directly challenges assumptions. Each response has a pre-computed weight (quality × audience match factor). Use the weight field to determine how much each response influences the verdict — a weight-70 response from a high-match respondent should outweigh three weight-20 responses from low-match respondents."
+    "---\n\nSynthesize using create_decision_brief. Every assumption needs a verdict. Triangulate across evidence categories. Prioritize [negative] evidence and high-weight responses."
   );
 
   return sections.join("\n\n");

@@ -1,0 +1,2 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){void 0}})()

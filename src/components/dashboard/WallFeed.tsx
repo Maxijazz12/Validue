@@ -2,13 +2,13 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import WallCard, { type WallCardProps } from "@/components/dashboard/WallCard";
+import WallCardImmersive from "@/components/dashboard/WallCardImmersive";
 import WallCardTracker from "@/components/dashboard/WallCardTracker";
 import TrendingRow from "@/components/dashboard/TrendingRow";
 import FeedInterstitial from "@/components/dashboard/FeedInterstitial";
-import RespondentStatsBar from "@/components/dashboard/RespondentStatsBar";
-import AchievementBanner, { type Achievement } from "@/components/dashboard/AchievementBanner";
+import type { Achievement } from "@/components/dashboard/AchievementBanner";
 import ActivityTicker, { type ActivityItem } from "@/components/dashboard/ActivityTicker";
-import WeeklyDigestBanner, { type WeeklyDigest } from "@/components/dashboard/WeeklyDigestBanner";
+import type { WeeklyDigest } from "@/components/dashboard/WeeklyDigestBanner";
 import KeyboardHint from "@/components/dashboard/KeyboardHint";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
 
@@ -204,10 +204,10 @@ function rankByTab(ideas: WallCardProps[], tab: Tab, sortOverride: string): Wall
 function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void }) {
   return (
     <div className="flex flex-col gap-[4px]">
-      <label className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[1px]">{label}</label>
+      <label className="text-[11px] font-semibold text-[#A8A29E] uppercase tracking-[1px]">{label}</label>
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
-        className="text-[13px] px-[10px] py-[7px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-300 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_10px_center] bg-no-repeat pr-[28px]"
+        className="text-[13px] px-[10px] py-[7px] rounded-xl border border-[#EDE8E3] bg-white text-[#1C1917] outline-none focus:border-[#E5654E] focus:shadow-[0_0_0_3px_rgba(229,101,78,0.1)] transition-all duration-300 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_10px_center] bg-no-repeat pr-[28px]"
       >
         {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -233,17 +233,25 @@ export default function WallFeed({
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Sticky header collapse
-  const [isScrolled, setIsScrolled] = useState(false);
-  const rafRef = useRef<number>(0);
+  // Feed view mode — default to immersive, hydrate from localStorage after mount
+  const [viewMode, setViewMode] = useState<"grid" | "immersive">("immersive");
+  const viewModeHydrated = useRef(false);
 
   useEffect(() => {
-    function onScroll() {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => setIsScrolled(window.scrollY > 100));
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(rafRef.current); };
+    if (viewModeHydrated.current) return;
+    viewModeHydrated.current = true;
+    try {
+      const stored = localStorage.getItem("wall-view-mode") as "grid" | "immersive" | null;
+      if (stored === "grid") setViewMode("grid");
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggleViewMode = useCallback(() => {
+    setViewMode((prev) => {
+      const next = prev === "grid" ? "immersive" : "grid";
+      try { localStorage.setItem("wall-view-mode", next); } catch { /* ignore */ }
+      return next;
+    });
   }, []);
 
   // Bookmarks (localStorage)
@@ -264,6 +272,14 @@ export default function WallFeed({
   const toggleSave = useCallback((id: string) => {
     setSavedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   }, []);
+
+  // Search overlay & filter sheet
+  const [showSearch, setShowSearch] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 100);
+  }, [showSearch]);
 
   // Peek expansion
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -405,8 +421,7 @@ export default function WallFeed({
     setShowSaved(false);
   }
 
-  const featuredCard = results.length > 0 ? results[0] : null;
-  const gridCards = results.slice(1);
+  const gridCards = results;
 
   function renderCard(idea: WallCardProps, globalIndex: number, variant: "featured" | "standard" = "standard") {
     return (
@@ -427,158 +442,225 @@ export default function WallFeed({
     );
   }
 
+  const activeFilterCount = [filters.category, filters.audience, filters.reward, filters.time, filters.sort].filter((v) => v !== "Any" && v !== "Relevant").length;
+
   return (
-    <div id="wall-feed">
-      {/* ─── Achievement Banner ─── */}
-      {currentAchievement && (
-        <AchievementBanner
-          achievement={currentAchievement}
-          onDismiss={() => dismissAchievement(currentAchievement.key)}
-        />
-      )}
-
-      {/* ─── Weekly Digest Banner ─── */}
-      {weeklyDigest && <WeeklyDigestBanner digest={weeklyDigest} />}
-
-      {/* ─── Activity Ticker ─── */}
-      <ActivityTicker items={activityItems} />
-
-      {/* ─── Stats Bar ─── */}
-      <RespondentStatsBar userProfile={userProfile} matchCount={matchCount} />
-
-      {/* ─── Earnings Potential Banner ─── */}
-      {earningsPotential > 0 && !earningsDismissed && (
-        <div className="flex items-center gap-[12px] p-[14px_18px] rounded-xl border border-[#E2E8F0] dark:border-[#2A2D3A] mb-[12px] bg-bg-card bg-gradient-to-r from-[#F59E0B]/5 to-transparent" style={{ borderLeftWidth: 3, borderLeftColor: "#F59E0B" }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-            <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-          </svg>
-          <p className="text-[13px] text-[#64748B] dark:text-[#94A3B8] flex-1">
-            You could earn up to <span className="font-mono font-bold text-[#111111] dark:text-[#E8EAF0]">${earningsPotential}</span> from your matched campaigns
-          </p>
-          <button
-            onClick={() => { setEarningsDismissed(true); localStorage.setItem("wall-earnings-dismissed", "1"); }}
-            className="text-[#94A3B8] hover:text-[#64748B] bg-transparent border-none cursor-pointer p-[4px] transition-colors shrink-0"
-          >
+    <div id="wall-feed" className="wall-background">
+      {/* ─── Header ─── */}
+      <div className="flex items-end justify-between mb-[32px] relative z-[1]">
+        <div>
+          <h1 className="text-[32px] max-md:text-[28px] font-bold leading-[1.1]" style={{ fontFamily: "var(--font-wall-body)", letterSpacing: "-0.5px", color: "#1C1917" }}>The Wall</h1>
+          {matchCount > 0 && (
+            <p className="text-[13px] mt-[6px]" style={{ color: "#78716C", fontFamily: "var(--font-wall-body)" }}>
+              <span className="font-medium" style={{ color: "#1C1917" }}>{matchCount}</span> campaigns matched to you
+            </p>
+          )}
+        </div>
+        <button
+          onClick={toggleViewMode}
+          className="wall-floating-btn !w-[36px] !h-[36px]"
+          aria-label={viewMode === "immersive" ? "Switch to grid view" : "Switch to immersive view"}
+          title={viewMode === "immersive" ? "Grid view" : "Immersive view"}
+        >
+          {viewMode === "immersive" ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
             </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="8" y1="21" x2="8" y2="3" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* ─── Tab navigation ─── */}
+      <div className="flex gap-[6px] overflow-x-auto scrollbar-none mb-[20px] pb-[4px] -mx-[4px] px-[4px] relative z-[1]" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        {tabs.map((tab) => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            className={`wall-glass-pill whitespace-nowrap font-medium cursor-pointer shrink-0 ${activeTab === tab.key ? "wall-glass-pill-active" : ""}`}
+          >
+            {tab.label}
           </button>
+        ))}
+      </div>
+
+      {/* ─── Active filters indicator ─── */}
+      {(hasActiveFilters || query || showSaved) && (
+        <div className="text-[11px] mb-[12px] relative z-[1]" style={{ color: "#78716C" }}>
+          {results.length} result{results.length !== 1 && "s"}{query && <> for &ldquo;{query}&rdquo;</>}{showSaved && " (saved)"}
+          <button onClick={clearFilters} className="text-[11px] bg-transparent border-none cursor-pointer underline transition-colors ml-[8px]" style={{ color: "#A8A29E" }}>Clear</button>
         </div>
       )}
 
-      {/* ─── Sticky Header ─── */}
-      <div
-        className={`bg-[#FAF9FA] dark:bg-[#1A1D27] rounded-2xl border border-[#E2E8F0] dark:border-[#2A2D3A] p-[28px_32px] max-md:p-[20px] mb-[20px] relative overflow-hidden sticky top-0 z-20 transition-all duration-300 ${
-          isScrolled ? "wall-header-collapsed" : ""
-        }`}
-      >
-        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+      {/* ─── Feed layout ─── */}
+      <div className="relative z-[1]">
+      {results.length > 0 ? (
+        viewMode === "immersive" ? (
+          /* ── Immersive: full-height scroll-snap feed ── */
+          <div className="immersive-feed">
+            {results.map((idea, index) => {
+              const section = index === 0 ? "For you"
+                : index === 1 && trendingItems.includes(idea) ? "Trending"
+                : undefined;
+              return (
+                <WallCardImmersive
+                  key={idea.id}
+                  idea={idea}
+                  isSaved={savedIds.has(idea.id)}
+                  onToggleSave={toggleSave}
+                  sectionLabel={section}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          /* ── Editorial Stack: Massive feature sections ── */
+          <div className="flex flex-col gap-[20px]">
+            {trendingItems.length >= 4 && <TrendingRow ideas={trendingItems} />}
+            {gridCards.length > 0 && (
+              <div className="w-full max-w-[1000px] mx-auto py-[60px] md:py-[80px] flex flex-col gap-[80px] md:gap-[160px]">
+                {gridCards.map((idea, index) => {
+                  const isLeft = index % 2 === 0;
+                  
+                  return (
+                    <React.Fragment key={idea.id}>
+                      {/* Interstitial items */}
+                      {index === 4 && interstitialData.hotIdea && (
+                        <div className="w-full"><FeedInterstitial type="hot-category" hotIdea={interstitialData.hotIdea} /></div>
+                      )}
+                      {index === 8 && interstitialData.matchCount > 0 && (
+                        <div className="w-full"><FeedInterstitial type="match-power" matchCount={interstitialData.matchCount} /></div>
+                      )}
+                      {index === 12 && interstitialData.totalVelocity > 0 && (
+                        <div className="w-full"><FeedInterstitial type="social-proof" totalVelocity={interstitialData.totalVelocity} /></div>
+                      )}
 
-        <div className="wall-header-collapsible">
-          <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222] dark:text-[#E8EAF0]">The Wall</h1>
-          <p className="text-[14px] text-[#64748B] dark:text-[#94A3B8] mt-[4px]">Earn by sharing feedback.</p>
+                      {/* Editorial Feature Card */}
+                      <WallCard
+                        {...idea}
+                        isExpanded={expandedId === idea.id}
+                        isFocused={focusedIndex === index}
+                        onToggleExpand={toggleExpand}
+                        onToggleSave={toggleSave}
+                        isSaved={savedIds.has(idea.id)}
+                      />
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <div className="py-[48px] text-center">
+          <p className="text-[14px] mb-[4px]" style={{ color: "#78716C" }}>{showSaved ? "No saved ideas yet. Bookmark ideas to find them here." : (hasActiveFilters || query) ? "No ideas match this filter yet." : "No campaigns available right now. Check back soon."}</p>
+          {(hasActiveFilters || query || showSaved) && (
+            <button onClick={clearFilters} className="text-[13px] bg-transparent border-none cursor-pointer underline transition-colors" style={{ color: "#A8A29E" }}>Clear filters</button>
+          )}
+        </div>
+      )}
+      </div>
 
-          <div className="flex items-center gap-[8px] mt-[20px]">
-            <div className="relative flex-1">
-              <div className="absolute left-[14px] top-1/2 -translate-y-1/2 text-[#94A3B8]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* ─── Floating action bar ─── */}
+      <div className="wall-floating-bar">
+        {/* Search button */}
+        <button
+          onClick={() => setShowSearch(!showSearch)}
+          className={`wall-floating-btn ${showSearch ? "wall-floating-btn-active" : ""}`}
+          aria-label="Search"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+
+        {/* Bookmarks button */}
+        <button
+          onClick={() => setShowSaved(!showSaved)}
+          className={`wall-floating-btn relative ${showSaved ? "wall-floating-btn-active" : ""}`}
+          aria-label="Bookmarks"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={showSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 3h14a1 1 0 011 1v16.5l-8-5.5-8 5.5V4a1 1 0 011-1z" />
+          </svg>
+          {savedIds.size > 0 && (
+            <span className="absolute -top-[4px] -right-[4px] text-[9px] font-bold w-[16px] h-[16px] rounded-full flex items-center justify-center bg-[#E5654E] text-white">{savedIds.size}</span>
+          )}
+        </button>
+
+        {/* Filters button */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`wall-floating-btn relative ${showFilters || hasActiveFilters ? "wall-floating-btn-active" : ""}`}
+          aria-label="Filters"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="20" y2="12" /><line x1="12" y1="18" x2="20" y2="18" />
+          </svg>
+          {activeFilterCount > 0 && (
+            <span className="absolute -top-[4px] -right-[4px] text-[9px] font-bold w-[16px] h-[16px] rounded-full flex items-center justify-center bg-[#E5654E] text-white">{activeFilterCount}</span>
+          )}
+        </button>
+      </div>
+
+      {/* ─── Search overlay ─── */}
+      {showSearch && (
+        <div className="wall-search-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowSearch(false); }}>
+          <div className="w-full max-w-[480px] px-[16px]">
+            <div className="relative">
+              <div className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[#A8A29E]">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </div>
-              <input id="wall-search" type="text" placeholder="Search ideas..." value={query} onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-[38px] pr-[12px] py-[10px] text-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-300"
+              <input
+                ref={searchInputRef}
+                id="wall-search"
+                type="text"
+                placeholder="Search ideas..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-[44px] pr-[44px] py-[14px] text-[16px] rounded-2xl border border-[#EDE8E3] bg-white text-[#1C1917] placeholder:text-[#A8A29E] outline-none focus:border-[#E5654E] focus:shadow-[0_0_0_3px_rgba(229,101,78,0.1)] transition-all duration-200 backdrop-blur-xl"
+                onKeyDown={(e) => { if (e.key === "Escape") setShowSearch(false); }}
               />
-              {query && (
-                <button onClick={() => setQuery("")} className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] bg-transparent border-none cursor-pointer transition-colors">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              )}
+              <button
+                onClick={() => { setQuery(""); setShowSearch(false); }}
+                className="absolute right-[14px] top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#78716C] bg-transparent border-none cursor-pointer transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
-
-            <button onClick={() => setShowSaved(!showSaved)}
-              className={`flex items-center gap-[5px] text-[13px] font-medium px-[12px] py-[10px] rounded-xl border transition-all duration-300 cursor-pointer shrink-0 ${showSaved ? "border-[#111111] bg-[#111111] text-white" : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#CBD5E1]"}`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill={showSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 3h14a1 1 0 011 1v16.5l-8-5.5-8 5.5V4a1 1 0 011-1z" />
-              </svg>
-              {savedIds.size > 0 && (
-                <span className={`text-[10px] font-bold w-[16px] h-[16px] rounded-full flex items-center justify-center ${showSaved ? "bg-white text-[#111111]" : "bg-[#F3F4F6] text-[#64748B]"}`}>{savedIds.size}</span>
-              )}
-            </button>
-
-            <button onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-[6px] text-[13px] font-medium px-[12px] py-[10px] rounded-xl border transition-all duration-300 cursor-pointer shrink-0 ${showFilters || hasActiveFilters ? "border-[#111111] bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#CBD5E1]"}`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="20" y2="12" /><line x1="12" y1="18" x2="20" y2="18" />
-              </svg>
-              Filters
-              {hasActiveFilters && (
-                <span className="bg-white text-[#111111] text-[10px] font-bold w-[16px] h-[16px] rounded-full flex items-center justify-center">
-                  {[filters.category, filters.audience, filters.reward, filters.time, filters.sort].filter((v) => v !== "Any" && v !== "Relevant").length}
-                </span>
-              )}
-            </button>
-
-            {(hasActiveFilters || query || showSaved) && (
-              <button onClick={clearFilters} className="text-[12px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer underline transition-colors shrink-0">Clear</button>
+            {query && (
+              <p className="text-[12px] text-[#A8A29E] mt-[12px] text-center">{results.length} result{results.length !== 1 ? "s" : ""}</p>
             )}
           </div>
+        </div>
+      )}
 
-          {showFilters && (
-            <div className="grid grid-cols-5 gap-[12px] mt-[12px] p-[16px] bg-white border border-[#E2E8F0] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.03)] max-md:grid-cols-2 max-sm:grid-cols-1">
-              <FilterSelect label="Category" value={filters.category} options={["Any", ...CATEGORY_OPTIONS]} onChange={(v) => updateFilter("category", v)} />
-              <FilterSelect label="Audience" value={filters.audience} options={["Any", ...AUDIENCE_TYPES]} onChange={(v) => updateFilter("audience", v)} />
-              <FilterSelect label="Reward" value={filters.reward} options={REWARD_LEVELS} onChange={(v) => updateFilter("reward", v)} />
-              <FilterSelect label="Time" value={filters.time} options={TIME_LEVELS} onChange={(v) => updateFilter("time", v)} />
-              <FilterSelect label="Sort" value={filters.sort} options={SORT_OPTIONS} onChange={(v) => updateFilter("sort", v)} />
+      {/* ─── Filter bottom sheet ─── */}
+      {showFilters && (
+        <div className="wall-filter-sheet">
+          <div className="flex items-center justify-between mb-[16px]">
+            <h3 className="text-[14px] font-semibold text-[#1C1917]">Filters</h3>
+            <div className="flex items-center gap-[8px]">
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="text-[12px] bg-transparent border-none cursor-pointer transition-colors" style={{ color: "#A8A29E" }}>Clear all</button>
+              )}
+              <button onClick={() => setShowFilters(false)} className="text-[#A8A29E] hover:text-[#78716C] bg-transparent border-none cursor-pointer transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
             </div>
-          )}
-        </div>
-
-        <div className={`flex flex-wrap gap-[8px] ${isScrolled ? "" : "mt-[16px]"}`}>
-          {tabs.map((tab) => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-[14px] py-[6px] rounded-full text-[13px] font-medium transition-all duration-200 cursor-pointer border ${activeTab === tab.key ? "bg-[#111111] text-white border-[#111111] shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1] hover:text-[#111111]"}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Info line ─── */}
-      <div className="flex items-center gap-[6px] text-[12px] text-[#94A3B8] mb-[16px] flex-wrap">
-        <span>{results.length} {results.length === 1 ? "idea" : "ideas"}{query && <> matching &ldquo;{query}&rdquo;</>}{showSaved && " (saved)"}</span>
-        <span>·</span><span>Matched to your expertise</span><span>·</span><span>Quality earns more</span>
-      </div>
-
-      {/* ─── Feed layout ─── */}
-      {results.length > 0 ? (
-        <div className="flex flex-col gap-[24px]">
-          {featuredCard && renderCard(featuredCard, 0, "featured")}
-          {trendingItems.length >= 4 && <TrendingRow ideas={trendingItems} />}
-          {gridCards.length > 0 && (
-            <div className="grid grid-cols-2 gap-[16px] max-md:grid-cols-1">
-              {gridCards.map((idea, index) => (
-                <React.Fragment key={idea.id}>
-                  {index === 4 && interstitialData.hotIdea && <FeedInterstitial type="hot-category" hotIdea={interstitialData.hotIdea} />}
-                  {index === 8 && interstitialData.matchCount > 0 && <FeedInterstitial type="match-power" matchCount={interstitialData.matchCount} />}
-                  {index === 12 && interstitialData.totalVelocity > 0 && <FeedInterstitial type="social-proof" totalVelocity={interstitialData.totalVelocity} />}
-                  {renderCard(idea, index + 1)}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="py-[48px] text-center">
-          <p className="text-[14px] text-[#94A3B8] mb-[4px]">{showSaved ? "No saved ideas yet. Bookmark ideas to find them here." : (hasActiveFilters || query) ? "No ideas match this filter yet." : "No campaigns available right now. Check back soon."}</p>
-          {(hasActiveFilters || query || showSaved) && (
-            <button onClick={clearFilters} className="text-[13px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer underline transition-colors">Clear filters</button>
-          )}
+          </div>
+          <div className="grid grid-cols-2 gap-[12px] max-sm:grid-cols-1">
+            <FilterSelect label="Category" value={filters.category} options={["Any", ...CATEGORY_OPTIONS]} onChange={(v) => updateFilter("category", v)} />
+            <FilterSelect label="Audience" value={filters.audience} options={["Any", ...AUDIENCE_TYPES]} onChange={(v) => updateFilter("audience", v)} />
+            <FilterSelect label="Reward" value={filters.reward} options={REWARD_LEVELS} onChange={(v) => updateFilter("reward", v)} />
+            <FilterSelect label="Time" value={filters.time} options={TIME_LEVELS} onChange={(v) => updateFilter("time", v)} />
+            <FilterSelect label="Sort" value={filters.sort} options={SORT_OPTIONS} onChange={(v) => updateFilter("sort", v)} />
+          </div>
         </div>
       )}
 

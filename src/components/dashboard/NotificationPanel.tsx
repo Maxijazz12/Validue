@@ -114,7 +114,7 @@ export default function NotificationPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-[24px]">
         <div>
-          <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">
+          <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">
             Notifications
           </h1>
           {unreadCount > 0 && (
@@ -166,7 +166,7 @@ export default function NotificationPanel() {
                   <p className="text-[13px] text-[#94A3B8] mt-[2px] line-clamp-2">{notif.body}</p>
                 )}
                 {notif.amount && (
-                  <span className="inline-block mt-[6px] font-mono font-bold text-[14px] text-[#34D399]">
+                  <span className="inline-block mt-[6px] font-mono font-bold text-[14px] text-[#22C55E]">
                     ${notif.amount}
                   </span>
                 )}

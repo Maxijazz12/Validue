@@ -100,6 +100,9 @@ export type Database = {
           audience_occupation: string | null
           baseline_reach_units: number
           bonus_available: boolean | null
+          brief_cache: Json | null
+          brief_cached_at: string | null
+          brief_response_count: number | null
           brief_verdicts: Json | null
           campaign_strength: number | null
           category: string | null
@@ -152,6 +155,9 @@ export type Database = {
           audience_occupation?: string | null
           baseline_reach_units?: number
           bonus_available?: boolean | null
+          brief_cache?: Json | null
+          brief_cached_at?: string | null
+          brief_response_count?: number | null
           brief_verdicts?: Json | null
           campaign_strength?: number | null
           category?: string | null
@@ -204,6 +210,9 @@ export type Database = {
           audience_occupation?: string | null
           baseline_reach_units?: number
           bonus_available?: boolean | null
+          brief_cache?: Json | null
+          brief_cached_at?: string | null
+          brief_response_count?: number | null
           brief_verdicts?: Json | null
           campaign_strength?: number | null
           category?: string | null

@@ -119,7 +119,7 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
             return (
               <div
                 key={response.id}
-                className="bg-white border border-[#E2E8F0] rounded-2xl p-[20px] hover:border-[#CBD5E1] hover:shadow-[0_4px_16px_rgba(232,193,176,0.06)] transition-all duration-300"
+                className="bg-white border border-[#E2E8F0] rounded-2xl p-[20px] hover:border-[#CBD5E1] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04),0_1px_3px_rgba(232,193,176,0.06)] transition-all duration-200"
               >
                 <div className="flex items-center justify-between gap-[12px] mb-[8px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
                   <div className="min-w-0">

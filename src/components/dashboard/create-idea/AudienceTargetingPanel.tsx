@@ -14,7 +14,7 @@ import {
 } from "@/lib/constants";
 
 const selectClass =
-  "text-[14px] px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
+  "text-[14px] px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
 
 interface AudienceTargetingPanelProps {
   audience: DraftAudience;
@@ -68,7 +68,7 @@ export default function AudienceTargetingPanel({
           <button
             onClick={handleAISuggest}
             disabled={isImproving}
-            className="inline-flex items-center gap-[6px] text-[12px] font-medium text-[#a855f7] px-[12px] py-[6px] rounded-lg border border-[#a855f7]/20 hover:bg-[#f3e8ff] transition-all cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-[6px] text-[12px] font-medium text-[#a855f7] px-[12px] py-[6px] rounded-xl border border-[#a855f7]/20 hover:bg-[#f3e8ff] transition-all duration-200 cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isImproving ? (
               <>
@@ -93,7 +93,7 @@ export default function AudienceTargetingPanel({
       </p>
 
       {suggestError && (
-        <div className="mb-[16px] px-[12px] py-[8px] rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700">
+        <div className="mb-[16px] px-[12px] py-[8px] rounded-xl bg-red-50 border border-red-200 text-[12px] text-red-700">
           {suggestError}
         </div>
       )}

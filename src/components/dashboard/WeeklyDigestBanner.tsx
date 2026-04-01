@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 export type WeeklyDigest = {
   responsesThisWeek: number;
@@ -9,13 +9,17 @@ export type WeeklyDigest = {
   percentile: number; // 0-100, respondent ranking
 };
 
+const noop = () => () => {};
+
+function getWasDismissed() {
+  const lastDismissed = localStorage.getItem("weekly-digest-dismissed");
+  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return !!(lastDismissed && Number(lastDismissed) >= oneWeekAgo);
+}
+
 export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest }) {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const lastDismissed = localStorage.getItem("weekly-digest-dismissed");
-    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return !!(lastDismissed && Number(lastDismissed) >= oneWeekAgo);
-  });
+  const wasDismissedOnLoad = useSyncExternalStore(noop, getWasDismissed, () => true);
+  const [dismissed, setDismissed] = useState(wasDismissedOnLoad);
 
   if (dismissed) return null;
   if (digest.responsesThisWeek === 0 && digest.earnedThisWeek === 0) return null;
@@ -47,7 +51,7 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
         <p className="text-[12px] text-[#64748B] dark:text-[#94A3B8] mt-[2px]">
           <span className="font-mono font-semibold text-[#111111] dark:text-[#E8EAF0]">{digest.responsesThisWeek}</span> response{digest.responsesThisWeek !== 1 ? "s" : ""}
           {digest.earnedThisWeek > 0 && (
-            <>, <span className="font-mono font-semibold text-[#34D399]">${digest.earnedThisWeek.toFixed(0)}</span> earned</>
+            <>, <span className="font-mono font-semibold text-[#22C55E]">${digest.earnedThisWeek.toFixed(0)}</span> earned</>
           )}
           {digest.qualityDelta !== 0 && (
             <>, quality score <span className={digest.qualityDelta > 0 ? "text-[#22C55E]" : "text-[#EF4444]"}>{digest.qualityDelta > 0 ? "+" : ""}{digest.qualityDelta}</span></>

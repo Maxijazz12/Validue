@@ -18,12 +18,12 @@ export default function ActivityTicker({ items }: { items: ActivityItem[] }) {
   const doubled = [...items, ...items];
 
   return (
-    <div className="overflow-hidden relative rounded-xl border border-[#E2E8F0] bg-[#FAFAFA] mb-[12px]">
+    <div className="overflow-hidden relative rounded-xl wall-glass-surface mb-[12px]">
       <div className="flex w-max animate-[ticker_40s_linear_infinite]">
         {doubled.map((item, i) => (
           <div
             key={i}
-            className="shrink-0 px-[24px] py-[8px] flex items-center gap-[8px] text-[12px] text-[#64748B] whitespace-nowrap"
+            className="shrink-0 px-[24px] py-[8px] flex items-center gap-[8px] text-[12px] text-white/35 whitespace-nowrap"
           >
             <span
               className="w-[5px] h-[5px] rounded-full shrink-0"

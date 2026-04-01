@@ -65,7 +65,7 @@ export default async function SettingsPage({
 
       <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
         <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
-        <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">Settings</h1>
+        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">Settings</h1>
         <p className="text-[14px] text-[#64748B] mt-[4px]">Manage your profile and account</p>
       </div>
 
@@ -123,7 +123,7 @@ export default async function SettingsPage({
 
           <button
             type="submit"
-            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-semibold bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:bg-[#1a1a1a] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:scale-[1.02] hover:-translate-y-[1px] transition-all duration-300 cursor-pointer border-none mt-[8px]"
+            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none mt-[8px]"
           >
             Save Changes
           </button>
@@ -165,7 +165,7 @@ export default async function SettingsPage({
           cannot be undone.
         </p>
         <button
-          className="inline-flex items-center justify-center px-[20px] py-[10px] rounded-lg text-[13px] font-semibold border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-all cursor-pointer"
+          className="inline-flex items-center justify-center px-[20px] py-[10px] rounded-xl text-[13px] font-medium border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-all duration-200 cursor-pointer"
           disabled
         >
           Delete Account

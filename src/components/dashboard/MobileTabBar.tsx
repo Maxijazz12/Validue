@@ -24,7 +24,6 @@ const tabs = [
         <line x1="5" y1="12" x2="19" y2="12" />
       </svg>
     ),
-    highlight: true,
   },
   {
     label: "Responses",
@@ -67,7 +66,7 @@ export default function MobileTabBar() {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-[#E2E8F0] px-[8px] pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0C0C0E]/85 backdrop-blur-xl border-t border-white/[0.05] px-[8px] pb-[env(safe-area-inset-bottom)] transition-colors duration-300">
       <div className="flex items-center justify-around h-[56px]">
         {tabs.map((tab) => {
           const active = isActive(tab.href);
@@ -76,20 +75,13 @@ export default function MobileTabBar() {
               key={tab.href}
               href={tab.href}
               className={`flex flex-col items-center gap-[2px] px-[12px] py-[6px] rounded-xl no-underline transition-all duration-200 ${
-                active
-                  ? "text-[#111111]"
-                  : "text-[#94A3B8]"
-              } ${tab.highlight && !active ? "text-[#E5654E]" : ""}`}
+                active ? "text-[#E8C1B0]" : "text-white/30"
+              }`}
             >
-              <span className={`transition-transform duration-200 ${active ? "scale-110" : ""}`}>
-                {tab.icon}
-              </span>
-              <span className={`text-[10px] font-medium ${active ? "font-semibold" : ""}`}>
+              {tab.icon}
+              <span className={`text-[10px] ${active ? "font-semibold" : "font-medium"}`}>
                 {tab.label}
               </span>
-              {active && (
-                <span className="absolute bottom-[6px] w-[4px] h-[4px] rounded-full bg-[#111111]" />
-              )}
             </a>
           );
         })}

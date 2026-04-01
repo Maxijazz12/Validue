@@ -164,30 +164,36 @@ export async function POST(request: Request) {
 
     // ─── Assemble CampaignDraft ───
     const maxAssumptionIndex = Math.max(0, raw.assumptions.length - 1);
-    const openQuestions: DraftQuestion[] = raw.openQuestions.map((q) => ({
-      id: uid(),
-      text: q.text,
-      type: "open" as const,
-      options: null,
-      section: q.section as "open" | "followup",
-      isBaseline: false,
-      assumptionIndex: Math.min(q.assumptionIndex, maxAssumptionIndex),
-      anchors: q.anchors,
-      category: q.evidenceCategory,
-    }));
-
-    const followupQuestions: DraftQuestion[] = raw.followupQuestions.map(
-      (q) => ({
+    const openQuestions: DraftQuestion[] = raw.openQuestions.map((q) => {
+      const isMCQ = q.questionType === "multiple_choice" && q.options && q.options.length >= 3;
+      return {
         id: uid(),
         text: q.text,
-        type: "open" as const,
-        options: null,
-        section: "followup" as const,
+        type: isMCQ ? "multiple_choice" as const : "open" as const,
+        options: isMCQ ? q.options! : null,
+        section: q.section as "open" | "followup",
         isBaseline: false,
         assumptionIndex: Math.min(q.assumptionIndex, maxAssumptionIndex),
         anchors: q.anchors,
         category: q.evidenceCategory,
-      })
+      };
+    });
+
+    const followupQuestions: DraftQuestion[] = raw.followupQuestions.map(
+      (q) => {
+        const isMCQ = q.questionType === "multiple_choice" && q.options && q.options.length >= 3;
+        return {
+          id: uid(),
+          text: q.text,
+          type: isMCQ ? "multiple_choice" as const : "open" as const,
+          options: isMCQ ? q.options! : null,
+          section: "followup" as const,
+          isBaseline: false,
+          assumptionIndex: Math.min(q.assumptionIndex, maxAssumptionIndex),
+          anchors: q.anchors,
+          category: q.evidenceCategory,
+        };
+      }
     );
 
     const rawDraft: CampaignDraft = {

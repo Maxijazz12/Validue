@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, DM_Sans, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
+import { Space_Grotesk, DM_Sans, Instrument_Serif, Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 import ThemeProvider from "@/components/ThemeProvider";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-});
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -23,18 +17,23 @@ const dmSans = DM_Sans({
   style: ["normal", "italic"],
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-});
-
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
   weight: ["400"],
   style: ["normal", "italic"],
+});
+
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -53,17 +52,11 @@ export default function RootLayout({
       lang="en"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${inter.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${plusJakarta.variable} ${instrumentSerif.variable} antialiased`}
+      className={`${spaceGrotesk.variable} ${dmSans.variable} ${instrumentSerif.variable} ${playfairDisplay.variable} ${inter.variable} antialiased`}
     >
       <head />
-      <body suppressHydrationWarning>
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){}})()`,
-          }}
-        />
+      <body className={`${dmSans.className} font-sans`} suppressHydrationWarning>
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

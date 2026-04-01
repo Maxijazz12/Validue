@@ -378,7 +378,7 @@ export default function SurveyEditor({
           {sectionKey !== "baseline" && (
             <button
               onClick={() => addQuestion(sectionKey)}
-              className="text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-lg border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all cursor-pointer bg-transparent"
+              className="text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all duration-200 cursor-pointer bg-transparent"
             >
               + Add question
             </button>
@@ -423,7 +423,7 @@ export default function SurveyEditor({
       </p>
 
       {rewriteError && (
-        <div className="mb-[16px] px-[12px] py-[8px] rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700">
+        <div className="mb-[16px] px-[12px] py-[8px] rounded-xl bg-red-50 border border-red-200 text-[12px] text-red-700">
           {rewriteError}
         </div>
       )}

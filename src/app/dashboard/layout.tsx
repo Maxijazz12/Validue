@@ -6,6 +6,7 @@ import MobileTabBar from "@/components/dashboard/MobileTabBar";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import SubscriptionBanner from "@/components/dashboard/SubscriptionBanner";
 import NotificationToast from "@/components/dashboard/NotificationToast";
+import ImmersiveProvider from "@/components/ImmersiveProvider";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG } from "@/lib/plans";
 
@@ -58,38 +59,34 @@ export default async function DashboardLayout({
   const totalEarned = Number(profile?.total_earned) || 0;
 
   return (
-    <div className="min-h-screen bg-[#FCFCFD] dark:bg-[#0F1117] relative overflow-hidden">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-[8px] focus:left-[8px] focus:px-[16px] focus:py-[8px] focus:bg-[#111111] focus:text-white focus:rounded-lg focus:text-[14px] focus:font-medium">
-        Skip to main content
-      </a>
-      {/* Ambient color washes (matches landing page depth) */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
-        <div className="absolute" style={{ top: '10%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,193,176,0.09) 0%, transparent 70%)' }} />
-        <div className="absolute" style={{ bottom: '5%', left: '-5%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(155,196,200,0.08) 0%, transparent 70%)' }} />
-        <div className="absolute" style={{ top: '50%', left: '20%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,193,176,0.05) 0%, transparent 70%)' }} />
+    <ImmersiveProvider>
+      <div className="min-h-screen bg-white dark:bg-[#0F0F11] immersive-shell">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-[8px] focus:left-[8px] focus:px-[16px] focus:py-[8px] focus:bg-[#1A1A1A] focus:text-white focus:rounded-lg focus:text-[14px] focus:font-medium">
+          Skip to main content
+        </a>
+        <Sidebar
+          userName={userName}
+          userAvatar={userAvatar}
+          ideaCount={ideaCount ?? 0}
+          planTier={sub.tier}
+          campaignsUsed={sub.campaignsUsed}
+          campaignLimit={planLimit}
+          unreadCount={unreadCount ?? 0}
+          totalEarned={totalEarned}
+          hasNewResponses={(newResponseCount ?? 0) > 0}
+        />
+        <MobileTabBar />
+        <CommandPalette />
+        <main id="main-content" className="md:ml-[64px] min-h-screen relative z-10">
+          <div className="dashboard-content-wrapper max-w-[1080px] mx-auto px-[48px] py-[48px] max-md:px-[20px] max-md:pt-[72px] max-md:pb-[80px]">
+            <Suspense>
+              <SubscriptionBanner />
+            </Suspense>
+            <NotificationToast userId={user.id} />
+            {children}
+          </div>
+        </main>
       </div>
-      <Sidebar
-        userName={userName}
-        userAvatar={userAvatar}
-        ideaCount={ideaCount ?? 0}
-        planTier={sub.tier}
-        campaignsUsed={sub.campaignsUsed}
-        campaignLimit={planLimit}
-        unreadCount={unreadCount ?? 0}
-        totalEarned={totalEarned}
-        hasNewResponses={(newResponseCount ?? 0) > 0}
-      />
-      <MobileTabBar />
-      <CommandPalette />
-      <main id="main-content" className="md:ml-[240px] min-h-screen relative z-10">
-        <div className="max-w-[960px] mx-auto px-[32px] py-[40px] max-md:px-[20px] max-md:pt-[72px] max-md:pb-[80px]">
-          <Suspense>
-            <SubscriptionBanner />
-          </Suspense>
-          <NotificationToast userId={user.id} />
-          {children}
-        </div>
-      </main>
-    </div>
+    </ImmersiveProvider>
   );
 }

@@ -11,7 +11,7 @@ import type { ConsistencyReport } from "./detect-consistency-gaps";
 import { detectSegmentDisagreements } from "./segment-disagreements";
 import type { SegmentReport } from "./segment-disagreements";
 import { logGeneration } from "./logger";
-import { checkGrounding, applyGroundingCorrections, formatGroundingFeedback } from "./grounding-check";
+import { checkGrounding, applyGroundingCorrections } from "./grounding-check";
 import sql from "@/lib/db";
 
 /* ─── Prior Round Types ─── */
@@ -95,12 +95,11 @@ async function callSynthesis(
   priceSignal: PriceSignal | null,
   consistencyReport: ConsistencyReport | null,
   segmentReport: SegmentReport | null,
-  priorRoundVerdicts: PriorRoundVerdicts | null = null,
-  groundingFeedback: string | null = null
+  priorRoundVerdicts: PriorRoundVerdicts | null = null
 ): Promise<DecisionBrief> {
   const client = getClient();
 
-  let userMessage = buildSynthesisPrompt(
+  const userMessage = buildSynthesisPrompt(
     campaignTitle,
     campaignDescription,
     assumptions,
@@ -111,10 +110,6 @@ async function callSynthesis(
     segmentReport,
     priorRoundVerdicts
   );
-
-  if (groundingFeedback) {
-    userMessage += `\n\n${groundingFeedback}`;
-  }
 
   const response = await client.messages.create({
     model: MODELS.generation,
@@ -161,11 +156,11 @@ export interface BriefResult {
 /**
  * Synthesizes a Decision Brief for a campaign.
  *
- * 1. Retrieves evidence grouped by assumption
- * 2. If too few responses, returns a deterministic fallback
- * 3. Calls Claude to synthesize the brief
- * 4. On failure, retries once, then falls back to deterministic
- * 5. Computes per-assumption coverage from raw evidence (deterministic)
+ * 1. Checks for a cached brief (same response count → cache hit)
+ * 2. If cache miss: retrieves evidence, calls Claude once, applies
+ *    deterministic grounding corrections, caches the result
+ * 3. If too few responses, returns a deterministic fallback
+ * 4. On AI failure, retries once, then falls back to deterministic
  *
  * Never throws — the brief page must always render something.
  */
@@ -177,26 +172,70 @@ export async function synthesizeBrief(
 ): Promise<BriefResult> {
   const start = Date.now();
 
-  // Fetch longitudinal context (round number + parent verdicts)
-  let roundNumber = 1;
-  let parentVerdicts: PriorRoundVerdicts | null = null;
+  // ─── Check cache first ───
+  // If we have a cached brief and the response count hasn't changed, return it.
   try {
-    const [campaignMeta] = await sql`
-      SELECT parent_campaign_id, round_number FROM campaigns WHERE id = ${campaignId}
+    const [cached] = await sql`
+      SELECT brief_cache, brief_response_count, parent_campaign_id, round_number
+      FROM campaigns WHERE id = ${campaignId}
     `;
-    roundNumber = Number(campaignMeta?.round_number ?? 1);
-    if (campaignMeta?.parent_campaign_id) {
+
+    const roundNumber = Number(cached?.round_number ?? 1);
+    let parentVerdicts: PriorRoundVerdicts | null = null;
+    if (cached?.parent_campaign_id) {
       const [parent] = await sql`
-        SELECT brief_verdicts FROM campaigns WHERE id = ${campaignMeta.parent_campaign_id}
+        SELECT brief_verdicts FROM campaigns WHERE id = ${cached.parent_campaign_id}
       `;
       if (parent?.brief_verdicts) {
         parentVerdicts = parent.brief_verdicts as PriorRoundVerdicts;
       }
     }
-  } catch {
-    // Non-critical — proceed without longitudinal context
-  }
 
+    if (cached?.brief_cache && cached.brief_response_count != null) {
+      // Check current response count to decide if cache is stale
+      const [{ count: currentCount }] = await sql`
+        SELECT COUNT(*)::int as count FROM responses
+        WHERE campaign_id = ${campaignId} AND status IN ('submitted', 'ranked')
+      `;
+
+      if (currentCount === cached.brief_response_count) {
+        // Cache hit — return without calling AI
+        const result = cached.brief_cache as BriefResult;
+        logGeneration({
+          event: "response.ranked",
+          campaignId,
+          responseId: "brief-synthesis-cached",
+          score: 0,
+          source: "ai",
+          confidence: 1,
+          latencyMs: Date.now() - start,
+        });
+        return { ...result, roundNumber, parentVerdicts };
+      }
+    }
+
+    // Cache miss — fall through to synthesis
+    return await synthesizeFresh(campaignId, campaignTitle, campaignDescription, assumptions, roundNumber, parentVerdicts, start);
+  } catch {
+    // Cache check failed — synthesize fresh
+    return await synthesizeFresh(campaignId, campaignTitle, campaignDescription, assumptions, 1, null, start);
+  }
+}
+
+/**
+ * Fresh synthesis path — called on cache miss or when response count has changed.
+ * Makes exactly 1 AI call (+ 1 retry on failure). Applies deterministic grounding
+ * corrections instead of re-synthesizing. Caches the result.
+ */
+async function synthesizeFresh(
+  campaignId: string,
+  campaignTitle: string,
+  campaignDescription: string,
+  assumptions: string[],
+  roundNumber: number,
+  parentVerdicts: PriorRoundVerdicts | null,
+  start: number
+): Promise<BriefResult> {
   // Gather evidence
   let evidenceByAssumption: Awaited<ReturnType<typeof getEvidenceByAssumption>>;
   let methodology: Awaited<ReturnType<typeof getBriefMethodology>>;
@@ -212,7 +251,6 @@ export async function synthesizeBrief(
       detectConsistencyGaps(campaignId),
     ]);
   } catch {
-    // DB query failed — return minimal fallback
     logGeneration({
       event: "response.ranked",
       campaignId,
@@ -226,7 +264,7 @@ export async function synthesizeBrief(
     return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage, priceSignal: null, consistencyReport: null, segmentReport: null, roundNumber, parentVerdicts };
   }
 
-  // Compute coverage and segment analysis from evidence (deterministic — same regardless of AI/fallback path)
+  // Compute coverage and segment analysis (deterministic)
   const coverage = computeAllCoverage(evidenceByAssumption, assumptions.length);
   const segmentReport = detectSegmentDisagreements(evidenceByAssumption, assumptions);
 
@@ -244,71 +282,11 @@ export async function synthesizeBrief(
     return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
   }
 
-  // Attempt AI synthesis
+  // Attempt AI synthesis — single call + deterministic grounding corrections
   if (isAIAvailable()) {
-    // First attempt
-    try {
-      let brief = await callSynthesis(
-        campaignTitle,
-        campaignDescription,
-        assumptions,
-        evidenceByAssumption,
-        methodology,
-        priceSignal,
-        consistencyReport,
-        segmentReport,
-        parentVerdicts
-      );
-
-      // Grounding check: verify AI output is faithful to evidence
-      const grounding = checkGrounding(brief, evidenceByAssumption);
-
-      if (!grounding.passed) {
-        // Re-synthesize with grounding feedback
-        try {
-          const feedback = formatGroundingFeedback(grounding.failures);
-          brief = await callSynthesis(
-            campaignTitle,
-            campaignDescription,
-            assumptions,
-            evidenceByAssumption,
-            methodology,
-            priceSignal,
-            consistencyReport,
-            segmentReport,
-            parentVerdicts,
-            feedback
-          );
-
-          // Check again — if still failing, apply deterministic corrections
-          const recheck = checkGrounding(brief, evidenceByAssumption);
-          if (!recheck.passed) {
-            brief = applyGroundingCorrections(brief, recheck.failures);
-          }
-        } catch {
-          // Re-synthesis failed — apply corrections to original brief
-          brief = applyGroundingCorrections(brief, grounding.failures);
-        }
-      }
-
-      logGeneration({
-        event: "response.ranked",
-        campaignId,
-        responseId: "brief-synthesis",
-        score: methodology.avgQuality,
-        source: "ai",
-        confidence: grounding.passed ? 1 : 0.7,
-        latencyMs: Date.now() - start,
-      });
-
-      // Persist verdict summary (write-once)
-      persistVerdicts(campaignId, brief);
-
-      return { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
-    } catch {
-      // Retry once (synthesis itself failed, not grounding)
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const brief = await callSynthesis(
+        let brief = await callSynthesis(
           campaignTitle,
           campaignDescription,
           assumptions,
@@ -320,16 +298,16 @@ export async function synthesizeBrief(
           parentVerdicts
         );
 
-        // Run grounding on retry too — apply corrections if needed
+        // Deterministic grounding check — fix issues without re-calling AI
         const grounding = checkGrounding(brief, evidenceByAssumption);
-        const finalBrief = grounding.passed
-          ? brief
-          : applyGroundingCorrections(brief, grounding.failures);
+        if (!grounding.passed) {
+          brief = applyGroundingCorrections(brief, grounding.failures);
+        }
 
         logGeneration({
           event: "response.ranked",
           campaignId,
-          responseId: "brief-synthesis-retry",
+          responseId: attempt === 0 ? "brief-synthesis" : "brief-synthesis-retry",
           score: methodology.avgQuality,
           source: "ai",
           confidence: grounding.passed ? 1 : 0.7,
@@ -337,11 +315,16 @@ export async function synthesizeBrief(
         });
 
         // Persist verdict summary (write-once)
-        persistVerdicts(campaignId, finalBrief);
+        persistVerdicts(campaignId, brief);
 
-        return { brief: finalBrief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+        const result: BriefResult = { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+
+        // Cache the result
+        cacheBrief(campaignId, result, methodology.responseCount);
+
+        return result;
       } catch {
-        // Fall through to fallback
+        if (attempt === 1) break; // Retry exhausted, fall through to fallback
       }
     }
   }
@@ -358,6 +341,25 @@ export async function synthesizeBrief(
   });
 
   return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+}
+
+/* ─── Brief Cache Persistence ─── */
+
+/**
+ * Cache the full BriefResult in the campaigns row.
+ * Stores the response count so we know when to invalidate.
+ * Fire-and-forget — never blocks brief rendering.
+ */
+function cacheBrief(campaignId: string, result: BriefResult, responseCount: number): void {
+  sql`
+    UPDATE campaigns
+    SET brief_cache = ${JSON.stringify(result)}::jsonb,
+        brief_cached_at = NOW(),
+        brief_response_count = ${responseCount}
+    WHERE id = ${campaignId}
+  `.catch(() => {
+    // Non-critical — caching failure should never break brief rendering
+  });
 }
 
 /* ─── Verdict Persistence ─── */

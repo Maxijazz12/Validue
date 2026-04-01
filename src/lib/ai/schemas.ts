@@ -34,8 +34,10 @@ export const EVIDENCE_CATEGORIES = ["behavior", "attempts", "willingness", "pric
 export const AIOpenQuestionSchema = z.object({
   text: z.string().min(10),
   section: z.enum(["open", "followup"]),
+  questionType: z.enum(["open", "multiple_choice"]).default("open"),
+  options: z.array(z.string()).min(3).max(7).optional(),
   assumptionIndex: z.number().int().min(0).max(9),
-  anchors: z.array(z.string()).min(2).max(3),
+  anchors: z.array(z.string()).min(2).max(3).optional(),
   evidenceCategory: z.enum(EVIDENCE_CATEGORIES),
 });
 
@@ -51,7 +53,7 @@ export const AICampaignDraftSchema = z.object({
   category: z.enum(asWritable(CATEGORY_OPTIONS)),
   tags: z.array(z.string()).min(1).max(5),
   assumptions: z.array(z.string().min(10)).min(2).max(3),
-  openQuestions: z.array(AIOpenQuestionSchema).min(3).max(4),
+  openQuestions: z.array(AIOpenQuestionSchema).min(3).max(6),
   followupQuestions: z.array(AIOpenQuestionSchema).min(1).max(2),
   baselineQuestionIds: z.array(z.string()).length(3),
   audience: AIDraftAudienceSchema,
@@ -64,6 +66,8 @@ export type AICampaignDraftRaw = z.infer<typeof AICampaignDraftSchema>;
 export const AIRegeneratedQuestionSchema = z.object({
   text: z.string().min(10),
   section: z.enum(["open", "followup"]),
+  questionType: z.enum(["open", "multiple_choice"]).default("open"),
+  options: z.array(z.string()).min(3).max(7).optional(),
   evidenceCategory: z.enum(EVIDENCE_CATEGORIES),
 });
 
@@ -129,17 +133,28 @@ export const GENERATE_CAMPAIGN_TOOL = {
         type: "array" as const,
         items: {
           type: "object" as const,
-          required: ["text", "section", "assumptionIndex", "anchors", "evidenceCategory"],
+          required: ["text", "section", "assumptionIndex", "evidenceCategory"],
           properties: {
             text: {
               type: "string" as const,
-              description: "The question text",
+              description: "The question text — short and specific, answerable in under 20 seconds",
             },
             section: {
               type: "string" as const,
               enum: ["open", "followup"],
-              description:
-                "'open' for broad validation questions, 'followup' for idea-specific probes",
+              description: "'open' for assumption-testing questions, 'followup' for idea-specific probes",
+            },
+            questionType: {
+              type: "string" as const,
+              enum: ["open", "multiple_choice"],
+              description: "Question format. Prefer 'multiple_choice' for testing specific claims (frequency, WTP, status quo). Use 'open' only when discovery matters more than measurement. At least 3 of your questions should be multiple_choice.",
+            },
+            options: {
+              type: "array" as const,
+              items: { type: "string" as const },
+              minItems: 3,
+              maxItems: 7,
+              description: "Required for multiple_choice questions. 4-6 concrete options. MUST include at least one assumption-killing option (e.g. 'Not a problem for me', '0 times', '$0 — not interested', 'I already solve this easily'). Include 'None of these / Doesn't apply' where relevant.",
             },
             assumptionIndex: {
               type: "number" as const,
@@ -150,25 +165,25 @@ export const GENERATE_CAMPAIGN_TOOL = {
               items: { type: "string" as const },
               minItems: 2,
               maxItems: 3,
-              description: "2-3 response anchor hints shown below the text area to guide respondent answers (e.g. 'Include: specific tools or apps you used', 'Mention: how often and how long ago')",
+              description: "Required for open-ended questions only. 2-3 response anchor hints shown below the text area (e.g. 'Name the specific app', 'Include: how long you used it'). Omit for multiple_choice.",
             },
             evidenceCategory: {
               type: "string" as const,
               enum: ["behavior", "attempts", "willingness", "price", "pain", "negative"],
-              description: "What type of evidence this question gathers: behavior (current habits), attempts (past solutions tried), willingness (openness to switching), price (spending/WTP), pain (problem severity), negative (disconfirmation — evidence AGAINST the assumption)",
+              description: "Evidence type: behavior (frequency/recency), attempts (past solutions), willingness (switching cost), price (spending/WTP), pain (problem severity), negative (disconfirmation — evidence AGAINST the assumption)",
             },
           },
         },
         minItems: 3,
-        maxItems: 4,
+        maxItems: 6,
         description:
-          "3–4 open-ended validation questions. Must be behavior-based, non-leading, and help the founder understand current behavior and pain.",
+          "4–6 assumption-killing questions. Mix of multiple_choice (at least 3) and open-ended (at most 2). Every MCQ must include assumption-killing options. No narrative prompts.",
       },
       followupQuestions: {
         type: "array" as const,
         items: {
           type: "object" as const,
-          required: ["text", "section", "assumptionIndex", "anchors", "evidenceCategory"],
+          required: ["text", "section", "assumptionIndex", "evidenceCategory"],
           properties: {
             text: {
               type: "string" as const,
@@ -179,6 +194,18 @@ export const GENERATE_CAMPAIGN_TOOL = {
               enum: ["open", "followup"],
               description: "Should be 'followup'",
             },
+            questionType: {
+              type: "string" as const,
+              enum: ["open", "multiple_choice"],
+              description: "Question format — same rules as openQuestions. Prefer multiple_choice.",
+            },
+            options: {
+              type: "array" as const,
+              items: { type: "string" as const },
+              minItems: 3,
+              maxItems: 7,
+              description: "Required for multiple_choice. Same rules as openQuestions.",
+            },
             assumptionIndex: {
               type: "number" as const,
               description: "0-based index into the assumptions array",
@@ -188,7 +215,7 @@ export const GENERATE_CAMPAIGN_TOOL = {
               items: { type: "string" as const },
               minItems: 2,
               maxItems: 3,
-              description: "Response anchors — same format as openQuestions",
+              description: "Required for open-ended questions only. Omit for multiple_choice.",
             },
             evidenceCategory: {
               type: "string" as const,
@@ -200,7 +227,7 @@ export const GENERATE_CAMPAIGN_TOOL = {
         minItems: 1,
         maxItems: 2,
         description:
-          "1–2 follow-up questions. Probe willingness, use cases, or objections.",
+          "1–2 follow-up questions. Probe WTP, switching cost, or disconfirmation.",
       },
       baselineQuestionIds: {
         type: "array" as const,
@@ -268,19 +295,31 @@ export const GENERATE_CAMPAIGN_TOOL = {
 export const REGENERATE_QUESTION_TOOL = {
   name: "regenerate_question" as const,
   description:
-    "Generate a replacement validation question for a founder's campaign.",
+    "Generate a replacement assumption-killing question for a founder's campaign. Prefer multiple_choice with disconfirmation options.",
   input_schema: {
     type: "object" as const,
     required: ["text", "section", "evidenceCategory"],
     properties: {
       text: {
         type: "string" as const,
-        description: "The new question text",
+        description: "The new question text — short, specific, answerable in under 20 seconds",
       },
       section: {
         type: "string" as const,
         enum: ["open", "followup"],
-        description: "Whether this is an open-ended or follow-up question",
+        description: "Whether this is an open or follow-up question",
+      },
+      questionType: {
+        type: "string" as const,
+        enum: ["open", "multiple_choice"],
+        description: "Prefer 'multiple_choice' for testable claims. Use 'open' only for discovery.",
+      },
+      options: {
+        type: "array" as const,
+        items: { type: "string" as const },
+        minItems: 3,
+        maxItems: 7,
+        description: "Required for multiple_choice. 4-6 concrete options. Must include at least one assumption-killing option.",
       },
       evidenceCategory: {
         type: "string" as const,

@@ -1,5 +1,8 @@
+"use client";
+
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
+import ScrollReveal from "@/components/ui/ScrollReveal";
 import { mockWallIdeas } from "@/lib/constants";
 
 type PreviewIdea = (typeof mockWallIdeas)[number];
@@ -7,7 +10,8 @@ type PreviewIdea = (typeof mockWallIdeas)[number];
 function BadgeLabel({ badge }: { badge: PreviewIdea["badge"] }) {
   if (badge === "new") {
     return (
-      <span className="text-[11px] font-semibold px-[8px] py-[3px] rounded-full bg-[#34D399]/10 text-[#059669]">
+      <span className="text-[11px] font-semibold px-[8px] py-[3px] rounded-full bg-[#34D399]/10 text-[#059669] flex items-center gap-[5px]">
+        <span className="w-[6px] h-[6px] rounded-full bg-[#34D399] live-pulse" />
         New
       </span>
     );
@@ -29,33 +33,33 @@ function BadgeLabel({ badge }: { badge: PreviewIdea["badge"] }) {
   return null;
 }
 
-function PreviewCard({ idea }: { idea: PreviewIdea }) {
+function PreviewCard({ idea, showViewing }: { idea: PreviewIdea; showViewing?: boolean }) {
   const progress =
     idea.targetResponses > 0
       ? Math.min((idea.currentResponses / idea.targetResponses) * 100, 100)
       : 0;
 
   return (
-    <div className="bg-white rounded-2xl p-[20px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] border border-[#E2E8F0] hover:shadow-[0_4px_12px_rgba(0,0,0,0.07),0_1px_3px_rgba(0,0,0,0.04)] hover:border-[#CBD5E1] transition-all duration-200 group relative overflow-hidden">
+    <div className="bg-white rounded-2xl p-[20px] shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] border border-[#EDE8E3] hover:shadow-[0_8px_32px_rgba(180,140,110,0.12),0_2px_8px_rgba(212,160,136,0.08)] hover:border-[#DDD6CE] hover:scale-[1.01] transition-all duration-250 group relative overflow-hidden">
 
       {/* Top row: category, tags, time estimate */}
       <div className="flex items-center justify-between gap-[8px] mb-[12px]">
         <div className="flex items-center gap-[6px] flex-wrap min-w-0">
           {idea.category && (
-            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#C8DBD9]/25 text-[#8FAFAD] shrink-0">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#D4A088]/10 text-[#C4856E] shrink-0">
               {idea.category}
             </span>
           )}
           {idea.tags.slice(0, 2).map((tag) => (
             <span
               key={tag}
-              className="text-[11px] px-[8px] py-[3px] rounded-full border border-[#E2E8F0] text-[#94A3B8] shrink-0"
+              className="text-[11px] px-[8px] py-[3px] rounded-full border border-[#EDE8E3] text-[#A8A29E] shrink-0"
             >
               {tag}
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-[4px] text-[12px] text-[#94A3B8] shrink-0">
+        <div className="flex items-center gap-[4px] text-[12px] text-[#A8A29E] shrink-0">
           <svg
             width="14"
             height="14"
@@ -74,13 +78,13 @@ function PreviewCard({ idea }: { idea: PreviewIdea }) {
       </div>
 
       {/* Title */}
-      <h3 className="text-[16px] font-semibold text-[#111111] mb-[6px]">
+      <h3 className="text-[16px] font-semibold text-[#1C1917] mb-[6px]">
         {idea.title}
       </h3>
 
       {/* Description */}
       {idea.description && (
-        <p className="text-[13px] text-[#64748B] leading-[1.5] mb-[16px] line-clamp-2">
+        <p className="text-[13px] text-[#78716C] leading-[1.5] mb-[16px] line-clamp-2">
           {idea.description}
         </p>
       )}
@@ -88,7 +92,7 @@ function PreviewCard({ idea }: { idea: PreviewIdea }) {
       {/* Progress + Reward row */}
       <div className="flex items-center gap-[16px] mb-[16px]">
         <div className="flex-1 min-w-0">
-          <div className="h-[5px] rounded-full bg-[#F1F5F9] overflow-hidden relative">
+          <div className="h-[5px] rounded-full bg-[#EDE8E3] overflow-hidden relative">
             <div
               className="h-full transition-all duration-500"
               style={{
@@ -97,8 +101,8 @@ function PreviewCard({ idea }: { idea: PreviewIdea }) {
               }}
             />
           </div>
-          <div className="text-[12px] text-[#94A3B8] mt-[6px]">
-            <span className="font-mono font-semibold text-[#111111]">
+          <div className="text-[12px] text-[#A8A29E] mt-[6px]">
+            <span className="font-mono font-semibold text-[#1C1917]">
               {idea.currentResponses}
             </span>
             /{idea.targetResponses} responses
@@ -106,10 +110,10 @@ function PreviewCard({ idea }: { idea: PreviewIdea }) {
         </div>
         {idea.rewardAmount > 0 && (
           <div className="shrink-0 text-right">
-            <div className="font-mono text-[13px] font-semibold text-[#111111]">
+            <div className="font-mono text-[13px] font-semibold text-[#1C1917]">
               ${idea.rewardAmount}
             </div>
-            <div className="text-[11px] text-[#94A3B8]">reward</div>
+            <div className="text-[11px] text-[#A8A29E]">reward</div>
           </div>
         )}
       </div>
@@ -118,14 +122,22 @@ function PreviewCard({ idea }: { idea: PreviewIdea }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-[8px] min-w-0">
           <Avatar name={idea.creatorName} size={18} />
-          <span className="text-[12px] text-[#64748B] truncate">
+          <span className="text-[12px] text-[#78716C] truncate">
             {idea.creatorName}
           </span>
-          <span className="text-[12px] text-[#94A3B8]">
+          <span className="text-[12px] text-[#A8A29E]">
             · {idea.timeAgo}
           </span>
         </div>
-        <BadgeLabel badge={idea.badge} />
+        <div className="flex items-center gap-[8px]">
+          {showViewing && (
+            <span className="text-[11px] text-[#A8A29E] flex items-center gap-[4px]">
+              <span className="w-[5px] h-[5px] rounded-full bg-[#34D399] live-pulse" />
+              3 viewing
+            </span>
+          )}
+          <BadgeLabel badge={idea.badge} />
+        </div>
       </div>
     </div>
   );
@@ -139,13 +151,13 @@ export default function WallPreview() {
         <div className="text-[12px] uppercase tracking-[0.06em] font-medium mb-[16px] text-gradient-warm">
           The Wall
         </div>
-        <h2 className="text-[clamp(30px,4.5vw,46px)] font-bold tracking-[-0.02em] leading-[1.1] text-[#222222] mb-[16px]">
+        <h2 className="text-[clamp(30px,4.5vw,46px)] font-bold tracking-[-0.04em] leading-[1.1] text-[#1C1917] mb-[16px]">
           See what founders are building{" "}
-          <span className="italic font-light tracking-[-1px] text-gradient-warm">
+          <span className="italic font-light tracking-[-1px] text-gradient-animated font-heading">
             right now
           </span>
         </h2>
-        <p className="text-[16px] text-[#64748B] max-w-[500px] mx-auto leading-[1.7]">
+        <p className="text-[16px] text-[#78716C] max-w-[500px] mx-auto leading-[1.7]">
           Live startup ideas, open for feedback. Browse, respond
           thoughtfully, and get paid for your perspective.
         </p>
@@ -154,22 +166,21 @@ export default function WallPreview() {
       {/* Card grid with fade overlay */}
       <div className="relative">
         <div className="grid grid-cols-2 max-md:grid-cols-1 gap-[12px]">
-          {mockWallIdeas.map((idea) => (
-            <PreviewCard key={idea.title} idea={idea} />
+          {mockWallIdeas.map((idea, i) => (
+            <ScrollReveal key={idea.title} animation="scale" staggerIndex={i}>
+              <PreviewCard idea={idea} showViewing={i === 0} />
+            </ScrollReveal>
           ))}
         </div>
 
         {/* Bottom fade overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-[200px] bg-gradient-to-b from-transparent via-[#FCFCFD]/80 to-[#FCFCFD] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-[200px] bg-gradient-to-b from-transparent via-[#FBF9F7]/80 to-[#FBF9F7] pointer-events-none" />
       </div>
 
       {/* CTA */}
-      <div className="flex items-center justify-center gap-[12px] mt-[8px] relative z-10">
-        <Button variant="primary" href="/dashboard/the-wall">
+      <div className="flex items-center justify-center mt-[8px] relative z-10">
+        <Button variant="outline" href="/dashboard/the-wall">
           Explore the Wall
-        </Button>
-        <Button variant="outline" href="/auth/signup">
-          Post Your Idea
         </Button>
       </div>
     </section>

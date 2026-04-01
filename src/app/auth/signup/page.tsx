@@ -78,7 +78,7 @@ export default function SignupPage() {
           </p>
 
           {error && (
-            <div role="alert" className="mb-[20px] px-[14px] py-[10px] bg-red-50 border border-red-200 rounded-lg text-[13px] text-red-600">
+            <div role="alert" className="mb-[20px] px-[14px] py-[10px] bg-red-50 border border-red-200 rounded-xl text-[13px] text-red-600">
               {error}
             </div>
           )}
@@ -172,7 +172,7 @@ export default function SignupPage() {
           {/* Google OAuth */}
           <button
             onClick={handleGoogleSignup}
-            className="w-full flex items-center justify-center gap-[10px] px-[16px] py-[12px] border border-[#E2E8F0] rounded-xl text-[14px] font-medium text-[#64748B] bg-white hover:bg-[#FCFCFD] hover:border-[#CBD5E1] transition-all duration-300 cursor-pointer"
+            className="w-full flex items-center justify-center gap-[10px] px-[16px] py-[12px] border border-[#E2E8F0] rounded-xl text-[14px] font-medium text-[#64748B] bg-white hover:bg-[#FCFCFD] hover:border-[#CBD5E1] transition-all duration-200 cursor-pointer"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>

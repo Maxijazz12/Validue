@@ -47,8 +47,8 @@ export default function PricingButton({
         disabled={loading}
         className={`w-full py-[12px] rounded-xl text-[14px] font-semibold font-sans cursor-pointer transition-all duration-200 text-center disabled:opacity-50 disabled:cursor-not-allowed ${
           featured
-            ? "bg-[#111111] text-white hover:bg-[#1a1a1a] shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_20px_rgba(229,101,78,0.12),0_1px_4px_rgba(229,101,78,0.06)]"
-            : "bg-transparent text-[#111111] border border-[#E2E8F0] hover:border-[#CBD5E1]"
+            ? "bg-[#1C1917] text-white hover:bg-[#292524] shadow-[0_2px_8px_rgba(28,25,23,0.12)] hover:shadow-[0_4px_20px_rgba(212,160,136,0.18),0_2px_6px_rgba(212,160,136,0.08)]"
+            : "bg-transparent text-[#1C1917] border border-[#EDE8E3] hover:border-[#DDD6CE]"
         }`}
       >
         {loading ? "Redirecting to checkout..." : cta}

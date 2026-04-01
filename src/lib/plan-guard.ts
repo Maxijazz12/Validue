@@ -124,8 +124,8 @@ export async function canCreateCampaign(
       : baseLimit;
 
   // Count campaigns created this billing period
-  // For free users without a subscription row, count campaigns this calendar month
   let campaignsUsed: number;
+  let resetLabel: string;
 
   if (sub.currentPeriodEnd) {
     // Paid user: count within billing period
@@ -133,28 +133,58 @@ export async function canCreateCampaign(
       SELECT COUNT(*)::int AS count
       FROM campaigns
       WHERE creator_id = ${userId}
+        AND status != 'draft'
         AND created_at >= ${sub.currentPeriodStart}
         AND created_at < ${sub.currentPeriodEnd}
     `;
     campaignsUsed = rows[0].count;
+    resetLabel = "billing period";
   } else {
-    // Free user: count within current calendar month
+    // Free user: rolling window (e.g. 7 days)
+    const resetDays = DEFAULTS.FREE_TIER_RESET_DAYS;
     const rows = await sql`
       SELECT COUNT(*)::int AS count
       FROM campaigns
       WHERE creator_id = ${userId}
-        AND created_at >= date_trunc('month', now())
+        AND status != 'draft'
+        AND created_at >= NOW() - INTERVAL '1 day' * ${resetDays}
     `;
     campaignsUsed = rows[0].count;
+    resetLabel = `${resetDays} days`;
   }
 
   const allowed = campaignsUsed < effectiveLimit;
 
+  // For free users, calculate when the limit resets
+  let reason: string | undefined;
+  if (!allowed) {
+    if (!sub.currentPeriodEnd) {
+      // Find the oldest campaign in the window to calculate reset time
+      const resetDays = DEFAULTS.FREE_TIER_RESET_DAYS;
+      const [oldest] = await sql`
+        SELECT created_at FROM campaigns
+        WHERE creator_id = ${userId}
+          AND status != 'draft'
+          AND created_at >= NOW() - INTERVAL '1 day' * ${resetDays}
+        ORDER BY created_at ASC
+        LIMIT 1
+      `;
+      if (oldest) {
+        const resetAt = new Date(oldest.created_at);
+        resetAt.setDate(resetAt.getDate() + resetDays);
+        const daysUntilReset = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+        reason = `Your campaign limit resets in ${daysUntilReset} day${daysUntilReset === 1 ? "" : "s"}. Upgrade for more campaigns.`;
+      } else {
+        reason = `You've reached your limit for this period. Upgrade to unlock more campaigns.`;
+      }
+    } else {
+      reason = `You've reached your ${effectiveLimit}-campaign limit this ${resetLabel}. Upgrade to unlock more campaigns.`;
+    }
+  }
+
   return {
     allowed,
-    reason: allowed
-      ? undefined
-      : `You've reached your ${effectiveLimit}-campaign limit this ${sub.currentPeriodEnd ? "billing period" : "month"}. Upgrade to unlock more campaigns.`,
+    reason,
     tier: sub.tier,
     used: campaignsUsed,
     limit: effectiveLimit,

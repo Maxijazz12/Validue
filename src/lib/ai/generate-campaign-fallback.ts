@@ -194,27 +194,25 @@ function generateAssumptions(text: string): string[] {
 type QuestionTemplate = { text: string; keywords?: RegExp; category: EvidenceCategory };
 
 const OPEN_TEMPLATES: QuestionTemplate[] = [
-  { text: "Walk me through how you currently deal with this problem. What does a typical experience look like?", category: "behavior" },
-  { text: "What's the most frustrating part of the way things work today?", category: "pain" },
-  { text: "What tools or services have you tried for this? What made you stop using them?", keywords: /tool|app|software|platform/, category: "attempts" },
-  { text: "Have you ever looked for a solution to this? What happened?", keywords: /problem|issue|pain|frustrat/, category: "attempts" },
-  { text: "When was the last time this problem really got in your way? What happened?", keywords: /time|slow|waste|tedious/, category: "pain" },
-  { text: "How often do you run into this problem, and what do you usually do when it happens?", category: "behavior" },
-  { text: "What does your current workflow look like for handling this? Walk me through the steps.", keywords: /process|workflow|manual/, category: "behavior" },
-  { text: "Who else is affected when this problem comes up — just you, or others too?", category: "pain" },
-  { text: "If you could change one thing about how you handle this today, what would it be?", category: "willingness" },
-  { text: "What have you spent time or money on to try to solve this, even partially?", keywords: /pay|cost|money|spend/, category: "price" },
+  { text: "How do you currently handle this, and how satisfied are you with your current approach?", category: "behavior" },
+  { text: "Be honest — how much of a problem is this for you on a day-to-day basis?", category: "pain" },
+  { text: "What stopped you the last time you tried to solve this problem?", keywords: /problem|issue|pain|frustrat/, category: "attempts" },
+  { text: "In the past month, how many times has this problem actually gotten in your way?", keywords: /time|slow|waste|tedious/, category: "behavior" },
+  { text: "What's the main reason you WOULDN'T switch to a new solution for this, even if it worked well?", category: "negative" },
+  { text: "How much have you spent trying to solve this in the past year?", keywords: /pay|cost|money|spend/, category: "price" },
+  { text: "What did you do the last time this problem came up?", category: "behavior" },
+  { text: "What's your current workaround, and what's wrong with it?", keywords: /process|workflow|manual/, category: "attempts" },
+  { text: "If someone offered you a solution right now, what would make you say no?", category: "negative" },
+  { text: "How do you currently decide what to use for this, and what matters most in that decision?", keywords: /tool|app|software|platform/, category: "willingness" },
 ];
 
 const FOLLOWUP_TEMPLATES: QuestionTemplate[] = [
-  { text: "What would need to be true for you to try this in the first week it launched?", category: "willingness" },
-  { text: "If this solved the problem perfectly, what would change about your day-to-day?", category: "willingness" },
-  { text: "What would make you confident enough to pay for this before seeing full results?", keywords: /pay|price|cost|subscri/, category: "price" },
-  { text: "Who else in your team or circle would need to be involved for this to work?", keywords: /team|collaborat|share|group/, category: "behavior" },
-  { text: "What's the biggest reason you might NOT try something like this, even if it worked well?", category: "negative" },
-  { text: "How would you describe this problem to a friend who doesn't experience it?", category: "pain" },
-  { text: "What would a 'good enough' solution look like for you? What's the minimum bar?", category: "willingness" },
-  { text: "If you had to choose between this and your current approach, what would tip the decision?", category: "negative" },
+  { text: "What's the main reason you might try this once and never come back?", category: "negative" },
+  { text: "What would need to be true for you to pay for a solution to this?", keywords: /pay|price|cost|subscri/, category: "price" },
+  { text: "If you had to choose between your current approach and switching to something new, what would tip the decision?", category: "willingness" },
+  { text: "What's the biggest risk you see with changing how you handle this?", category: "negative" },
+  { text: "How many other people in your circle deal with this same problem?", keywords: /team|collaborat|share|group/, category: "behavior" },
+  { text: "What's the minimum a solution would need to do for you to give it a real shot?", category: "willingness" },
 ];
 
 function selectQuestions(

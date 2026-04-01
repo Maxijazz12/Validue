@@ -102,9 +102,12 @@ export async function POST(request: Request) {
       return NextResponse.json(makeFallbackQuestion(currentQuestion));
     }
 
+    const isMCQ = parsed.data.questionType === "multiple_choice" && parsed.data.options && parsed.data.options.length >= 3;
     const result: DraftQuestion = {
       ...currentQuestion,
       text: parsed.data.text,
+      type: isMCQ ? "multiple_choice" as const : "open" as const,
+      options: isMCQ ? parsed.data.options! : null,
       section: parsed.data.section,
       category: parsed.data.evidenceCategory,
     };
@@ -134,19 +137,19 @@ export async function POST(request: Request) {
 /* ─── Deterministic Fallback ─── */
 
 const FALLBACK_OPEN = [
-  "What would make you stop using your current solution and switch to something new?",
-  "Describe the last time this problem really got in your way. What happened?",
-  "If you could redesign how this works from scratch, what would you change first?",
-  "What's the one thing about this problem that nobody talks about but everyone deals with?",
-  "Walk me through a situation where this problem cost you time, money, or energy.",
+  "What's the main reason you WOULDN'T try a new solution for this, even if it worked well?",
+  "In the past month, how many times has this problem actually gotten in your way?",
+  "How do you currently handle this, and how satisfied are you with your current approach?",
+  "What stopped you the last time you tried to solve this problem?",
+  "Be honest — how much of a problem is this for you on a day-to-day basis?",
 ];
 
 const FALLBACK_FOLLOWUP = [
-  "What would your ideal solution look like? Be as specific as possible.",
-  "Who else in your life or work is affected by this problem?",
-  "What's the minimum this would need to do for you to give it a real shot?",
-  "How would you describe this problem to a friend in one sentence?",
-  "What's the biggest risk you see with a solution like this?",
+  "What's the main reason you might try this once and never come back?",
+  "How much have you spent trying to solve this in the past year?",
+  "If you had to choose between your current approach and switching to something new, what would tip the decision?",
+  "What would need to be true for you to pay for a solution to this?",
+  "What's the biggest risk you see with changing how you handle this?",
 ];
 
 let _fallbackIdx = 0;

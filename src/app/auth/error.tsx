@@ -27,7 +27,7 @@ export default function AuthError({
         <div className="flex items-center justify-center gap-[12px]">
           <button
             onClick={reset}
-            className="px-[20px] py-[10px] text-[14px] font-semibold text-white bg-[#111111] rounded-xl cursor-pointer border-none hover:bg-[#333333] transition-colors"
+            className="px-[20px] py-[10px] text-[14px] font-medium text-white bg-[#111111] rounded-xl cursor-pointer border-none hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] transition-all duration-200"
           >
             Try again
           </button>

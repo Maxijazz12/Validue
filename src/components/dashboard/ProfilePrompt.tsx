@@ -28,7 +28,7 @@ export default function ProfilePrompt() {
       <div className="flex items-center gap-[8px] shrink-0">
         <a
           href="/dashboard/settings"
-          className="inline-flex items-center justify-center px-[16px] py-[8px] rounded-lg text-[13px] font-semibold bg-[#111111] text-white hover:bg-[#222222] transition-all no-underline"
+          className="inline-flex items-center justify-center px-[16px] py-[8px] rounded-xl text-[13px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] transition-all duration-200 no-underline"
         >
           Complete Profile
         </a>

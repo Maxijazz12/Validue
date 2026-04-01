@@ -26,7 +26,7 @@ export default function TrendingRow({ ideas }: { ideas: WallCardProps[] }) {
 
   return (
     <div className="mb-[20px]">
-      <p className="text-[11px] font-semibold uppercase tracking-[1px] text-[#94A3B8] mb-[10px] px-[2px]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#A8A29E] mb-[10px] px-[2px]">
         Trending now
       </p>
       <div className="trending-row flex gap-[16px] overflow-x-auto pb-[4px]" style={{ scrollSnapType: "x mandatory" }}>
@@ -40,29 +40,34 @@ export default function TrendingRow({ ideas }: { ideas: WallCardProps[] }) {
               className="flex flex-col items-center gap-[6px] shrink-0 bg-transparent border-none cursor-pointer group/story"
               style={{ scrollSnapAlign: "start" }}
             >
-              {/* Avatar with category-colored gradient ring */}
+              {/* Avatar with glass bubble + warm accent ring on hover */}
               <div
-                className="rounded-full p-[2px] transition-transform group-hover/story:scale-105"
+                className="rounded-full p-[2px] transition-all duration-200 group-hover/story:scale-105"
                 style={{
-                  background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+                  background: `#FFFFFF`,
+                  border: `1px solid rgba(0,0,0,0.06)`,
+                  boxShadow: `0 2px 6px rgba(0,0,0,0.03)`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = `${accent}60`;
+                  e.currentTarget.style.boxShadow = `0 4px 12px ${accent}30`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = `rgba(0,0,0,0.06)`;
+                  e.currentTarget.style.boxShadow = `0 2px 6px rgba(0,0,0,0.03)`;
                 }}
               >
-                <div className="rounded-full bg-white p-[2px]">
-                  <Avatar name={idea.creatorName} imageUrl={idea.creatorAvatar} size={44} />
-                </div>
+                <Avatar name={idea.creatorName} imageUrl={idea.creatorAvatar} size={44} />
               </div>
 
               {/* Name */}
-              <span className="text-[11px] text-[#64748B] font-medium w-[56px] text-center truncate">
+              <span className="text-[11px] text-[#78716C] font-medium w-[56px] text-center truncate">
                 {firstName}
               </span>
 
-              {/* Reward overlay */}
+              {/* Reward overlay — glass pill */}
               {idea.rewardAmount > 0 && (
-                <span
-                  className="text-[9px] font-bold text-white px-[5px] py-[1px] rounded-full -mt-[4px]"
-                  style={{ backgroundColor: accent }}
-                >
+                <span className="text-[9px] font-bold text-[#E5654E] bg-[#FCFAFA] border border-[#E8C1B0] backdrop-blur-sm px-[5px] py-[1px] rounded-full -mt-[4px] shadow-sm">
                   ${idea.rewardAmount}
                 </span>
               )}

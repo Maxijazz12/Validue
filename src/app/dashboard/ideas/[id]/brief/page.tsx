@@ -106,7 +106,7 @@ export default async function BriefPage({
           </p>
           <Link
             href={`/dashboard/ideas/${id}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#111111] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[#222222] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#111111] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] transition-all duration-200"
           >
             View campaign
           </Link>

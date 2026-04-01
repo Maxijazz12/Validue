@@ -143,12 +143,26 @@ type CampaignRetested = {
   roundNumber: number;
 };
 
+type CampaignDraftSaved = {
+  event: "campaign.draft_saved";
+  campaignId: string;
+  creatorId: string;
+};
+
+type CampaignDraftUpdated = {
+  event: "campaign.draft_updated";
+  campaignId: string;
+  creatorId: string;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
   | CampaignStatusChanged
   | CampaignCloned
   | CampaignRetested
+  | CampaignDraftSaved
+  | CampaignDraftUpdated
   | RankingStarted
   | RankingCompleted
   | RankingFailed

@@ -83,7 +83,7 @@ export default function OpenEndedAnswer({
         onPaste={handlePaste}
         placeholder={placeholder}
         rows={5}
-        className="w-full px-[16px] py-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[14px] text-[#111111] leading-[1.6] resize-y focus:outline-none focus:ring-2 focus:ring-[#111111]/10 focus:border-[#111111] transition-all placeholder:text-[#94A3B8]"
+        className="w-full px-[16px] py-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[14px] text-[#111111] leading-[1.6] resize-y outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-[#94A3B8]"
       />
 
       {/* Response anchors — fade after 100 chars */}

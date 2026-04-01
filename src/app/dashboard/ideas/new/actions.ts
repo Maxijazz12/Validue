@@ -268,3 +268,172 @@ export async function publishCampaign(
     return { error: "Failed to publish campaign. Please try again." };
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Save Draft — lightweight save without tier checks, funding, or reach calc
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+export async function saveDraft(
+  draft: CampaignDraft
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return { error: "Not authenticated. Please sign in again." };
+  const user = data.user;
+
+  const rl = rateLimit(`save-draft:${user.id}`, 3600000, 20);
+  if (!rl.allowed) return { error: "Too many saves. Please wait before saving again." };
+
+  // Content moderation
+  const contentFields = [
+    { name: "title", text: draft.title },
+    { name: "summary", text: draft.summary },
+    ...draft.assumptions.map((a, i) => ({ name: `assumption_${i}`, text: a })),
+    ...draft.questions.map((q, i) => ({ name: `question_${i}`, text: q.text })),
+  ];
+  const contentCheck = checkMultipleFields(contentFields);
+  if (!contentCheck.allowed) return { error: contentCheck.reason ?? "Content policy violation." };
+
+  const keyAssumptions = draft.assumptions
+    .filter((a) => a.trim().length > 0)
+    .map((a) => enforceLength(a, 500).text);
+  const qualityScore = draft.qualityScores?.overall ?? 0;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await sql.begin(async (tx: any) => {
+      await tx`
+        INSERT INTO profiles (id, full_name, role)
+        VALUES (${user.id}, ${user.user_metadata?.full_name || user.email || "User"}, 'founder')
+        ON CONFLICT (id) DO NOTHING
+      `;
+
+      const [campaign] = await tx`
+        INSERT INTO campaigns (
+          creator_id, title, description, status,
+          category, tags, estimated_minutes,
+          reward_amount, format, economics_version,
+          target_interests, target_expertise, target_age_ranges, target_location,
+          key_assumptions,
+          audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
+          quality_scores, quality_score
+        ) VALUES (
+          ${user.id}, ${draft.title}, ${draft.summary}, 'draft',
+          ${draft.category}, ${draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text)}, ${draft.format === "standard" ? 5 : 3},
+          ${draft.rewardPool || 0}, ${draft.format || "quick"}, ${2},
+          ${draft.audience.interests}, ${draft.audience.expertise}, ${draft.audience.ageRanges}, ${draft.audience.location || null},
+          ${keyAssumptions},
+          ${draft.audience.occupation || null}, ${draft.audience.industry || null}, ${draft.audience.experienceLevel || null}, ${draft.audience.nicheQualifier || null},
+          ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb, ${qualityScore}
+        )
+        RETURNING id
+      `;
+
+      for (let i = 0; i < draft.questions.length; i++) {
+        const q = draft.questions[i];
+        await tx`
+          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
+          VALUES (
+            ${campaign.id}, ${q.text}, ${q.type}, ${i},
+            ${q.options ? JSON.stringify(q.options) : null}::jsonb,
+            ${q.isBaseline}, ${q.category || null}, ${q.assumptionIndex ?? null},
+            ${q.anchors ? JSON.stringify(q.anchors) : null}::jsonb
+          )
+        `;
+      }
+
+      return campaign;
+    });
+
+    logOps({ event: "campaign.draft_saved", campaignId: result.id, creatorId: user.id });
+    return { id: result.id };
+  } catch (err) {
+    console.error("[saveDraft] DB error:", (err as Error).message);
+    captureError(err, { userId: user.id, operation: "campaign.save_draft" });
+    return { error: "Failed to save draft. Please try again." };
+  }
+}
+
+export async function updateDraft(
+  campaignId: string,
+  draft: CampaignDraft
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return { error: "Not authenticated. Please sign in again." };
+  const user = data.user;
+
+  // Verify ownership and draft status
+  const [existing] = await sql`
+    SELECT id, status, creator_id FROM campaigns WHERE id = ${campaignId}
+  `;
+  if (!existing) return { error: "Campaign not found." };
+  if (existing.creator_id !== user.id) return { error: "Not authorized." };
+  if (existing.status !== "draft") return { error: "Only draft campaigns can be edited." };
+
+  // Content moderation
+  const contentFields = [
+    { name: "title", text: draft.title },
+    { name: "summary", text: draft.summary },
+    ...draft.assumptions.map((a, i) => ({ name: `assumption_${i}`, text: a })),
+    ...draft.questions.map((q, i) => ({ name: `question_${i}`, text: q.text })),
+  ];
+  const contentCheck = checkMultipleFields(contentFields);
+  if (!contentCheck.allowed) return { error: contentCheck.reason ?? "Content policy violation." };
+
+  const keyAssumptions = draft.assumptions
+    .filter((a) => a.trim().length > 0)
+    .map((a) => enforceLength(a, 500).text);
+  const qualityScore = draft.qualityScores?.overall ?? 0;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await sql.begin(async (tx: any) => {
+      await tx`
+        UPDATE campaigns SET
+          title = ${draft.title},
+          description = ${draft.summary},
+          category = ${draft.category},
+          tags = ${draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text)},
+          estimated_minutes = ${draft.format === "standard" ? 5 : 3},
+          reward_amount = ${draft.rewardPool || 0},
+          format = ${draft.format || "quick"},
+          target_interests = ${draft.audience.interests},
+          target_expertise = ${draft.audience.expertise},
+          target_age_ranges = ${draft.audience.ageRanges},
+          target_location = ${draft.audience.location || null},
+          key_assumptions = ${keyAssumptions},
+          audience_occupation = ${draft.audience.occupation || null},
+          audience_industry = ${draft.audience.industry || null},
+          audience_experience_level = ${draft.audience.experienceLevel || null},
+          audience_niche_qualifier = ${draft.audience.nicheQualifier || null},
+          quality_scores = ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb,
+          quality_score = ${qualityScore},
+          updated_at = NOW()
+        WHERE id = ${campaignId}
+      `;
+
+      await tx`DELETE FROM questions WHERE campaign_id = ${campaignId}`;
+
+      for (let i = 0; i < draft.questions.length; i++) {
+        const q = draft.questions[i];
+        await tx`
+          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
+          VALUES (
+            ${campaignId}, ${q.text}, ${q.type}, ${i},
+            ${q.options ? JSON.stringify(q.options) : null}::jsonb,
+            ${q.isBaseline}, ${q.category || null}, ${q.assumptionIndex ?? null},
+            ${q.anchors ? JSON.stringify(q.anchors) : null}::jsonb
+          )
+        `;
+      }
+    });
+
+    logOps({ event: "campaign.draft_updated", campaignId, creatorId: user.id });
+    return { id: campaignId };
+  } catch (err) {
+    console.error("[updateDraft] DB error:", (err as Error).message);
+    captureError(err, { userId: user.id, operation: "campaign.update_draft" });
+    return { error: "Failed to update draft. Please try again." };
+  }
+}

@@ -111,7 +111,7 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
             placeholder="Search ideas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-[34px] pr-[12px] py-[8px] rounded-lg border border-[#E2E8F0] text-[13px] text-[#111111] bg-white placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all"
+            className="w-full pl-[34px] pr-[12px] py-[8px] rounded-xl border border-[#E2E8F0] text-[13px] text-[#111111] bg-white placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
           />
         </div>
 
@@ -157,10 +157,14 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
               ...(idea.target_expertise || []),
             ].slice(0, 4);
 
+            const ideaHref = idea.status === "draft"
+              ? `/dashboard/ideas/${idea.id}/edit`
+              : `/dashboard/ideas/${idea.id}`;
+
             return (
               <Link
                 key={idea.id}
-                href={`/dashboard/ideas/${idea.id}`}
+                href={ideaHref}
                 className="block bg-white border border-[#E2E8F0] rounded-2xl p-[20px] hover:border-[#CBD5E1] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04),0_1px_3px_rgba(232,193,176,0.06)] transition-all duration-200 no-underline"
               >
                 {/* Top row: title + status */}

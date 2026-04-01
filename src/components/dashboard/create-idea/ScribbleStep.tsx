@@ -63,7 +63,7 @@ export default function ScribbleStep({
     <div className="max-w-[720px] mx-auto">
       {/* Header */}
       <div className="mb-[32px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px]">
+        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.03em]">
           New Idea
         </h1>
         <p className="text-[15px] text-[#64748B] mt-[4px]">
@@ -138,7 +138,7 @@ export default function ScribbleStep({
             <button
               onClick={() => onSubmit(text.trim())}
               disabled={!canSubmit}
-              className="inline-flex items-center gap-[8px] px-[28px] py-[13px] rounded-xl text-[15px] font-semibold bg-[#111111] text-white hover:bg-[#222222] hover:shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-all cursor-pointer border-none disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#111111]"
+              className="inline-flex items-center gap-[8px] px-[28px] py-[13px] rounded-xl text-[15px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#111111]"
             >
               <svg
                 width="16"

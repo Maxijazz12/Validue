@@ -62,6 +62,9 @@ export const DEFAULTS = {
   /** Minimum AI confidence for a score to participate in weighted payout distribution */
   PAYOUT_CONFIDENCE_THRESHOLD: 0.5,
 
+  /** Free-tier campaign limit resets after this many days (rolling window) */
+  FREE_TIER_RESET_DAYS: 15,
+
   /** Maximum allowed funding amount */
   MAX_FUNDING_AMOUNT: 10_000,
 

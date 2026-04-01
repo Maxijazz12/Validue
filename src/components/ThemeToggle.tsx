@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "./ThemeProvider";
+
+const noop = () => () => {};
 
 export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, toggle } = useTheme();
-  const [mounted, setMounted] = useState(() => typeof window !== "undefined");
+  const mounted = useSyncExternalStore(noop, () => true, () => false);
 
   // Avoid hydration mismatch — render neutral state until mounted
   const isDark = mounted ? theme === "dark" : false;

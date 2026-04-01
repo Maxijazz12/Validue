@@ -69,3 +69,83 @@ Phase 1-3 complete. Phase 4 shipped.
 - Check `memory/next-up.md` Monday morning for strategy memo
 - Real campaign testing across all 4 phases — this is the blocker before Phase 5
 - Known gaps: price signal matchSkew splits by quality not audience match (moderate fix), `Database` type not wired into clients, integration tests always skip
+
+## 2026-04-01 — UX/UI consistency sweep
+
+### Summary
+Comprehensive UI consistency pass across ~40 files. No functional changes — purely visual/interaction polish.
+
+### What changed
+
+**Button standardization** (all primary buttons now match `Button.tsx` base):
+- `rounded-lg` → `rounded-xl` on all interactive elements (buttons, inputs, selects, textareas, alerts)
+- `font-semibold` → `font-medium` on all primary buttons
+- `hover:bg-[#222222]` → `hover:bg-[#1a1a1a]` everywhere
+- Added brand peach hover shadow (`hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),...]`) + `-translate-y-[1px]` lift to all primary buttons
+- `transition-all duration-200` standardized (was mixed 200/300)
+
+**Color consolidation**:
+- `#222222` → `#111111` for all heading text (10 files)
+- Navbar `#4a5568` → `#64748B` (theme secondary)
+- Navbar divider `#c0c7d0` → `#CBD5E1` (theme border)
+- Money/earnings amounts: `#34D399` → `#22C55E` (deeper green for readability)
+- Progress bars/pulse dots kept at `#34D399` (lighter green for ambient indicators)
+
+**Typography standardization**:
+- Label tracking unified to `tracking-[0.08em]` (was `0.06em`, `1px`, `1.5px`)
+- `SectionHeader` label: `text-[12px]` → `text-[11px]` to match StatCard/HowItWorks/Footer
+
+**Card hover consistency**:
+- Landing page cards now use brand peach shadow: `rgba(232,193,176,0.06)` instead of `rgba(0,0,0,0.04)`
+- All card hover transitions: `duration-200`
+
+**Focus state consistency**:
+- WallCard textarea focus: `rgba(232,193,176,0.15)` → `rgba(0,0,0,0.04)` to match Input
+- OpenEndedAnswer textarea: `focus:ring-2 focus:ring-[#111111]/10` → standard `focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]`
+
+**Alert/error box consistency**:
+- All error alerts: `rounded-lg` → `rounded-xl` (auth pages, create flow, settings)
+
+### Files touched (~40)
+UI primitives: `Button.tsx`, `Input.tsx`, `SectionHeader.tsx`
+Landing: `Navbar.tsx`, `Hero.tsx`, `Footer.tsx`, `HowItWorks.tsx`, `Pricing.tsx`, `WallPreview.tsx`, `CtaBanner.tsx`
+Dashboard: `Sidebar.tsx`, `StatCard.tsx`, `WallCard.tsx`, `WallFeed.tsx`, `IdeasList.tsx`, `NotificationPanel.tsx`, `MyResponsesFeed.tsx`, `FundCampaignButton.tsx`, `ProfilePrompt.tsx`, `CampaignStatusButtons.tsx`, `ResponsesOverviewList.tsx`, `CampaignAnalytics.tsx`
+Create flow: `CreateIdeaFlow.tsx`, `ScribbleStep.tsx`, `DraftReviewStep.tsx`, `SurveyEditor.tsx`, `AudienceTargetingPanel.tsx`
+Response flow: `OpenEndedAnswer.tsx`, `QuestionStepper.tsx`
+Responses: `ExportResponsesButton.tsx`, `PayoutAllocator.tsx`
+Settings: `PasswordChangeForm.tsx`, `RespondentProfileForm.tsx`
+Pages: `settings/page.tsx`, `earnings/page.tsx`, `my-responses/page.tsx`, `ideas/page.tsx`, `ideas/[id]/page.tsx`, `ideas/[id]/brief/page.tsx`, `ideas/[id]/responses/page.tsx`
+Auth: `login/page.tsx`, `signup/page.tsx`, `forgot-password/page.tsx`, `reset-password/page.tsx`, `error.tsx`
+
+### Stats
+- 0 lint errors, 1 pre-existing warning. Build clean.
+
+## 2026-04-01 — Question generation rewrite + runtime fixes
+
+### Runtime Fixes
+- **Env vars** (`src/lib/env.ts`): `clientEnv()` now explicitly references each `process.env.NEXT_PUBLIC_*` variable instead of passing bare `process.env` (empty on client)
+- **Theme init** (`layout.tsx`): Moved inline script to `public/theme-init.js` loaded via `next/script` with `strategy="beforeInteractive"` — avoids React 19 console error about inline `<script>` tags
+- **Hydration fixes** (`ThemeToggle.tsx`, `WeeklyDigestBanner.tsx`): Replaced `useState` lazy initializers (which returned different values on server vs client) with `useSyncExternalStore` pattern — server snapshot returns safe default, client snapshot reads real state
+
+### Question Generation Rewrite (assumption-killing)
+Complete rewrite of question generation philosophy from "qualitative customer discovery" to "assumption-killing":
+
+**prompts.ts**: New RULES (disconfirmation-first, 20-second rule, MCQ preference, banned narrative patterns), new few-shot example (5/7 questions are MCQ with assumption-killing options), updated system prompt and `buildGeneratePrompt()`
+
+**schemas.ts**: Added `questionType` ("open" | "multiple_choice") + `options` (string[]) to AI question output schema. Made `anchors` optional (not needed for MCQ). Increased openQuestions max from 4 to 6.
+
+**route.ts + question/route.ts**: Map new MCQ fields from AI output to DraftQuestion. Updated fallback question pools.
+
+**quality-pass.ts**: New penalty patterns (NARRATIVE_PATTERNS, BROAD_EXPLORATION_PATTERNS), new reward patterns (DISCONFIRMATION_KEYWORDS, FREQUENCY_KEYWORDS). Penalizes "walk me through" prompts, rewards MCQ with disconfirmation options. `scoreBehavioralCoverage()` rebalanced to weight frequency/disconfirmation signal.
+
+**generate-campaign-fallback.ts**: All question templates rewritten — removed narrative prompts, replaced with concrete disconfirmation-oriented questions.
+
+### Design Decision (Max)
+Audience targeting quality is gated by respondent profile depth at signup. Extensive signup (location, interests, expertise, age, occupation) = better match scores = better question assignment in partial-response model. This is critical for the partial response redesign — with only 3-5 questions per respondent, bad matches waste 20-25% of a response.
+
+### Stats
+- 265 tests passing, 0 lint errors, build clean.
+
+### What's next
+- Partial response model + reciprocal gate (pending Max's answers to open questions in `memory/next-up.md`)
+- Known gaps: matchSkew splits by quality not audience match, `Database` type not wired into clients

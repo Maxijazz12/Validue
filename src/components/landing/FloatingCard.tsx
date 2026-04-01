@@ -29,10 +29,10 @@ function MiniPeach({ accent }: { accent: "warm" | "blue" }) {
 export default function FloatingCard({ text, className = "", accent = "warm" }: FloatingCardProps) {
   return (
     <div
-      className={`absolute flex items-center gap-[8px] bg-white/90 backdrop-blur-xl rounded-2xl px-[12px] py-[8px] shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-[#E2E8F0]/40 will-change-transform ${className}`}
+      className={`absolute flex items-center gap-[8px] bg-white/92 backdrop-blur-xl rounded-2xl px-[12px] py-[8px] shadow-[0_4px_16px_rgba(180,140,110,0.10),0_1px_3px_rgba(0,0,0,0.04)] border border-[#EDE8E3]/50 will-change-transform ${className}`}
     >
       <MiniPeach accent={accent} />
-      <span className="text-[12px] text-[#94A3B8] whitespace-nowrap font-medium">
+      <span className="text-[12px] text-[#78716C] whitespace-nowrap font-medium">
         {text}
       </span>
     </div>

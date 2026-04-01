@@ -54,7 +54,7 @@ export default function SubmissionConfirmation({
           </svg>
         </div>
 
-        <h2 className="text-[24px] font-bold text-[#111111] tracking-[-0.3px] mb-[8px]">
+        <h2 className="text-[24px] font-bold text-[#111111] tracking-[-0.02em] mb-[8px]">
           You&apos;re in
         </h2>
 

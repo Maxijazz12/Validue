@@ -96,7 +96,7 @@ export default function RespondentProfileForm({
             name="ageRange"
             value={ageRange}
             onChange={(e) => setAgeRange(e.target.value)}
-            className="text-[14px] px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]"
+            className="text-[14px] px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]"
           >
             <option value="">Select...</option>
             {AGE_RANGE_OPTIONS.map((opt) => (
@@ -118,7 +118,7 @@ export default function RespondentProfileForm({
               type="text"
               defaultValue={initialLocation}
               placeholder="e.g. New York, USA"
-              className="w-full px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-[#94A3B8]"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-[#94A3B8]"
             />
           </div>
 
@@ -132,7 +132,7 @@ export default function RespondentProfileForm({
               type="text"
               defaultValue={initialOccupation}
               placeholder="e.g. Software Engineer"
-              className="w-full px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-[#94A3B8]"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-[#94A3B8]"
             />
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function RespondentProfileForm({
           <button
             type="submit"
             disabled={saving}
-            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-lg text-[14px] font-semibold bg-[#111111] text-white hover:bg-[#222222] transition-all cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : "Save Matching Profile"}
           </button>

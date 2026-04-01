@@ -76,7 +76,7 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
             placeholder="Search campaigns..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-[34px] pr-[12px] py-[8px] rounded-lg border border-[#E2E8F0] text-[13px] text-[#111111] bg-white placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all"
+            className="w-full pl-[34px] pr-[12px] py-[8px] rounded-xl border border-[#E2E8F0] text-[13px] text-[#111111] bg-white placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
           />
         </div>
 

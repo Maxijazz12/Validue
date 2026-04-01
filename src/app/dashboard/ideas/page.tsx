@@ -83,7 +83,7 @@ export default async function IdeasPage() {
         <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
         <div className="flex items-center justify-between max-md:flex-col max-md:items-start max-md:gap-[16px]">
           <div>
-            <h1 className="text-[24px] font-bold tracking-[-0.5px] text-[#222222]">My Ideas</h1>
+            <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">My Ideas</h1>
             <p className="text-[14px] text-[#64748B] mt-[4px]">Track validation progress and audience quality</p>
           </div>
           <Button variant="primary" href="/dashboard/ideas/new">

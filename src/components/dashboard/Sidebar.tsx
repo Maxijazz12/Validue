@@ -7,6 +7,7 @@ import Image from "next/image";
 import ThemeToggle from "@/components/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/ui/Avatar";
+import { useImmersive } from "@/components/ImmersiveProvider";
 
 type NavItem = { label: string; href: string; icon: string };
 
@@ -22,37 +23,37 @@ const secondaryNav: NavItem[] = [
   { label: "Settings", href: "/dashboard/settings", icon: "sliders" },
 ];
 
-/* ─── Icons — Linear-style: 18px, strokeWidth 1.5, no fills, geometric ─── */
+/* ─── Icons — Linear-style: 20px, strokeWidth 1.5, no fills ─── */
 
 const icons: Record<string, React.ReactNode> = {
   wall: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4" y1="5" x2="20" y2="5" />
       <rect x="4" y="9" width="16" height="6" rx="1.5" />
       <line x1="4" y1="19" x2="20" y2="19" />
     </svg>
   ),
   plus: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   ),
   lightbulb: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 18h6" />
       <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
     </svg>
   ),
   clipboard: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
       <rect x="8" y="2" width="8" height="4" rx="1" />
       <polyline points="9 14 11 16 15 11" />
     </svg>
   ),
   chart: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 20h18" />
       <rect x="5" y="13" width="3" height="7" rx="1" />
       <rect x="10.5" y="9" width="3" height="11" rx="1" />
@@ -60,11 +61,21 @@ const icons: Record<string, React.ReactNode> = {
     </svg>
   ),
   sliders: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4" y1="7" x2="20" y2="7" />
       <line x1="4" y1="17" x2="20" y2="17" />
       <circle cx="8" cy="7" r="2.5" />
       <circle cx="16" cy="17" r="2.5" />
+    </svg>
+  ),
+  search: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  bell: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
     </svg>
   ),
 };
@@ -81,11 +92,13 @@ type SidebarProps = {
   hasNewResponses?: boolean;
 };
 
-export default function Sidebar({ userName, userAvatar, ideaCount, planTier, campaignsUsed, campaignLimit, unreadCount = 0, totalEarned = 0, hasNewResponses = false }: SidebarProps) {
+export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEarned = 0, hasNewResponses = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isImmersive } = useImmersive();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard pattern
   useEffect(() => setMounted(true), []);
@@ -106,129 +119,167 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
     return p.startsWith(href);
   }
 
-  function getNavItemClass(href: string) {
-    return isActive(href)
-      ? "bg-[#111111] dark:bg-white/10 text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-      : "text-[#94A3B8] hover:bg-[#F8FAFC] dark:hover:bg-[#22252F] hover:text-[#111111] dark:hover:text-[#E8EAF0]";
-  }
-
-  function renderNavItem(item: NavItem) {
-    const showEarningsPill = item.icon === "chart" && totalEarned > 0;
+  function renderNavIcon(item: NavItem) {
+    const active = isActive(item.href);
     const showNewResponsesDot = item.icon === "lightbulb" && hasNewResponses;
+    const showEarningsPill = item.icon === "chart" && totalEarned > 0;
 
     return (
       <a
         key={item.href}
         href={item.href}
         onClick={() => setMobileOpen(false)}
-        className={`relative flex items-center gap-[10px] px-[12px] py-[10px] rounded-xl text-[14px] font-medium no-underline transition-all duration-200 ${getNavItemClass(item.href)}`}
+        className={`sidebar-nav-item group relative flex items-center gap-[12px] rounded-xl no-underline transition-all duration-200 ${
+          expanded ? "px-[12px] py-[10px]" : "w-[40px] h-[40px] justify-center"
+        } ${
+          active
+            ? "bg-white/[0.08] text-white"
+            : "text-white/30 hover:text-white/70 hover:bg-white/[0.04]"
+        }`}
+        aria-label={item.label}
       >
-        <span className="w-[18px] h-[18px] shrink-0 flex items-center justify-center">
+        <span className="w-[20px] h-[20px] shrink-0 flex items-center justify-center relative">
           {icons[item.icon]}
+          {showNewResponsesDot && (
+            <span className="absolute -top-[2px] -right-[2px] w-[6px] h-[6px] rounded-full bg-[#34D399] animate-[pulse_2.5s_ease_infinite]" />
+          )}
         </span>
-        {item.label}
 
-        {/* Earnings pill */}
-        {showEarningsPill && (
+        {/* Label — visible when expanded */}
+        {expanded && (
+          <span className="text-[13px] font-medium whitespace-nowrap overflow-hidden">
+            {item.label}
+          </span>
+        )}
+
+        {/* Earnings pill — visible when expanded */}
+        {expanded && showEarningsPill && (
           <span className="ml-auto text-[11px] font-mono font-semibold text-[#22C55E] bg-[#22C55E]/8 px-[6px] py-[1px] rounded-md">
             ${totalEarned < 1000 ? totalEarned.toFixed(2) : `${(totalEarned / 1000).toFixed(1)}k`}
           </span>
         )}
 
-        {/* New responses pulse dot */}
-        {showNewResponsesDot && (
-          <span className="ml-auto w-[7px] h-[7px] rounded-full bg-[#34D399] animate-[pulse_2.5s_ease_infinite]" />
+        {/* Tooltip — visible when collapsed */}
+        {!expanded && (
+          <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+            {item.label}
+          </span>
         )}
       </a>
     );
   }
 
-  const sidebarContent = (
+  /* ─── Desktop rail content ─── */
+  const railContent = (
     <div className="flex flex-col h-full">
-      {/* Logo + Notification bell */}
-      <div className="px-[24px] py-[24px] border-b border-[#E2E8F0] dark:border-[#2A2D3A] flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-[8px] no-underline">
-          <Image src="/logo-icon.svg" alt="" width={18} height={18} />
-          <span className="text-[18px] font-bold tracking-[1px] text-[#111111] dark:text-[#E8EAF0]">
+      {/* Logo */}
+      <div className={`flex items-center shrink-0 ${expanded ? "px-[16px] py-[20px] gap-[10px]" : "justify-center py-[20px]"}`}>
+        <Link href="/" className="shrink-0 no-underline">
+          <Image src="/logo-icon.svg" alt="" width={22} height={22} />
+        </Link>
+        {expanded && (
+          <span className="text-[16px] font-bold tracking-[1px] text-white/90 whitespace-nowrap overflow-hidden">
             Validue
           </span>
-        </Link>
-        <a href="/dashboard/notifications" className="relative p-[6px] rounded-lg text-[#94A3B8] hover:text-[#111111] dark:hover:text-[#E8EAF0] hover:bg-[#F3F4F6] dark:hover:bg-[#22252F] transition-all no-underline" aria-label="Notifications">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
-          </svg>
-          {unreadCount > 0 && (
-            <span className="absolute -top-[2px] -right-[2px] w-[16px] h-[16px] rounded-full bg-[#E5654E] text-white text-[9px] font-bold flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
+        )}
+      </div>
+
+      {/* Search trigger */}
+      <div className={`shrink-0 ${expanded ? "px-[8px] pb-[8px]" : "flex justify-center pb-[8px]"}`}>
+        <button
+          onClick={() => {
+            // Trigger Cmd+K
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+          }}
+          className={`group relative flex items-center rounded-xl text-white/25 hover:text-white/50 hover:bg-white/[0.04] transition-all cursor-pointer bg-transparent border-none ${
+            expanded ? "w-full gap-[10px] px-[12px] py-[9px]" : "w-[40px] h-[40px] justify-center"
+          }`}
+          aria-label="Search"
+        >
+          {icons.search}
+          {expanded && (
+            <>
+              <span className="text-[13px]">Search...</span>
+              <kbd className="ml-auto text-[10px] font-mono bg-white/[0.06] px-[5px] py-[1px] rounded text-white/20">
+                ⌘K
+              </kbd>
+            </>
+          )}
+          {!expanded && (
+            <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+              Search <span className="text-white/30 ml-[4px]">⌘K</span>
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Nav */}
+      <nav className={`flex-1 flex flex-col gap-[2px] ${expanded ? "px-[8px]" : "items-center px-0"} py-[4px]`}>
+        {primaryNav.map(renderNavIcon)}
+        <div className={`h-px bg-white/[0.06] my-[8px] ${expanded ? "mx-[12px]" : "w-[24px]"}`} />
+        {secondaryNav.map(renderNavIcon)}
+      </nav>
+
+      {/* Bottom section */}
+      <div className={`shrink-0 border-t border-white/[0.06] ${expanded ? "px-[8px] py-[10px]" : "py-[10px] flex flex-col items-center gap-[6px]"}`}>
+        {/* Notifications */}
+        <a
+          href="/dashboard/notifications"
+          className={`group relative flex items-center rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.04] no-underline transition-all ${
+            expanded ? "gap-[10px] px-[12px] py-[9px]" : "w-[40px] h-[40px] justify-center"
+          }`}
+          aria-label="Notifications"
+        >
+          <span className="relative">
+            {icons.bell}
+            {unreadCount > 0 && (
+              <span className="absolute -top-[3px] -right-[3px] w-[14px] h-[14px] rounded-full bg-[#E8C1B0] text-[#0C0C0E] text-[8px] font-bold flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </span>
+          {expanded && <span className="text-[13px] font-medium">Notifications</span>}
+          {!expanded && (
+            <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+              Notifications
             </span>
           )}
         </a>
-      </div>
 
-      {/* Search — directly under logo */}
-      <div className="px-[12px] pt-[16px] pb-[8px]">
-        <div className="flex items-center gap-[8px] px-[12px] py-[8px] rounded-xl bg-[#F3F4F6] dark:bg-[#1A1D27] text-[#94A3B8] border border-transparent hover:border-[#E2E8F0] dark:hover:border-[#2A2D3A] transition-all duration-200">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <span className="flex-1 text-[13px]">Search ideas...</span>
-          <kbd className="text-[11px] font-mono bg-white dark:bg-[#22252F] px-[6px] py-[2px] rounded-md border border-[#E2E8F0] dark:border-[#2A2D3A] text-[#94A3B8]">
-            ⌘K
-          </kbd>
-        </div>
-      </div>
-
-      {/* Nav — grouped */}
-      <nav className="flex-1 px-[12px] py-[8px] flex flex-col gap-[4px]">
-        {primaryNav.map(renderNavItem)}
-
-        {/* Divider */}
-        <div className="h-[1px] bg-[#E2E8F0] dark:bg-[#2A2D3A] mx-[16px] my-[8px]" />
-
-        {secondaryNav.map(renderNavItem)}
-      </nav>
-
-      {/* User footer */}
-      <div className="px-[12px] py-[12px] relative">
-        <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-        <div className="flex items-center gap-[10px] px-[12px] py-[10px] rounded-xl hover:bg-[#F8FAFC] dark:hover:bg-[#22252F] transition-all duration-200">
-          <Avatar name={userName} imageUrl={userAvatar} size={20} />
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-[#111111] dark:text-[#E8EAF0] truncate">
-              {userName}
+        {/* Theme + Logout row */}
+        {expanded ? (
+          <div className="flex items-center gap-[4px] px-[8px] py-[4px]">
+            <div className="flex-1 flex items-center gap-[8px] min-w-0">
+              <Avatar name={userName} imageUrl={userAvatar} size={24} />
+              <span className="text-[12px] font-medium text-white/60 truncate">{userName}</span>
             </div>
-            <div className="text-[11px] text-[#94A3B8]">
-              {planTier ? (
-                <>
-                  <span className="capitalize font-medium text-[#64748B]">{planTier}</span>
-                  {campaignLimit !== null && campaignLimit !== undefined
-                    ? ` · ${campaignsUsed ?? 0}/${campaignLimit} campaigns`
-                    : " · Unlimited campaigns"}
-                </>
-              ) : (
-                <>{ideaCount} {ideaCount === 1 ? "idea" : "ideas"}</>
-              )}
-            </div>
-            {planTier && planTier !== "scale" && (
-              <Link
-                href="/#pricing"
-                className="text-[11px] font-semibold text-[#111111] hover:text-[#64748B] no-underline transition-colors"
-              >
-                Upgrade →
-              </Link>
-            )}
+            <ThemeToggle compact />
+            <button
+              onClick={handleLogout}
+              className="p-[6px] rounded-lg text-white/20 hover:text-white/60 hover:bg-white/[0.04] transition-all cursor-pointer bg-transparent border-none"
+              aria-label="Log out"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
-          <ThemeToggle compact />
-          <button
-            onClick={handleLogout}
-            className="p-[6px] rounded-lg text-[#94A3B8] hover:text-[#111111] dark:hover:text-[#E8EAF0] hover:bg-[#F3F4F6] dark:hover:bg-[#22252F] transition-all cursor-pointer bg-transparent border-none"
-            aria-label="Log out"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="group relative flex justify-center">
+              <button
+                onClick={() => router.push("/dashboard/settings")}
+                className="bg-transparent border-none cursor-pointer p-0"
+                aria-label="Profile"
+              >
+                <Avatar name={userName} imageUrl={userAvatar} size={28} />
+              </button>
+              <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+                {userName}
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -236,13 +287,17 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
   return (
     <>
       {/* Mobile header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-[8px] px-[12px] py-[8px] bg-white/90 dark:bg-[#0F1117]/90 backdrop-blur-2xl border-b border-[#E2E8F0] dark:border-[#2A2D3A]">
+      <div className={`md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-[8px] px-[12px] py-[8px] backdrop-blur-xl border-b transition-colors duration-300 ${
+        isImmersive
+          ? "bg-[rgba(15,15,17,0.9)] border-white/[0.04]"
+          : "bg-white/95 dark:bg-[#0F0F11]/95 border-[#F0F0F0] dark:border-[#27272A]"
+      }`}>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-[10px] bg-white dark:bg-[#1A1D27] border border-[#E2E8F0] dark:border-[#2A2D3A] rounded-xl cursor-pointer transition-all hover:bg-[#F3F4F6] dark:hover:bg-[#22252F]"
+          className="p-[10px] bg-white dark:bg-[#18181B] border border-[#F0F0F0] dark:border-[#27272A] rounded-xl cursor-pointer transition-all hover:bg-[#FAFAFA] dark:hover:bg-[#27272A]"
           aria-label="Toggle menu"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" strokeWidth="2" strokeLinecap="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-[#1A1A1A] dark:text-white/70">
             {mobileOpen ? (
               <>
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -260,7 +315,7 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
 
         <Link href="/dashboard/the-wall" className="flex items-center gap-[6px] no-underline">
           <Image src="/logo-icon.svg" alt="" width={16} height={16} />
-          <span className="text-[16px] font-bold tracking-[1px] text-[#111111]">
+          <span className="text-[16px] font-bold tracking-[1px] text-[#1A1A1A] dark:text-white/90">
             Validue
           </span>
         </Link>
@@ -274,13 +329,83 @@ export default function Sidebar({ userName, userAvatar, ideaCount, planTier, cam
         />
       )}
 
-      {/* Sidebar */}
+      {/* Mobile sidebar — full width when open */}
       <aside
-        className={`fixed top-0 left-0 h-screen w-[240px] bg-white dark:bg-[#0F1117] border-r border-[#E2E8F0] dark:border-[#2A2D3A] z-40 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          mobileOpen ? "translate-x-0" : "max-md:-translate-x-full"
+        className={`md:hidden fixed top-0 left-0 h-screen w-[240px] z-40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-[#0F0F11] border-r border-white/[0.06] ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {sidebarContent}
+        {/* Reuse expanded rail content for mobile */}
+        <div className="flex flex-col h-full">
+          <div className="px-[16px] py-[20px] flex items-center gap-[10px]">
+            <Link href="/" className="shrink-0 no-underline">
+              <Image src="/logo-icon.svg" alt="" width={22} height={22} />
+            </Link>
+            <span className="text-[16px] font-bold tracking-[1px] text-white/90">Validue</span>
+          </div>
+          <nav className="flex-1 px-[8px] py-[4px] flex flex-col gap-[2px]">
+            {primaryNav.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-[12px] px-[12px] py-[10px] rounded-xl text-[13px] font-medium no-underline transition-all duration-200 ${
+                  isActive(item.href)
+                    ? "bg-white/[0.08] text-white"
+                    : "text-white/30 hover:text-white/70 hover:bg-white/[0.04]"
+                }`}
+              >
+                <span className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">{icons[item.icon]}</span>
+                {item.label}
+              </a>
+            ))}
+            <div className="h-px bg-white/[0.06] mx-[12px] my-[8px]" />
+            {secondaryNav.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-[12px] px-[12px] py-[10px] rounded-xl text-[13px] font-medium no-underline transition-all duration-200 ${
+                  isActive(item.href)
+                    ? "bg-white/[0.08] text-white"
+                    : "text-white/30 hover:text-white/70 hover:bg-white/[0.04]"
+                }`}
+              >
+                <span className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">{icons[item.icon]}</span>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="px-[12px] py-[12px] border-t border-white/[0.06]">
+            <div className="flex items-center gap-[10px] px-[8px] py-[8px]">
+              <Avatar name={userName} imageUrl={userAvatar} size={24} />
+              <span className="text-[12px] font-medium text-white/60 truncate flex-1">{userName}</span>
+              <ThemeToggle compact />
+              <button
+                onClick={handleLogout}
+                className="p-[6px] rounded-lg text-white/20 hover:text-white/60 transition-all cursor-pointer bg-transparent border-none"
+                aria-label="Log out"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Desktop rail */}
+      <aside
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+        className={`max-md:hidden fixed top-0 left-0 h-screen z-40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] border-r ${
+          isImmersive
+            ? "bg-[rgba(15,15,17,0.85)] backdrop-blur-xl border-white/[0.04]"
+            : "bg-[#0F0F11] border-white/[0.06]"
+        } ${expanded ? "w-[200px]" : "w-[64px]"}`}
+      >
+        {railContent}
       </aside>
     </>
   );

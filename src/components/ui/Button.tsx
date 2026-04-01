@@ -16,11 +16,11 @@ type Props = ButtonProps | AnchorProps;
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-[#111111] text-white font-medium shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] active:scale-[0.99]",
+    "bg-[#1C1917] text-white font-medium hover:bg-[#292524] shadow-[0_2px_8px_rgba(28,25,23,0.12)] hover:shadow-[0_4px_16px_rgba(212,160,136,0.18)]",
   secondary:
-    "bg-white text-[#111111] border border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]",
+    "bg-white text-[#1C1917] border border-[#EDE8E3] hover:border-[#DDD6CE] hover:bg-[#FAF8F5]",
   outline:
-    "bg-transparent text-[#64748B] border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111]",
+    "bg-transparent text-[#78716C] border border-[#EDE8E3] hover:border-[#DDD6CE] hover:text-[#1C1917]",
 };
 
 export default function Button({
@@ -28,7 +28,7 @@ export default function Button({
   className = "",
   ...props
 }: Props) {
-  const classes = `inline-flex items-center justify-center px-[28px] py-[14px] rounded-xl text-[14px] font-medium font-sans cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-[1px] ${variantClasses[variant]} ${className}`;
+  const classes = `inline-flex items-center justify-center px-[28px] py-[14px] rounded-xl text-[14px] font-medium font-sans cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${variantClasses[variant]} ${className}`;
 
   if ("href" in props && props.href) {
     const { href, ...rest } = props as AnchorProps;

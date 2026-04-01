@@ -19,32 +19,32 @@ export default function QualityFeature() {
         <div className="mt-[36px] flex flex-col gap-[16px]">
           {qualityBullets.map((bullet) => (
             <div key={bullet} className="flex items-center gap-[12px]">
-              <span className="w-[4px] h-[4px] rounded-full bg-[#CBD5E1]" />
-              <span className="text-[14px] text-[#64748B]">{bullet}</span>
+              <span className="w-[5px] h-[5px] rounded-full bg-[#D4A088]" />
+              <span className="text-[14px] text-[#78716C]">{bullet}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Right: Mock response cards */}
-      <div className="bg-[#F6F7FA] border border-[#E2E8F0] rounded-2xl p-[32px] relative overflow-hidden">
+      <div className="bg-[#F7F4F1] border border-[#EDE8E3] rounded-2xl p-[32px] relative overflow-hidden">
         {mockResponses.map((resp) => (
           <div
             key={resp.name}
             className={`p-[20px] border rounded-xl mb-[12px] last:mb-0 transition-all duration-200 ${
               resp.isTop
-                ? "border-[#CBD5E1] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
-                : "border-[#E2E8F0] bg-white"
+                ? "border-[#DDD6CE] bg-white shadow-[0_4px_16px_rgba(180,140,110,0.10),0_2px_4px_rgba(0,0,0,0.03)]"
+                : "border-[#EDE8E3] bg-white"
             }`}
           >
             <div className="flex justify-between items-center mb-[10px]">
               <div className="flex items-center gap-[10px]">
                 <Avatar name={resp.name} size={20} />
                 <div>
-                  <div className="text-[13px] font-medium text-[#111111]">
+                  <div className="text-[13px] font-medium text-[#1C1917]">
                     {resp.name}
                   </div>
-                  <div className="text-[11px] text-[#94A3B8]">{resp.role}</div>
+                  <div className="text-[11px] text-[#A8A29E]">{resp.role}</div>
                 </div>
               </div>
               {resp.isTop && (
@@ -53,14 +53,14 @@ export default function QualityFeature() {
                 </div>
               )}
             </div>
-            <div className="text-[13px] text-[#64748B] leading-[1.6]">
+            <div className="text-[13px] text-[#78716C] leading-[1.6]">
               {resp.text}
             </div>
-            <div className="flex justify-between items-center mt-[12px] pt-[12px] border-t border-[#E2E8F0]">
+            <div className="flex justify-between items-center mt-[12px] pt-[12px] border-t border-[#EDE8E3]">
               <div className="text-[11px] tracking-[2px] text-gradient-warm">
                 {"★".repeat(resp.stars)}
               </div>
-              <div className="font-mono text-[12px] text-[#94A3B8] font-medium">
+              <div className="font-mono text-[12px] text-[#A8A29E] font-medium">
                 {resp.amount}
               </div>
             </div>

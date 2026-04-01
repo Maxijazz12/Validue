@@ -64,7 +64,7 @@ export function PauseCampaignButton({ campaignId }: { campaignId: string }) {
       <button
         onClick={handlePause}
         disabled={loading}
-        className="px-[16px] py-[8px] rounded-lg border border-[#E2E8F0] text-[13px] font-medium text-[#64748B] hover:text-[#111111] hover:border-[#CBD5E1] transition-all cursor-pointer bg-white disabled:opacity-50"
+        className="px-[16px] py-[8px] rounded-xl border border-[#E2E8F0] text-[13px] font-medium text-[#64748B] hover:text-[#111111] hover:border-[#CBD5E1] transition-all duration-200 cursor-pointer bg-white disabled:opacity-50"
       >
         {loading ? "Pausing..." : "Pause Campaign"}
       </button>
@@ -90,7 +90,7 @@ export function ResumeCampaignButton({ campaignId }: { campaignId: string }) {
       <button
         onClick={handleResume}
         disabled={loading}
-        className="px-[20px] py-[10px] rounded-lg bg-[#22c55e] text-white text-[14px] font-semibold hover:bg-[#16a34a] transition-colors cursor-pointer border-none disabled:opacity-50"
+        className="px-[20px] py-[10px] rounded-xl bg-[#22c55e] text-white text-[14px] font-medium hover:bg-[#16a34a] transition-all duration-200 cursor-pointer border-none disabled:opacity-50"
       >
         {loading ? "Resuming..." : "Resume Campaign"}
       </button>

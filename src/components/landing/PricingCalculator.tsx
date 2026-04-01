@@ -33,28 +33,28 @@ export default function PricingCalculator() {
 
   return (
     <div className="mt-[32px]">
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-[40px] max-md:p-[28px_20px]">
+      <div className="bg-white rounded-2xl border border-[#EDE8E3] shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] p-[40px] max-md:p-[28px_20px]">
         {/* Header */}
         <div className="text-center mb-[28px]">
-          <h3 className="text-[18px] font-semibold text-[#111111] mb-[6px]">
+          <h3 className="text-[18px] font-semibold text-[#1C1917] mb-[6px]">
             See what ${selectedAmount} gets you
           </h3>
-          <p className="text-[13px] text-[#64748B]">
+          <p className="text-[13px] text-[#78716C]">
             Higher plans get more responses from the same budget.
           </p>
         </div>
 
         {/* Amount selector */}
         <div className="flex items-center justify-center mb-[32px]">
-          <div className="inline-flex bg-[#f0f2f5] rounded-xl p-[3px]">
+          <div className="inline-flex bg-[#F0EBE6] rounded-xl p-[3px]">
             {amounts.map((amount) => (
               <button
                 key={amount}
                 onClick={() => setSelectedAmount(amount)}
                 className={`px-[20px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
                   selectedAmount === amount
-                    ? "bg-white text-[#111111] shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
-                    : "text-[#64748B] hover:text-[#111111]"
+                    ? "bg-white text-[#1C1917] shadow-[0_1px_4px_rgba(180,140,110,0.12)]"
+                    : "text-[#78716C] hover:text-[#1C1917]"
                 }`}
               >
                 ${amount}
@@ -73,28 +73,28 @@ export default function PricingCalculator() {
                 {/* Tier label */}
                 <span className={`text-[13px] w-[56px] shrink-0 ${
                   result.featured
-                    ? "font-semibold text-[#111111]"
-                    : "font-medium text-[#64748B]"
+                    ? "font-semibold text-[#1C1917]"
+                    : "font-medium text-[#78716C]"
                 }`}>
                   {result.label}
                 </span>
 
                 {/* Bar track */}
-                <div className="flex-1 h-[6px] rounded-full bg-[#F1F5F9] overflow-hidden">
+                <div className="flex-1 h-[6px] rounded-full bg-[#EDE8E3] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500 ease-out"
                     style={{
                       width: `${widthPercent}%`,
                       background: result.featured
-                        ? "linear-gradient(90deg, #E5654E, #E8C1B0)"
-                        : "#CBD5E1",
+                        ? "linear-gradient(90deg, #C4856E, #D4A088)"
+                        : "#D6CFC7",
                     }}
                   />
                 </div>
 
                 {/* Response count */}
                 <span className={`font-mono text-[13px] font-semibold shrink-0 w-[110px] text-right ${
-                  result.featured ? "text-gradient-warm" : "text-[#111111]"
+                  result.featured ? "text-gradient-warm" : "text-[#1C1917]"
                 }`}>
                   ~{result.responses} responses
                 </span>

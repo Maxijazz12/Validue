@@ -15,7 +15,7 @@ import { calculateReach, getFundingPresets, estimateFillSpeed } from "@/lib/reac
 import { PLAN_CONFIG, type PlanTier } from "@/lib/plans";
 
 const selectClass =
-  "text-[14px] px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
+  "text-[14px] px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
 
 interface DraftReviewStepProps {
   draft: CampaignDraft;
@@ -23,6 +23,8 @@ interface DraftReviewStepProps {
   onBack: () => void;
   onPublish: () => void;
   isPublishing: boolean;
+  onSaveDraft?: () => void;
+  isSaving?: boolean;
   tier?: PlanTier;
   qualityScore?: number;
 }
@@ -33,6 +35,8 @@ export default function DraftReviewStep({
   onBack,
   onPublish,
   isPublishing,
+  onSaveDraft,
+  isSaving = false,
   tier = "free",
   qualityScore = 70,
 }: DraftReviewStepProps) {
@@ -141,7 +145,7 @@ export default function DraftReviewStep({
   return (
     <>
       <div className="mb-[32px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.5px]">
+        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.03em]">
           Review Your Campaign
         </h1>
         <p className="text-[15px] text-[#64748B] mt-[4px]">
@@ -176,7 +180,7 @@ export default function DraftReviewStep({
                   id="draft-title"
                   value={draft.title}
                   onChange={(e) => updateField("title", e.target.value)}
-                  className="w-full px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans placeholder:text-[#94A3B8] outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+                  className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans placeholder:text-[#94A3B8] outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
                 />
               </div>
 
@@ -193,7 +197,7 @@ export default function DraftReviewStep({
                   value={draft.summary}
                   onChange={(e) => updateField("summary", e.target.value)}
                   rows={4}
-                  className="w-full px-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans placeholder:text-[#94A3B8] outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] resize-y min-h-[100px]"
+                  className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans placeholder:text-[#94A3B8] outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] resize-y min-h-[100px]"
                 />
               </div>
 
@@ -263,7 +267,7 @@ export default function DraftReviewStep({
                     <input
                       value={a}
                       onChange={(e) => updateAssumption(i, e.target.value)}
-                      className="flex-1 px-[12px] py-[8px] rounded-lg border border-[#E2E8F0] bg-white text-[13px] text-[#111111] font-sans outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all"
+                      className="flex-1 px-[12px] py-[8px] rounded-xl border border-[#E2E8F0] bg-white text-[13px] text-[#111111] font-sans outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
                     />
                     <button
                       onClick={() => handleImproveAssumption(i)}
@@ -311,7 +315,7 @@ export default function DraftReviewStep({
                 {draft.assumptions.length < 5 && (
                   <button
                     onClick={addAssumption}
-                    className="self-start text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-lg border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all cursor-pointer bg-transparent mt-[4px]"
+                    className="self-start text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all duration-200 cursor-pointer bg-transparent mt-[4px]"
                   >
                     + Add assumption
                   </button>
@@ -470,7 +474,7 @@ export default function DraftReviewStep({
                             Math.max(0, Number(e.target.value))
                           )
                         }
-                        className="w-full pl-[32px] pr-[16px] py-[12px] rounded-lg border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-mono outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all"
+                        className="w-full pl-[32px] pr-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-mono outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
                       />
                     </div>
                     {(draft.rewardPool ?? 0) > PLAN_CONFIG[tier].efficientZone && (
@@ -568,8 +572,8 @@ export default function DraftReviewStep({
           <div className="flex items-center gap-[12px] pt-[8px]">
             <button
               onClick={onPublish}
-              disabled={isPublishing}
-              className="inline-flex items-center justify-center px-[32px] py-[14px] rounded-xl text-[15px] font-semibold bg-[#111111] text-white hover:bg-[#222222] hover:shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-all cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isPublishing || isSaving}
+              className="inline-flex items-center justify-center px-[32px] py-[14px] rounded-xl text-[15px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPublishing
                 ? "Publishing…"
@@ -577,9 +581,18 @@ export default function DraftReviewStep({
                   ? "Publish & Fund"
                   : "Publish Campaign"}
             </button>
+            {onSaveDraft && (
+              <button
+                onClick={onSaveDraft}
+                disabled={isPublishing || isSaving}
+                className="inline-flex items-center justify-center px-[24px] py-[14px] rounded-xl text-[15px] font-medium text-[#111111] border border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? "Saving…" : "Save Draft"}
+              </button>
+            )}
             <button
               onClick={onBack}
-              disabled={isPublishing}
+              disabled={isPublishing || isSaving}
               className="inline-flex items-center justify-center px-[32px] py-[14px] rounded-xl text-[15px] font-medium text-[#64748B] hover:text-[#111111] transition-all cursor-pointer border-none bg-transparent disabled:opacity-50"
             >
               Back to Scribble

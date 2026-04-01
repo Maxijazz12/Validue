@@ -84,7 +84,7 @@ export default function PasswordChangeForm() {
       )}
 
       {error && (
-        <div className="mb-[16px] px-[14px] py-[10px] bg-red-50 border border-red-200 rounded-lg text-[13px] text-red-600">
+        <div className="mb-[16px] px-[14px] py-[10px] bg-red-50 border border-red-200 rounded-xl text-[13px] text-red-600">
           {error}
         </div>
       )}
@@ -122,7 +122,7 @@ export default function PasswordChangeForm() {
         <button
           type="submit"
           disabled={loading}
-          className={`self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-semibold bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:bg-[#1a1a1a] transition-all duration-300 cursor-pointer border-none mt-[8px] ${
+          className={`self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none mt-[8px] ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >

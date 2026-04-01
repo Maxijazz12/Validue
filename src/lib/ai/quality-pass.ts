@@ -23,13 +23,13 @@ function wordOverlap(a: string, b: string): number {
 }
 
 const BEHAVIOR_KEYWORDS =
-  /currently|how do you|walk me through|when do you|day-to-day|what does .* look like|tell me about your|describe .* process|how often/i;
+  /currently|how do you|in the past (week|month|year)|how many times|how often|what do you actually|what did you|what happened/i;
 
 const PAIN_KEYWORDS =
   /frustrat|annoying|painful|difficult|struggle|worst part|most challenging|biggest problem|hate|waste|tedious|broken/i;
 
 const MONETIZATION_KEYWORDS =
-  /pay|price|cost|willing.*pay|budget|spend|subscribe|purchase|invest|free.*vs/i;
+  /pay|price|cost|willing.*pay|budget|spend|subscribe|purchase|invest|free.*vs|how much/i;
 
 const LEADING_PATTERNS =
   /^(don't you|wouldn't you|isn't it|aren't you|shouldn't|can't you|won't you|doesn't it|isn't that)/i;
@@ -44,6 +44,22 @@ const GENERIC_PATTERNS = [
   /^what's your opinion\??$/i,
   /^do you like this idea\??$/i,
 ];
+
+/** Narrative/story prompts that are too slow for partial responses */
+const NARRATIVE_PATTERNS =
+  /^(walk me through|tell me about a time|describe .*process|imagine you're|think about the last time|talk me through)/i;
+
+/** Broad exploration prompts that don't test a specific assumption */
+const BROAD_EXPLORATION_PATTERNS =
+  /^what tools.*(have you|do you|apps|methods)|^what have you tried/i;
+
+/** Question patterns that produce strong disconfirmation signal */
+const DISCONFIRMATION_KEYWORDS =
+  /wouldn't|would.*not|main reason.*not|why.*not|what.*stop|what.*prevent|be honest/i;
+
+/** Behavioral frequency/recency patterns — high signal for assumption testing */
+const FREQUENCY_KEYWORDS =
+  /how many times|how often|in the past (week|month|year)|per (week|month|day)|last time you/i;
 
 /* ─── Scoring Dimensions ─── */
 
@@ -86,7 +102,6 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   const questions = draft.questions;
   let score = 100; // start full, deduct for issues
 
-  // V2: Gentler count penalty — focused short surveys shouldn't be punished
   const total = questions.length;
   if (total < 3) {
     score -= 20;
@@ -114,6 +129,31 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
     });
   }
 
+  // Narrative/story prompts — penalize these heavily
+  const nonBaseline = questions.filter((q) => !q.isBaseline);
+  const narrativeQs = nonBaseline.filter((q) => NARRATIVE_PATTERNS.test(q.text.trim()));
+  for (const q of narrativeQs) {
+    score -= 10;
+    warnings.push({
+      severity: "medium",
+      dimension: "questions",
+      message: `Narrative prompt detected — replace with a specific, fast-answer question.`,
+      questionId: q.id,
+    });
+  }
+
+  // Broad exploration prompts
+  const broadQs = nonBaseline.filter((q) => BROAD_EXPLORATION_PATTERNS.test(q.text.trim()));
+  for (const q of broadQs) {
+    score -= 8;
+    warnings.push({
+      severity: "medium",
+      dimension: "questions",
+      message: `Broad exploration question — narrow to test a specific assumption.`,
+      questionId: q.id,
+    });
+  }
+
   // Generic questions
   for (const q of questions) {
     if (q.text.length < 40 || GENERIC_PATTERNS.some((p) => p.test(q.text.trim()))) {
@@ -130,7 +170,6 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   }
 
   // Hypothetical density
-  const nonBaseline = questions.filter((q) => !q.isBaseline);
   const hypotheticalCount = nonBaseline.filter((q) => HYPOTHETICAL_PATTERNS.test(q.text.trim())).length;
   if (nonBaseline.length > 0 && hypotheticalCount / nonBaseline.length > 0.5) {
     score -= 15;
@@ -152,16 +191,34 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
     }
   }
 
-  // Quant/qual balance
+  // MCQ ratio — reward more MCQ (custom, non-baseline)
+  const customMcCount = nonBaseline.filter((q) => q.type === "multiple_choice").length;
   const mcCount = questions.filter((q) => q.type === "multiple_choice").length;
-  if (total > 0) {
-    const mcRatio = mcCount / total;
-    if (mcRatio === 0) {
-      score -= 10;
-      warnings.push({ severity: "low", dimension: "questions", message: "No quantitative questions — add at least one for measurable signal." });
-    } else if (mcRatio > 0.6) {
+  if (mcCount === 0) {
+    score -= 10;
+    warnings.push({ severity: "low", dimension: "questions", message: "No multiple-choice questions — add MCQ with well-designed options for faster, measurable signal." });
+  }
+  if (nonBaseline.length > 0 && customMcCount === 0) {
+    score -= 5;
+    warnings.push({ severity: "low", dimension: "questions", message: "All custom questions are open-ended — MCQ produces faster signal and enables disconfirmation." });
+  }
+
+  // MCQ option quality: check that MCQs include disconfirmation options
+  const customMcqs = nonBaseline.filter((q) => q.type === "multiple_choice" && q.options);
+  for (const q of customMcqs) {
+    const opts = (q.options ?? []).map((o) => o.toLowerCase());
+    const hasDisconfirmation = opts.some(
+      (o) =>
+        /not (a |interested|a problem)|never|0 (times|—)|don't|doesn't apply|none of|i already|not relevant|i'm (happy|satisfied)|no —/i.test(o)
+    );
+    if (!hasDisconfirmation) {
       score -= 5;
-      warnings.push({ severity: "low", dimension: "questions", message: "Heavy on multiple-choice — open-ended questions give richer insight." });
+      warnings.push({
+        severity: "medium",
+        dimension: "questions",
+        message: "MCQ missing a disconfirmation option — add an option that signals the assumption is wrong.",
+        questionId: q.id,
+      });
     }
   }
 
@@ -174,22 +231,35 @@ function scoreBehavioralCoverage(draft: CampaignDraft): { score: number; warning
 
   const behaviorQs = questions.filter((q) => BEHAVIOR_KEYWORDS.test(q.text));
   const painQs = questions.filter((q) => PAIN_KEYWORDS.test(q.text));
+  const frequencyQs = questions.filter((q) => FREQUENCY_KEYWORDS.test(q.text));
+  const disconfirmationQs = questions.filter((q) => DISCONFIRMATION_KEYWORDS.test(q.text));
 
   let score = 0;
 
-  if (behaviorQs.length >= 2) score += 50;
-  else if (behaviorQs.length === 1) score += 30;
+  // Behavior: revealed behavior questions (what they actually did)
+  if (behaviorQs.length >= 2) score += 30;
+  else if (behaviorQs.length === 1) score += 20;
   else {
-    warnings.push({ severity: "high", dimension: "behavioral", message: "No behavior-based questions — ask about current habits, not hypothetical preferences." });
+    warnings.push({ severity: "high", dimension: "behavioral", message: "No behavior-based questions — ask about what people actually do, not what they would do." });
   }
 
-  if (painQs.length >= 1) score += 30;
+  // Frequency/recency: quantifiable problem occurrence
+  if (frequencyQs.length >= 1) score += 20;
   else {
-    warnings.push({ severity: "medium", dimension: "behavioral", message: "No pain/urgency questions — ask about frustrations or frequency to gauge real need." });
+    warnings.push({ severity: "medium", dimension: "behavioral", message: "No frequency/recency question — add one to test whether the problem actually occurs." });
   }
 
-  // Bonus for behavior + pain combo
-  if (behaviorQs.length >= 1 && painQs.length >= 1) score += 20;
+  // Disconfirmation: questions that can kill assumptions
+  if (disconfirmationQs.length >= 1) score += 20;
+  else {
+    warnings.push({ severity: "medium", dimension: "behavioral", message: "No disconfirmation question in text — add a question that explicitly invites negative responses." });
+  }
+
+  // Pain: problem severity
+  if (painQs.length >= 1) score += 15;
+
+  // Bonus for strong signal combination
+  if (behaviorQs.length >= 1 && frequencyQs.length >= 1 && disconfirmationQs.length >= 1) score += 15;
 
   return { score: Math.min(score, 100), warnings };
 }

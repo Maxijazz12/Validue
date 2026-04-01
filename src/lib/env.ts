@@ -53,7 +53,12 @@ let _clientEnv: z.infer<typeof clientSchema>;
 export function clientEnv(): z.infer<typeof clientSchema> {
   if (_clientEnv) return _clientEnv;
 
-  const result = clientSchema.safeParse(process.env);
+  const result = clientSchema.safeParse({
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  });
 
   if (!result.success) {
     const missing = result.error.issues
