@@ -103,7 +103,7 @@ export const howItWorksSteps = [
     step: "01 - SUBMIT",
     title: "Describe Your Idea",
     description:
-      "Share your concept, define your target audience, and craft 5–10 structured questions designed to extract real behavioral insights.",
+      "Share your concept, define your target audience, and our AI crafts 5–10 structured questions designed to extract real behavioral insights.",
   },
   {
     step: "02 - COLLECT",
@@ -115,7 +115,7 @@ export const howItWorksSteps = [
     step: "03 - DECIDE",
     title: "Get Ranked Insights",
     description:
-      "Receive your responses ranked by insight quality. See patterns, outliers, and top takeaways. Reward the best answers directly.",
+      "Receive a Decision Brief with ranked insights, assumption verdicts, and clear next steps. Qualifying respondents are rewarded automatically.",
   },
 ];
 
@@ -153,9 +153,9 @@ export const pricingTiers = [
     per: "forever",
     features: [
       "1 campaign/month",
-      "Up to ~75 people see each campaign",
+      "Up to ~100 people see each campaign",
       "Basic audience matching",
-      "3 AI-generated questions",
+      "5 AI-generated questions",
       "$2 starter credit on your first campaign",
     ],
     efficiency: "1x",
@@ -179,7 +179,7 @@ export const pricingTiers = [
   },
   {
     tier: "Pro",
-    price: "$49",
+    price: "$39",
     per: "/month",
     features: [
       "10 campaigns/month",
@@ -192,22 +192,6 @@ export const pricingTiers = [
     efficiency: "2x",
     cta: "Launch Idea",
     featured: true,
-  },
-  {
-    tier: "Scale",
-    price: "$99",
-    per: "/month",
-    features: [
-      "Unlimited campaigns",
-      "Up to ~1,500 people see each campaign",
-      "2.5x more reach per dollar funded",
-      "15 AI-generated questions",
-      "Trend insights + API export",
-      "A/B testing + priority support",
-    ],
-    efficiency: "2.5x",
-    cta: "Contact Us",
-    featured: false,
   },
 ];
 

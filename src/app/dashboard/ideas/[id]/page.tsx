@@ -21,6 +21,7 @@ import AssumptionSignal from "@/components/dashboard/AssumptionSignal";
 const statusColors: Record<string, string> = {
   draft: "bg-[#F1F5F9] text-[#94A3B8]",
   pending_funding: "bg-[#E5654E]/10 text-[#E5654E]",
+  pending_gate: "bg-[#E5654E]/10 text-[#E5654E]",
   active: "bg-[#22c55e]/10 text-[#22c55e]",
   completed: "bg-[#3b82f6]/10 text-[#3b82f6]",
   paused: "bg-[#E5654E]/10 text-[#E5654E]",
@@ -242,7 +243,7 @@ export default async function CampaignDetailPage({
                   statusColors[campaign.status] || statusColors.draft
                 }`}
               >
-                {campaign.status === "pending_funding" ? "Pending Funding" : campaign.status}
+                {campaign.status === "pending_funding" ? "Pending Funding" : campaign.status === "pending_gate" ? "Pending Gate" : campaign.status}
               </span>
             </div>
           </div>
@@ -292,38 +293,35 @@ export default async function CampaignDetailPage({
         </div>
       )}
 
-      {campaign.status === "pending_funding" && funded !== "true" && (() => {
-        const isGatePending = campaign.reciprocal_gate_status === "pending";
-
-        // Reciprocal gate pending — show gate progress instead of funding UI
-        if (isGatePending) {
-          const completed = campaign.reciprocal_responses_completed ?? 0;
-          return (
-            <div className="mb-[16px] bg-white border border-[#E5654E]/30 rounded-xl p-[20px]">
-              <p className="text-[15px] font-semibold text-[#111111]">
-                Answer questions to go live
-              </p>
-              <p className="text-[13px] text-[#64748B] mt-[2px]">
-                Help test assumptions from {3 - completed} more campaign{3 - completed !== 1 ? "s" : ""} to publish yours.
-              </p>
-              <div className="flex items-center gap-[8px] mt-[12px]">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className={`h-[4px] flex-1 rounded-full ${i < completed ? "bg-[#22C55E]" : "bg-[#E2E8F0]"}`}
-                  />
-                ))}
-              </div>
-              <Link
-                href="/dashboard/ideas/new"
-                className="inline-block mt-[12px] px-[16px] py-[8px] rounded-xl bg-[#111111] text-white text-[13px] font-medium no-underline hover:bg-[#1a1a1a] transition-colors"
-              >
-                Continue
-              </Link>
+      {campaign.status === "pending_gate" && (() => {
+        const completed = campaign.reciprocal_responses_completed ?? 0;
+        return (
+          <div className="mb-[16px] bg-white border border-[#E5654E]/30 rounded-xl p-[20px]">
+            <p className="text-[15px] font-semibold text-[#111111]">
+              Answer questions to go live
+            </p>
+            <p className="text-[13px] text-[#64748B] mt-[2px]">
+              Help test assumptions from {3 - completed} more campaign{3 - completed !== 1 ? "s" : ""} to publish yours.
+            </p>
+            <div className="flex items-center gap-[8px] mt-[12px]">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className={`h-[4px] flex-1 rounded-full ${i < completed ? "bg-[#22C55E]" : "bg-[#E2E8F0]"}`}
+                />
+              ))}
             </div>
-          );
-        }
+            <Link
+              href="/dashboard/ideas/new"
+              className="inline-block mt-[12px] px-[16px] py-[8px] rounded-xl bg-[#111111] text-white text-[13px] font-medium no-underline hover:bg-[#1a1a1a] transition-colors"
+            >
+              Continue
+            </Link>
+          </div>
+        );
+      })()}
 
+      {campaign.status === "pending_funding" && funded !== "true" && (() => {
         // Stripe funding pending (only shown when CAMPAIGN_FUNDING is enabled)
         const rewardAmt = Number(campaign.reward_amount) || 0;
         const strength = campaign.campaign_strength;

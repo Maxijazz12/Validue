@@ -15,9 +15,6 @@ export const DEFAULTS = {
   /** Momentum score when target_responses is 0 or missing */
   MOMENTUM_NO_TARGET: 50,
 
-  /** Platform fee rate — applied exactly once at funding time */
-  PLATFORM_FEE_RATE: 0.15,
-
   /** Minimum payout amount per respondent */
   MIN_PAYOUT: 0.5,
 
@@ -65,6 +62,9 @@ export const DEFAULTS = {
   /** Free-tier campaign limit resets after this many days (rolling window) */
   FREE_TIER_RESET_DAYS: 15,
 
+  /** Minimum campaign funding to unlock the full Decision Brief (free tier only) */
+  BRIEF_FUNDING_GATE: 10,
+
   /** Maximum allowed funding amount */
   MAX_FUNDING_AMOUNT: 10_000,
 
@@ -74,19 +74,10 @@ export const DEFAULTS = {
   /** Maximum target responses for a campaign */
   MAX_TARGET_RESPONSES: 10_000,
 
-  /* ─── V2 Economics (base + bonus model) ─── */
+  /* ─── V2 Economics ─── */
 
-  /** Fraction of distributable pool allocated to guaranteed base pay */
-  BASE_POOL_RATIO: 0.60,
-
-  /** Fraction of distributable pool allocated to quality bonus */
-  BONUS_POOL_RATIO: 0.40,
-
-  /** Minimum quality score to qualify for base pay (launch calibration — review after 4 weeks) */
+  /** Minimum quality score to qualify for payout (launch calibration — review after 4 weeks) */
   QUALIFICATION_MIN_SCORE: 30,
-
-  /** Minimum quality score to earn from the bonus pool (launch calibration) */
-  BONUS_MIN_SCORE: 50,
 
   /** Hard floor: base pay per response must be >= this at publish time */
   MIN_BASE_PAYOUT: 0.10,
@@ -130,18 +121,24 @@ export const DEFAULTS = {
   /** Auto-abandon stale in-progress responses after this duration (ms) */
   STALE_RESPONSE_TIMEOUT_MS: 3_600_000,
 
-  /** Campaign expiration — days after activation */
-  CAMPAIGN_EXPIRY_DAYS: 7,
+  /** Campaign expiration — days after activation (extended from 7 to reduce trust risk at low liquidity) */
+  CAMPAIGN_EXPIRY_DAYS: 14,
+
+  /** Auto-extend campaign expiry by this many days when >50% filled at expiration */
+  CAMPAIGN_AUTO_EXTEND_DAYS: 7,
+
+  /** Fill ratio threshold to trigger auto-extension */
+  CAMPAIGN_AUTO_EXTEND_FILL_RATIO: 0.5,
 
   /** Minimum respondent available balance (cents) required to cash out */
   MIN_CASHOUT_BALANCE_CENTS: 200,
 
   /* ─── Subsidy ─── */
 
-  /** Platform budget per subsidized first campaign */
+  /** Platform budget per subsidized first campaign — the conversion funnel, not a cost center */
   SUBSIDY_BUDGET_PER_CAMPAIGN: 1.50,
 
-  /** Target qualifying responses for subsidized campaigns */
+  /** Target qualifying responses for subsidized campaigns — enough for a meaningful Decision Brief */
   SUBSIDY_TARGET_RESPONSES: 5,
 
   /** Flat payout per qualifying response on subsidized campaigns */

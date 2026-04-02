@@ -1,11 +1,12 @@
 type SkeletonProps = {
   className?: string;
+  warm?: boolean;
 };
 
-export default function Skeleton({ className = "" }: SkeletonProps) {
+export default function Skeleton({ className = "", warm = false }: SkeletonProps) {
   return (
     <div
-      className={`bg-[#E2E8F0]/50 rounded-lg animate-pulse ${className}`}
+      className={`${warm ? "skeleton-warm" : "bg-[#E2E8F0]/50 rounded-lg animate-pulse"} ${className}`}
     />
   );
 }

@@ -637,7 +637,7 @@ export async function allocatePayoutsV2(
         user_id: respondentId,
         type: "payout_earned",
         title: "You earned money!",
-        body: `$${allocation.amount.toFixed(2)} from "${campaignForNotif?.title || "a campaign"}" (base $${allocation.basePayout.toFixed(2)} + bonus $${allocation.bonusPayout.toFixed(2)})`,
+        body: `$${allocation.amount.toFixed(2)} from "${campaignForNotif?.title || "a campaign"}"`,
         campaign_id: campaignId,
         amount: allocation.amount,
         link: "/dashboard/earnings",

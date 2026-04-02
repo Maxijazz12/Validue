@@ -158,7 +158,7 @@ export function calculateReach(
   // Apply welcome bonus: 1.5x baseline on first campaign during first month (free only)
   let baselineRU = plan.baselineReachUnits;
   if (tier === "free" && options?.isFirstMonth && options?.isFirstCampaign) {
-    baselineRU = Math.round(baselineRU * 1.5); // 113 RU instead of 75
+    baselineRU = Math.round(baselineRU * 1.5); // 150 RU instead of 100
   }
 
   // Calculate funded RU with diminishing returns
@@ -219,7 +219,6 @@ const RECOMMENDED_STRENGTH: Record<PlanTier, number> = {
   free: 5,
   starter: 5,
   pro: 7,
-  scale: 9,
 };
 
 export function getFundingPresets(

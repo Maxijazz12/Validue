@@ -15,22 +15,15 @@ export default function Home() {
     <>
       <Navbar />
       <main className="relative overflow-hidden">
-        {/* Ambient color washes — warm terracotta + soft sage */}
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          {/* Terracotta — centered behind hero headline */}
-          <div className="absolute" style={{ top: '1%', left: '50%', transform: 'translateX(-50%)', width: '1000px', height: '700px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(212,160,136,0.22) 0%, transparent 65%)' }} />
-          {/* Sage — behind WallPreview cards */}
-          <div className="absolute" style={{ top: '14%', left: '50%', transform: 'translateX(-40%)', width: '1100px', height: '800px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(168,180,160,0.14) 0%, transparent 65%)' }} />
-          {/* Terracotta — behind HowItWorks, offset left */}
-          <div className="absolute" style={{ top: '30%', left: '-5%', width: '900px', height: '700px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(212,160,136,0.16) 0%, transparent 65%)' }} />
-          {/* Sage — behind QualityFeature, offset right */}
-          <div className="absolute" style={{ top: '45%', right: '-5%', width: '900px', height: '700px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(168,180,160,0.14) 0%, transparent 65%)' }} />
-          {/* Warm cream — centered behind DidYouKnow */}
-          <div className="absolute" style={{ top: '57%', left: '50%', transform: 'translateX(-50%)', width: '800px', height: '600px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(212,180,156,0.12) 0%, transparent 65%)' }} />
-          {/* Sage — behind Pricing, wider spread */}
-          <div className="absolute" style={{ top: '69%', left: '50%', transform: 'translateX(-50%)', width: '1200px', height: '700px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(168,180,160,0.14) 0%, transparent 65%)' }} />
-          {/* Terracotta — behind CTA banner */}
-          <div className="absolute" style={{ top: '85%', left: '50%', transform: 'translateX(-50%)', width: '900px', height: '600px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(212,160,136,0.14) 0%, transparent 65%)' }} />
+        {/* V2 Radical Precision — Architectural Grid with Subtle Glows */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          {/* Faint dot grid background */}
+          <div className="absolute inset-0 bg-[radial-gradient(#1C1917_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.03]" />
+          
+          {/* Extremely Subtle Ambient Glows to fix dullness */}
+          <div className="absolute top-[0%] left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[radial-gradient(ellipse,rgba(229,101,78,0.06)_0%,transparent_60%)] blur-[60px]" />
+          <div className="absolute top-[30%] left-[-10%] w-[800px] h-[800px] bg-[radial-gradient(ellipse,rgba(229,101,78,0.03)_0%,transparent_60%)] blur-[80px]" />
+          <div className="absolute top-[60%] right-[-10%] w-[800px] h-[800px] bg-[radial-gradient(ellipse,rgba(229,101,78,0.03)_0%,transparent_60%)] blur-[80px]" />
         </div>
         <div className="max-w-[1200px] mx-auto px-[64px] max-md:px-[24px] pt-[0px] pb-[100px] max-md:pb-[72px]">
           <Hero />
@@ -74,12 +67,10 @@ export default function Home() {
           </div>
         </ScrollReveal>
 
-        {/* ─── Dark closing section (warm dark) ─── */}
-        <div className="bg-[#110F0D] relative mt-[60px]">
-          {/* Top edge gradient for smooth transition */}
-          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#3D3830] to-transparent" />
-          {/* Subtle radial glow at top center */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] pointer-events-none" style={{ background: 'radial-gradient(ellipse, rgba(212,160,136,0.08) 0%, transparent 70%)' }} />
+        {/* ─── V2: Dark execution section ─── */}
+        <div className="bg-[#1C1917] relative mt-[60px]">
+          {/* Crisp structural border line */}
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#E5654E]/20 to-transparent" />
 
           <ScrollReveal animation="slide-up">
             <div className="py-[100px] max-md:py-[72px]">
@@ -89,14 +80,14 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          {/* Trust strip */}
+          {/* Trust precision metrics */}
           <div className="max-w-[1200px] mx-auto px-[64px] max-md:px-[24px]">
-            <div className="flex items-center justify-center gap-[24px] max-md:flex-col max-md:gap-[8px] py-[24px] border-t border-[#3D3830]/60 text-[12px] text-[#78716C]">
-              <span>Founders from YC, Techstars, and 40+ countries</span>
-              <span className="text-[#3D3830] max-md:hidden">|</span>
-              <span>94% average quality score</span>
-              <span className="text-[#3D3830] max-md:hidden">|</span>
-              <span>$48K+ paid to respondents</span>
+            <div className="flex items-center justify-center gap-[24px] max-md:flex-col max-md:gap-[8px] py-[24px] border-t border-white/5 text-[10px] uppercase font-bold tracking-widest text-white/40 mt-[32px] font-mono">
+              <span>{"// "}FOUNDERS: YC, TECHSTARS, 40+ COUNTRIES</span>
+              <span className="text-white/10 max-md:hidden">|</span>
+              <span>{"// "}AVG_Q_SCORE: 94%</span>
+              <span className="text-white/10 max-md:hidden">|</span>
+              <span>{"// "}DEPLOYED: $48K+</span>
             </div>
           </div>
 

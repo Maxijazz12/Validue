@@ -134,12 +134,13 @@ export default function NotificationPanel() {
 
       {/* Notification list */}
       {loading ? (
-        <div className="py-[48px] text-center text-[14px] text-[#94A3B8]">Loading...</div>
+        <div className="py-[48px] text-center text-[14px] text-[#A8A29E] font-mono uppercase tracking-widest">Reading terminal...</div>
       ) : notifications.length === 0 ? (
-        <div className="py-[48px] text-center">
-          <p className="text-[14px] text-[#94A3B8]">You&apos;re all caught up</p>
-          <p className="text-[12px] text-[#CBD5E1] mt-[4px]">
-            Notifications appear when campaigns complete or you earn money.
+        <div className="py-[120px] text-center border border-dashed border-white/60 rounded-[32px] bg-white/40 backdrop-blur-xl">
+          <span className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase mb-4 block">Event Log Empty</span>
+          <p className="text-[20px] font-medium tracking-tight text-[#1C1917] mb-[4px]">You&apos;re all caught up</p>
+          <p className="text-[14px] text-[#78716C] mt-[4px]">
+            Ping signals will resolve here when operations conclude.
           </p>
         </div>
       ) : (
@@ -148,22 +149,22 @@ export default function NotificationPanel() {
             <button
               key={notif.id}
               onClick={() => handleClick(notif)}
-              className={`flex items-start gap-[12px] p-[16px] rounded-xl border text-left w-full cursor-pointer transition-all duration-200 hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.03)] ${
+              className={`flex items-start gap-[16px] p-[20px] rounded-[24px] border text-left w-full cursor-pointer transition-all duration-400 group hover:shadow-[0_12px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] ${
                 notif.read_at
-                  ? "bg-white border-[#E2E8F0]"
-                  : "bg-white border-[#E2E8F0] border-l-[3px] border-l-[#E5654E]"
+                  ? "bg-white/30 backdrop-blur-2xl border-white/40 shadow-[0_4px_24px_rgba(0,0,0,0.015)]"
+                  : "bg-white/60 backdrop-blur-3xl border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border-l-[4px] border-l-[#E5654E]"
               }`}
             >
               <NotificationIcon type={notif.type} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-[8px]">
-                  <span className={`text-[13px] font-semibold ${notif.read_at ? "text-[#64748B]" : "text-[#111111]"}`}>
+                  <span className={`text-[15px] tracking-tight font-medium ${notif.read_at ? "text-[#78716C]" : "text-[#1C1917]"}`}>
                     {notif.title}
                   </span>
-                  <span className="text-[11px] text-[#94A3B8] shrink-0">{timeAgo(notif.created_at)}</span>
+                  <span className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest shrink-0">{timeAgo(notif.created_at)}</span>
                 </div>
                 {notif.body && (
-                  <p className="text-[13px] text-[#94A3B8] mt-[2px] line-clamp-2">{notif.body}</p>
+                  <p className="text-[14px] text-[#78716C] mt-[4px] line-clamp-2 leading-snug">{notif.body}</p>
                 )}
                 {notif.amount && (
                   <span className="inline-block mt-[6px] font-mono font-bold text-[14px] text-[#22C55E]">

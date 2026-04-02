@@ -208,21 +208,21 @@ export default function QuestionStepper({
         </div>
 
         {error && (
-          <div className="text-[13px] text-[#ef4444] mb-[12px] p-[12px] rounded-xl bg-[#ef4444]/5">
-            {error}
+          <div className="font-mono text-[10px] text-[#ef4444] tracking-widest font-bold uppercase mb-[12px] p-[12px] rounded-[12px] bg-[#ef4444]/5 border border-[#ef4444]/10">
+            [ ERROR: {error.toUpperCase()} ]
           </div>
         )}
 
         <div className="flex items-center justify-between gap-[12px]">
-          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] text-[14px]">
-            Go Back
+          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase border-black/10 hover:border-black/30 w-full sm:w-auto">
+            [ RETURN ]
           </Button>
           <Button
             onClick={handleFinalSubmit}
             disabled={isPending}
-            className={`px-[24px] py-[12px] text-[14px] ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`px-[24px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase !bg-[#1C1917] !text-white w-full sm:w-auto ${isPending ? "opacity-50 cursor-not-allowed" : "hover:!bg-[#292524] hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"}`}
           >
-            {isPending ? "Submitting..." : "Submit Response"}
+            {isPending ? "[ SUBMITTING_PAYLOAD... ]" : "[ INITIATE_TRANSFER ]"}
           </Button>
         </div>
       </div>
@@ -235,7 +235,7 @@ export default function QuestionStepper({
       {showCheckFlash && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div className="check-flash">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
@@ -251,14 +251,15 @@ export default function QuestionStepper({
 
       {/* Question text with slide animation */}
       <div className={slideClass}>
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[24px] mb-[16px]">
-          <p className="text-[16px] font-medium text-[#111111] leading-[1.5]">
+        <div className="bg-white/60 backdrop-blur-md border border-white/80 shadow-[0_4px_16px_rgba(0,0,0,0.03)] rounded-[20px] p-[24px] mb-[20px] relative overflow-hidden">
+          <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#1C1917]/10 to-transparent" />
+          <p className="text-[18px] font-medium tracking-tight text-[#1C1917] leading-[1.4] m-0">
             {question.text}
           </p>
         </div>
 
         {/* Answer input */}
-        <div className="mb-[20px]">
+        <div className="mb-[24px]">
           {question.type === "open" ? (
             <OpenEndedAnswer
               key={question.id}
@@ -282,8 +283,8 @@ export default function QuestionStepper({
 
       {/* Error */}
       {error && (
-        <div className="text-[13px] text-[#ef4444] mb-[12px] p-[12px] rounded-xl bg-[#ef4444]/5">
-          {error}
+        <div className="font-mono text-[10px] text-[#ef4444] tracking-widest font-bold uppercase mb-[12px] p-[12px] rounded-xl bg-[#ef4444]/5 border border-[#ef4444]/10">
+          [ ERROR: {error.toUpperCase()} ]
         </div>
       )}
 
@@ -293,27 +294,27 @@ export default function QuestionStepper({
           variant="outline"
           onClick={handleBack}
           disabled={currentIndex === 0}
-          className={`px-[20px] py-[12px] text-[14px] ${
-            currentIndex === 0 ? "opacity-40 cursor-not-allowed" : ""
+          className={`px-[20px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase border-black/10 transition-colors w-full sm:w-auto ${
+            currentIndex === 0 ? "opacity-40 cursor-not-allowed" : "hover:border-black/30 bg-white"
           }`}
         >
-          Back
+          [ PREVIOUS_NODE ]
         </Button>
 
         <Button
           onClick={handleSaveAndNext}
           disabled={!isValid || isPending}
-          className={`px-[24px] py-[12px] text-[14px] ${
-            !isValid || isPending ? "opacity-50 cursor-not-allowed" : ""
+          className={`px-[24px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase transition-all duration-300 w-full sm:w-auto ${
+            !isValid || isPending 
+              ? "opacity-50 cursor-not-allowed bg-black/5 text-[#A8A29E] border border-black/5" 
+              : "!bg-[#1C1917] !text-white hover:!bg-[#292524] hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
           }`}
         >
           {isPending
-            ? isLast
-              ? "Saving..."
-              : "Saving..."
+            ? "[ WRITING_DATA... ]"
             : isLast
-              ? "Review & Submit"
-              : "Next"}
+              ? "[ REVIEW_PAYLOAD ]"
+              : "[ NEXT_NODE ]"}
         </Button>
       </div>
     </div>

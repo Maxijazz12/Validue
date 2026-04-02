@@ -111,7 +111,7 @@ describe("validateFunding", () => {
 
 describe("calculateReach", () => {
   it("returns positive values for all tiers at $0", () => {
-    for (const tier of ["free", "starter", "pro", "scale"] as const) {
+    for (const tier of ["free", "starter", "pro"] as const) {
       const result = calculateReach(tier, 0);
       expect(result.baselineRU).toBeGreaterThan(0);
       expect(result.effectiveReach).toBeGreaterThan(0);

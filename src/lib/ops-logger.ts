@@ -169,6 +169,12 @@ type ReciprocalGateCleared = {
   completedCount: number;
 };
 
+type ReciprocalGateColdStartExempt = {
+  event: "reciprocal_gate.cold_start_exempt";
+  userId: string;
+  reason: string;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
@@ -188,7 +194,8 @@ type OpsEvent =
   | ReputationUpdated
   | WebhookProcessed
   | ContentFlagged
-  | ReciprocalGateCleared;
+  | ReciprocalGateCleared
+  | ReciprocalGateColdStartExempt;
 
 /* ─── Logger ─── */
 

@@ -3,23 +3,24 @@ import Button from "@/components/ui/Button";
 export default function CtaBanner() {
   return (
     <section className="text-center relative py-[48px] px-[40px] max-md:px-[24px] max-md:py-[36px]">
-      <h2 className="text-[clamp(28px,4vw,44px)] font-bold tracking-[-0.04em] leading-[1.1] text-white">
-        Your next idea is{" "}
+      <h2 className="text-[clamp(28px,4vw,44px)] font-bold tracking-tight leading-[1.1] text-white">
+        Your hypothesis is{" "}
         <span className="relative inline-block">
-          <span className="text-gradient-animated italic font-normal">
-            worth testing.
+          <span className="italic font-light text-white/50 font-sans">
+            ready for execution.
           </span>
         </span>
       </h2>
-      <p className="text-[16px] text-[#A8A29E] mt-[16px]">
-        Post for free and get your first responses today. Or start earning by sharing what you know.
+      <p className="font-mono text-[11px] uppercase tracking-widest text-[#A8A29E] mt-[24px] max-w-[400px] mx-auto leading-[1.8]">
+        [ // SYS: INITIATE DEPLOYMENT PHASE ]<br />
+        SUBMIT ZERO-COST NODE AND GATHER FIRST LIVE RESPONSES.
       </p>
-      <div className="flex items-center justify-center gap-[12px] mt-[32px]">
-        <Button variant="primary" href="/auth/signup" className="!bg-white !text-[#1C1917] hover:!bg-[#FAF8F5] hover:!shadow-[0_4px_24px_rgba(212,160,136,0.25)]">
-          Get Started Free
+      <div className="flex items-center justify-center gap-[12px] mt-[48px]">
+        <Button variant="primary" href="/auth/signup" className="!bg-white !text-[#1C1917] hover:!bg-white/90 hover:!shadow-[0_4px_24px_rgba(255,255,255,0.2)] font-mono uppercase tracking-widest text-[10px] font-bold py-[12px] px-[24px]">
+          [ DEPLOY_FREE_NODE ]
         </Button>
-        <Button variant="outline" href="/dashboard/the-wall" className="!border-[#3D3830] !text-[#A8A29E] hover:!border-[#57534E] hover:!text-white">
-          Explore Ideas
+        <Button variant="outline" href="/dashboard/the-wall" className="!border-white/10 !text-[#A8A29E] hover:!border-white/30 hover:!text-white font-mono uppercase tracking-widest text-[10px] font-bold py-[12px] px-[24px]">
+          [ INSPECT_NETWORK ]
         </Button>
       </div>
     </section>

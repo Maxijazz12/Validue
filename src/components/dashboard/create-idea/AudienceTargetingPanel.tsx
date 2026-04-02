@@ -59,10 +59,10 @@ export default function AudienceTargetingPanel({
   }
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
+    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
       <div className="flex items-center justify-between mb-[4px]">
-        <h2 className="text-[16px] font-semibold text-[#111111]">
-          Target Audience
+        <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917]">
+          [ 03: TARGET MATRIX ]
         </h2>
         {scribbleText && (
           <button
@@ -81,20 +81,19 @@ export default function AudienceTargetingPanel({
                   <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
                   <path d="M19 15l.5 1.5L21 17.5l-1.5.5L19 19.5l-.5-1.5L17 17.5l1.5-.5L19 15z" />
                 </svg>
-                AI Suggest
+                [ AI OPTIMIZE ]
               </>
             )}
           </button>
         )}
       </div>
-      <p className="text-[13px] text-[#64748B] mb-[24px]">
-        Who should see and respond to this campaign? These were suggested based
-        on your idea — adjust as needed.
+      <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E] mb-[28px]">
+        Define routing parameters for respondent demographic nodes.
       </p>
 
       {suggestError && (
-        <div className="mb-[16px] px-[12px] py-[8px] rounded-xl bg-red-50 border border-red-200 text-[12px] text-red-700">
-          {suggestError}
+        <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-[#ef4444]/10 border border-[#ef4444]/20 backdrop-blur-md">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">[ ERR: {suggestError} ]</span>
         </div>
       )}
 

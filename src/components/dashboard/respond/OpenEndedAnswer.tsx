@@ -14,9 +14,9 @@ type OpenEndedAnswerProps = {
 };
 
 function getCoachingTip(charCount: number, pasteDetected: boolean): { text: string; color: string } | null {
-  if (pasteDetected) return { text: "Tip: Personal insights are more valuable than copied text", color: "#F59E0B" };
-  if (charCount >= 200) return { text: "Great detail!", color: "#22C55E" };
-  if (charCount >= 50 && charCount < 100) return { text: "Good start — more detail helps founders understand your thinking", color: "#94A3B8" };
+  if (pasteDetected) return { text: "// SYSW: PASTED_INPUT_DETECTED. ORIGINAL_THOUGHTS_PREFERED", color: "#F59E0B" };
+  if (charCount >= 200) return { text: "// SYS: GREAT_DETAIL_CONFIRMED", color: "#22C55E" };
+  if (charCount >= 50 && charCount < 100) return { text: "// SYS: GOOD_START. MORE_DETAIL_HELPS_FOUNDERS.", color: "#A8A29E" };
   return null;
 }
 
@@ -83,42 +83,42 @@ export default function OpenEndedAnswer({
         onPaste={handlePaste}
         placeholder={placeholder}
         rows={5}
-        className="w-full px-[16px] py-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[14px] text-[#111111] leading-[1.6] resize-y outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-[#94A3B8]"
+        className="w-full px-[20px] py-[16px] rounded-[16px] border border-black/10 bg-white/60 backdrop-blur-md text-[15px] text-[#1C1917] leading-[1.6] resize-y outline-none focus:border-[#1C1917] transition-all duration-300 placeholder:text-[#A8A29E] font-sans"
       />
 
       {/* Response anchors — fade after 100 chars */}
       {showAnchors && (
-        <div className="flex flex-wrap gap-[6px] mt-[8px] transition-opacity duration-300" style={{ opacity: charCount > 60 ? 0.4 : 0.7 }}>
+        <div className="flex flex-wrap gap-[6px] mt-[12px] transition-opacity duration-300" style={{ opacity: charCount > 60 ? 0.4 : 1 }}>
           {anchors.map((anchor, i) => (
-            <span key={i} className="text-[11px] text-text-muted bg-bg-elevated px-[8px] py-[3px] rounded-full">
-              {anchor}
+            <span key={i} className="font-mono text-[9px] font-bold uppercase tracking-[1px] text-[#A8A29E] bg-black/5 border border-black/10 px-[8px] py-[3px] rounded-md">
+              [ {anchor} ]
             </span>
           ))}
         </div>
       )}
 
       {/* Character counter + coaching */}
-      <div className="flex items-center justify-between mt-[8px]">
-        <div className="flex items-center gap-[6px]">
+      <div className="flex items-center justify-between mt-[12px]">
+        <div className="flex items-center gap-[8px]">
           {meetsMin ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A8AF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           ) : (
-            <span className="text-[12px] text-[#94A3B8]">
-              {charCount}/{MIN_CHARS}
+            <span className="font-mono text-[10px] font-bold text-[#A8A29E] tracking-widest">
+              {charCount}/{MIN_CHARS} CYCLES
             </span>
           )}
           {!meetsMin && charCount > 0 && (
-            <span className="text-[11px] text-[#E5654E]">
-              {MIN_CHARS - charCount} more to go
+            <span className="font-mono text-[9px] font-bold text-[#E5654E] tracking-widest uppercase">
+              {MIN_CHARS - charCount} CYCLES_REMAINING
             </span>
           )}
         </div>
 
         {/* Coaching tip */}
         {coaching && (
-          <span className="text-[11px] italic" style={{ color: coaching.color }}>
+          <span className="font-mono text-[9px] font-bold tracking-widest uppercase" style={{ color: coaching.color }}>
             {coaching.text}
           </span>
         )}

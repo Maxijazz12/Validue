@@ -44,13 +44,18 @@ export default function MultipleChoiceAnswer({
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className={`w-full text-left px-[16px] py-[14px] rounded-xl border text-[14px] transition-all duration-200 cursor-pointer ${
+            className={`w-full text-left px-[20px] py-[16px] rounded-[16px] font-sans text-[15px] transition-all duration-300 border cursor-pointer flex items-center gap-[12px] ${
               selected
-                ? "border-[#111111] bg-[#111111] text-white font-medium"
-                : "border-[#E2E8F0] bg-white text-[#111111] hover:border-[#CBD5E1] hover:bg-[#FCFCFD]"
+                ? "border-[#1C1917] bg-[#1C1917] text-white shadow-[0_8px_24px_rgba(28,25,23,0.15)]"
+                : "border-black/10 bg-white/60 backdrop-blur-md text-[#1C1917] hover:border-black/30 hover:bg-white"
             }`}
           >
-            {option}
+            <div className={`w-[16px] h-[16px] rounded-sm border shrink-0 flex items-center justify-center transition-colors ${
+              selected ? "border-white/30 bg-white/20" : "border-black/20 bg-black/5"
+            }`}>
+              {selected && <div className="w-[8px] h-[8px] bg-white rounded-sm" />}
+            </div>
+            <span className="leading-[1.4]">{option}</span>
           </button>
         );
       })}

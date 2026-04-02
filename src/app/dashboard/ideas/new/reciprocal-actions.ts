@@ -12,6 +12,22 @@ import {
 import type { RespondentProfile } from "@/lib/wall-ranking";
 import sql from "@/lib/db";
 import { DEFAULTS } from "@/lib/defaults";
+import { getSubscription } from "@/lib/plan-guard";
+import type { PlanTier } from "@/lib/plans";
+
+/**
+ * Returns the current user's plan tier for client-side gating decisions.
+ */
+export async function getUserTier(): Promise<PlanTier> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "free";
+
+  const sub = await getSubscription(user.id);
+  return sub.tier;
+}
 
 export type ReciprocalAssignment = {
   /** The campaign this assignment belongs to */
@@ -38,6 +54,42 @@ export type ReciprocalQuestion = {
   campaignId: string;
   campaignTitle: string;
 };
+
+/**
+ * Server-side check: are there any campaigns available for the reciprocal gate?
+ * Used at publish time to verify cold-start exemption.
+ */
+export async function hasReciprocalCampaigns(): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: userResponses } = await supabase
+    .from("responses")
+    .select("campaign_id")
+    .eq("respondent_id", user.id)
+    .in("status", ["in_progress", "submitted", "ranked"]);
+
+  const respondedCampaignIds = new Set(
+    (userResponses || []).map((r) => r.campaign_id)
+  );
+
+  let query = supabase
+    .from("campaigns")
+    .select("id")
+    .eq("status", "active")
+    .neq("creator_id", user.id)
+    .limit(1);
+
+  if (respondedCampaignIds.size > 0) {
+    query = query.not("id", "in", `(${[...respondedCampaignIds].join(",")})`);
+  }
+
+  const { data } = await query;
+  return !!data && data.length > 0;
+}
 
 /**
  * Fetch reciprocal assignments for the gate. Returns RECIPROCAL_REQUIRED
@@ -334,19 +386,23 @@ export async function saveReciprocalAnswer(
     const allAnswered = assignedIds.every((id) => answeredSet.has(id));
 
     if (allAnswered) {
-      await supabase
-        .from("responses")
-        .update({ status: "submitted" })
-        .eq("id", responseId);
-
-      // Increment campaign response count
-      await sql`
+      // Atomic: only increment campaign count if this response wasn't already submitted
+      // (prevents double-count from concurrent saves)
+      const submitResult = await sql`
+        WITH submitted AS (
+          UPDATE responses
+          SET status = 'submitted'
+          WHERE id = ${responseId}
+            AND status = 'in_progress'
+          RETURNING campaign_id
+        )
         UPDATE campaigns
         SET current_responses = current_responses + 1
-        WHERE id = ${campaignId}
+        WHERE id = (SELECT campaign_id FROM submitted)
+        RETURNING id
       `;
 
-      autoSubmitted = true;
+      autoSubmitted = submitResult.length > 0;
     }
   }
 
@@ -410,6 +466,7 @@ export async function incrementReciprocalGate(campaignId: string): Promise<{
           expires_at = NOW() + INTERVAL '${sql.unsafe(String(DEFAULTS.CAMPAIGN_EXPIRY_DAYS))} days'
       WHERE id = ${campaignId}
         AND reciprocal_gate_status = 'pending'
+        AND status IN ('pending_gate', 'pending_funding')
     `;
 
     logOps({

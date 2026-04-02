@@ -146,7 +146,7 @@ export async function createFundingSession(
  * Creates a Stripe Checkout session for a subscription upgrade.
  */
 export async function createSubscriptionSession(
-  tier: "starter" | "pro" | "scale"
+  tier: "starter" | "pro"
 ): Promise<{ url: string } | { error: string }> {
   const supabase = await createClient();
   const {
@@ -158,7 +158,6 @@ export async function createSubscriptionSession(
   const priceIds: Record<string, string | undefined> = {
     starter: process.env.STRIPE_STARTER_PRICE_ID,
     pro: process.env.STRIPE_PRO_PRICE_ID,
-    scale: process.env.STRIPE_SCALE_PRICE_ID,
   };
 
   const priceId = priceIds[tier];

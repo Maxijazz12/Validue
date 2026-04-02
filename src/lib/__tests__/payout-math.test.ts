@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  distributePayouts,
-  payoutWeight,
-  bonusWeightV2,
   qualifyResponse,
   distributePayoutsV2,
   distributeSubsidizedPayouts,
@@ -26,102 +23,6 @@ function makeResponse(
   };
 }
 
-describe("payoutWeight", () => {
-  it("returns 0 for scores <= 25", () => {
-    expect(payoutWeight(0)).toBe(0);
-    expect(payoutWeight(25)).toBe(0);
-  });
-
-  it("returns positive for scores > 25", () => {
-    expect(payoutWeight(26)).toBeGreaterThan(0);
-    expect(payoutWeight(80)).toBeGreaterThan(0);
-  });
-
-  it("uses power-law 1.5 exponent", () => {
-    // (55 - 25)^1.5 = 30^1.5 ≈ 164.3
-    expect(payoutWeight(55)).toBeCloseTo(Math.pow(30, 1.5), 1);
-  });
-});
-
-describe("distributePayouts", () => {
-  it("returns empty for no responses", () => {
-    expect(distributePayouts([], 10)).toEqual([]);
-  });
-
-  it("returns empty for zero distributable", () => {
-    expect(distributePayouts([makeResponse("a", 80)], 0)).toEqual([]);
-  });
-
-  it("sum equals distributable exactly for [80, 60, 20]", () => {
-    const responses = [
-      makeResponse("a", 80),
-      makeResponse("b", 60),
-      makeResponse("c", 20),
-    ];
-    const allocations = distributePayouts(responses, 10);
-    const sum = allocations.reduce((s, a) => s + a.suggestedAmount, 0);
-    expect(Math.round(sum * 100) / 100).toBe(10.0);
-  });
-
-  it("falls back to equal split when all weights are 0 (scores <= 25)", () => {
-    const responses = [
-      makeResponse("a", 20),
-      makeResponse("b", 15),
-      makeResponse("c", 10),
-    ];
-    const allocations = distributePayouts(responses, 9);
-    // Equal: $3 each
-    expect(allocations).toHaveLength(3);
-    const amounts = allocations.map((a) => a.suggestedAmount);
-    // All should be close to $3, total should be $9
-    const sum = amounts.reduce((s, v) => s + v, 0);
-    expect(Math.round(sum * 100) / 100).toBe(9.0);
-  });
-
-  it("single response gets full amount", () => {
-    const allocations = distributePayouts(
-      [makeResponse("a", 80)],
-      5
-    );
-    expect(allocations).toHaveLength(1);
-    expect(allocations[0].suggestedAmount).toBe(5.0);
-  });
-
-  it("remainder reconciliation: 3 equal-weight, sum exact", () => {
-    const responses = [
-      makeResponse("a", 55),
-      makeResponse("b", 55),
-      makeResponse("c", 55),
-    ];
-    const allocations = distributePayouts(responses, 10);
-    const sum = allocations.reduce((s, a) => s + a.suggestedAmount, 0);
-    expect(Math.round(sum * 100) / 100).toBe(10.0);
-  });
-
-  it("low-confidence responses get equal share from reserved pool", () => {
-    const responses = [
-      makeResponse("a", 80, 0.9), // high confidence
-      makeResponse("b", 60, 0.3), // low confidence
-    ];
-    const allocations = distributePayouts(responses, 10);
-    const sum = allocations.reduce((s, a) => s + a.suggestedAmount, 0);
-    expect(Math.round(sum * 100) / 100).toBe(10.0);
-    // Both should get something
-    expect(allocations).toHaveLength(2);
-    expect(allocations.every((a) => a.suggestedAmount > 0)).toBe(true);
-  });
-
-  it("all amounts are non-negative", () => {
-    const responses = [
-      makeResponse("a", 80),
-      makeResponse("b", 30),
-      makeResponse("c", 26),
-    ];
-    const allocations = distributePayouts(responses, 5);
-    expect(allocations.every((a) => a.suggestedAmount >= 0)).toBe(true);
-  });
-});
-
 /* ═══════════════════════════════════════════════════════════════════════════
  * V2 Economics Tests
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -136,21 +37,6 @@ function makeGoodMeta(format: "quick" | "standard" = "standard"): ResponseMetada
 function makeQualResult(id: string, qualified = true, reasons: string[] = []): QualificationResult {
   return { responseId: id, qualified, reasons };
 }
-
-describe("bonusWeightV2", () => {
-  it("returns 0 for scores at or below BONUS_MIN_SCORE (50)", () => {
-    expect(bonusWeightV2(50)).toBe(0);
-    expect(bonusWeightV2(49)).toBe(0);
-    expect(bonusWeightV2(30)).toBe(0);
-    expect(bonusWeightV2(0)).toBe(0);
-  });
-
-  it("returns linear weight above 50", () => {
-    expect(bonusWeightV2(60)).toBe(10);
-    expect(bonusWeightV2(75)).toBe(25);
-    expect(bonusWeightV2(100)).toBe(50);
-  });
-});
 
 describe("qualifyResponse", () => {
   it("qualifies a response that meets all criteria", () => {
@@ -262,7 +148,7 @@ describe("distributePayoutsV2", () => {
     expect(distributePayoutsV2(r, 0, q)).toEqual([]);
   });
 
-  it("all qualified, all bonus-eligible: sum === distributable", () => {
+  it("all qualified: flat equal split, sum === distributable", () => {
     const responses = [
       makeResponse("a", 80),
       makeResponse("b", 70),
@@ -277,22 +163,19 @@ describe("distributePayoutsV2", () => {
     const sum = qualifiedAllocs.reduce((s, a) => s + a.suggestedAmount, 0);
     expect(Math.round(sum * 100) / 100).toBe(10.0);
 
-    // Each should have both base and bonus
+    // Flat model: no bonus, all base
     for (const a of qualifiedAllocs) {
       expect(a.basePayout).toBeGreaterThan(0);
-      expect(a.bonusPayout).toBeGreaterThan(0);
+      expect(a.bonusPayout).toBe(0);
     }
 
-    // Higher score should earn more bonus
-    const allocA = qualifiedAllocs.find((a) => a.responseId === "a")!;
-    const allocC = qualifiedAllocs.find((a) => a.responseId === "c")!;
-    expect(allocA.bonusPayout).toBeGreaterThan(allocC.bonusPayout);
-
-    // All base payouts should be equal
-    expect(allocA.basePayout).toBeCloseTo(allocC.basePayout, 1);
+    // All payouts should be equal (within 1 cent from remainder)
+    const amounts = qualifiedAllocs.map((a) => a.suggestedAmount);
+    const unique = new Set(amounts.map((a) => Math.round(a * 100)));
+    expect(unique.size).toBeLessThanOrEqual(2);
   });
 
-  it("all qualified, none bonus-eligible (scores 30-49): bonus folds into base", () => {
+  it("all qualified with low scores: equal flat split", () => {
     const responses = [
       makeResponse("a", 40),
       makeResponse("b", 35),
@@ -371,12 +254,12 @@ describe("distributePayoutsV2", () => {
     expect(Math.round(sum * 100) / 100).toBe(9.0);
   });
 
-  it("score at exact thresholds: 30 qualifies, 29 does not; 50 gets bonus, 49 does not", () => {
+  it("score at exact thresholds: 30 qualifies, 29 does not; all get flat pay", () => {
     const responses = [
-      makeResponse("a", 30), // qualifies, no bonus
+      makeResponse("a", 30), // qualifies
       makeResponse("b", 29), // disqualified
-      makeResponse("c", 50), // qualifies, no bonus (weight = 0)
-      makeResponse("d", 51), // qualifies, gets bonus (weight = 1)
+      makeResponse("c", 50), // qualifies
+      makeResponse("d", 51), // qualifies
     ];
     const quals = [
       makeQualResult("a"),
@@ -388,8 +271,15 @@ describe("distributePayoutsV2", () => {
 
     expect(allocations.find((a) => a.responseId === "a")!.qualified).toBe(true);
     expect(allocations.find((a) => a.responseId === "b")!.qualified).toBe(false);
+    // Flat model: no bonus for anyone
     expect(allocations.find((a) => a.responseId === "c")!.bonusPayout).toBe(0);
-    expect(allocations.find((a) => a.responseId === "d")!.bonusPayout).toBeGreaterThan(0);
+    expect(allocations.find((a) => a.responseId === "d")!.bonusPayout).toBe(0);
+    // All qualified get equal pay
+    const qualifiedAmounts = allocations
+      .filter((a) => a.qualified)
+      .map((a) => a.suggestedAmount);
+    const unique = new Set(qualifiedAmounts.map((a) => Math.round(a * 100)));
+    expect(unique.size).toBeLessThanOrEqual(2);
   });
 
   it("remainder reconciliation: sum of qualified payouts === distributable to the cent", () => {

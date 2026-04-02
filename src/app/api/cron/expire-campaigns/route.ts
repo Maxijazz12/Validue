@@ -38,6 +38,7 @@ export async function GET(request: Request) {
   const results = {
     staleCleanedUp: 0,
     campaignsExpired: 0,
+    campaignsAutoExtended: 0,
     payoutsSettled: 0,
     creditsGranted: 0,
     errors: [] as string[],
@@ -56,7 +57,8 @@ export async function GET(request: Request) {
 
     // 2. Find expired active V2 campaigns
     const expiredCampaigns = await sql`
-      SELECT id, creator_id, distributable_amount, format, is_subsidized, reward_amount
+      SELECT id, creator_id, distributable_amount, format, is_subsidized, reward_amount,
+             current_responses, target_responses, auto_extended
       FROM campaigns
       WHERE status = 'active'
         AND economics_version = 2
@@ -66,6 +68,31 @@ export async function GET(request: Request) {
 
     for (const campaign of expiredCampaigns) {
       try {
+        // Auto-extend: if >50% filled and not already extended, grant more time
+        const fillRatio = (campaign.target_responses ?? 0) > 0
+          ? (campaign.current_responses ?? 0) / campaign.target_responses
+          : 0;
+        if (
+          fillRatio >= DEFAULTS.CAMPAIGN_AUTO_EXTEND_FILL_RATIO &&
+          !campaign.auto_extended
+        ) {
+          await sql`
+            UPDATE campaigns
+            SET expires_at = NOW() + INTERVAL '1 day' * ${DEFAULTS.CAMPAIGN_AUTO_EXTEND_DAYS},
+                auto_extended = true,
+                updated_at = NOW()
+            WHERE id = ${campaign.id} AND status = 'active'
+          `;
+          logOps({
+            event: "campaign.auto_extended",
+            campaignId: campaign.id,
+            fillRatio: Math.round(fillRatio * 100),
+            extensionDays: DEFAULTS.CAMPAIGN_AUTO_EXTEND_DAYS,
+          });
+          results.campaignsAutoExtended++;
+          continue; // skip expiration — campaign got more time
+        }
+
         // Mark campaign as completed
         await sql`
           UPDATE campaigns

@@ -103,12 +103,12 @@ export default function CampaignStrengthMeter({
   }
 
   return (
-    <div className="rounded-xl border border-[#E2E8F0] bg-white p-[20px]">
+    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[24px]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-[16px]">
-        <div className="flex items-center gap-[8px]">
-          <span className="text-[14px] font-semibold text-[#111111]">
-            Campaign Strength
+      <div className="flex items-center justify-between mb-[20px]">
+        <div className="flex items-center gap-[12px]">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917]">
+            [ ENGINE PROPULSION ]
           </span>
           <Tooltip text="Campaign Strength is a 1–10 score that estimates how many qualified people will see your campaign. It's based on your plan, funding, and survey quality. You can improve it by increasing your fund or sharpening your questions.">
             <InfoIcon />
@@ -144,15 +144,15 @@ export default function CampaignStrengthMeter({
       </div>
 
       {/* Label */}
-      <p className="text-[12px] text-[#64748B] mb-[16px]">{strengthLabel}</p>
+      <p className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest mb-[24px]">{"// "}{strengthLabel}</p>
 
       {/* Secondary metrics */}
-      <div className="grid grid-cols-3 gap-[12px] pt-[16px] border-t border-[#F1F5F9]">
+      <div className="grid grid-cols-3 gap-[16px] pt-[20px] border-t border-black/5">
         {/* Estimated Responses */}
         <div>
-          <div className="flex items-center gap-[4px] mb-[4px]">
-            <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px] font-medium">
-              Est. Responses
+          <div className="flex items-center gap-[8px] mb-[6px]">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+              EST. YIELD
             </span>
             <Tooltip text="The estimated number of completed responses. This is a range, not a guarantee — actual results depend on your audience, reward, and question quality.">
               <InfoIcon />
@@ -166,29 +166,29 @@ export default function CampaignStrengthMeter({
         {/* Expected Visibility */}
         <div>
           <div className="flex items-center gap-[4px] mb-[4px]">
-            <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px] font-medium">
-              Visibility
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+              VISIBILITY
             </span>
             <Tooltip text="How many people in your target audience will see your campaign. Higher plans and more funding increase this number.">
               <InfoIcon />
             </Tooltip>
           </div>
-          <div className="text-[15px] font-semibold text-[#111111] font-mono">
+          <div className="text-[16px] font-bold text-[#1C1917] font-mono tracking-tight">
             ~{effectiveReach.toLocaleString()}
           </div>
         </div>
 
         {/* Fill Speed */}
         <div>
-          <div className="flex items-center gap-[4px] mb-[4px]">
-            <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px] font-medium">
-              Fill Speed
+          <div className="flex items-center gap-[8px] mb-[6px]">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+              VELOCITY
             </span>
             <Tooltip text="How quickly you can expect responses to come in. This is an estimate based on typical activity — not a guarantee.">
               <InfoIcon />
             </Tooltip>
           </div>
-          <div className="text-[15px] font-semibold text-[#111111]">
+          <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917] mt-1">
             {fillSpeedLabel}
           </div>
         </div>

@@ -36,139 +36,110 @@ export default function SubmissionConfirmation({
 
   return (
     <div className="flex items-center justify-center py-[48px]">
-      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[48px] text-center relative overflow-hidden max-w-[480px] w-full">
-        <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+      <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] p-[48px] relative overflow-hidden max-w-[480px] w-full text-left">
+        <div className="absolute top-0 left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-[#2ca05a]/40 to-transparent" />
 
-        {/* Confetti accent particles */}
-        <div className="absolute top-[20px] left-[15%] w-[6px] h-[6px] rounded-full bg-[#E8C1B0]/40" style={{ animation: "confettiDrift 2s ease forwards 0.2s" }} />
-        <div className="absolute top-[30px] right-[20%] w-[5px] h-[5px] rounded-full bg-[#9BC4C8]/40" style={{ animation: "confettiDrift 2.2s ease forwards 0.4s" }} />
-        <div className="absolute top-[15px] left-[40%] w-[4px] h-[4px] rounded-full bg-[#E5654E]/30" style={{ animation: "confettiDrift 1.8s ease forwards 0.1s" }} />
-        <div className="absolute top-[25px] right-[35%] w-[5px] h-[5px] rounded-full bg-[#E8C1B0]/30" style={{ animation: "confettiDrift 2.4s ease forwards 0.6s" }} />
-
-        {/* Branded checkmark */}
+        {/* Branded command checkmark */}
         <div
-          className="w-[64px] h-[64px] rounded-full flex items-center justify-center mx-auto mb-[20px]"
-          style={{ background: "linear-gradient(135deg, rgba(229,101,78,0.12), rgba(232,193,176,0.15))" }}
+          className="w-[48px] h-[48px] flex items-center justify-center mb-[24px] border border-black/10 rounded-xl bg-black/5"
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2ca05a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
 
-        <h2 className="text-[24px] font-bold text-[#111111] tracking-[-0.02em] mb-[8px]">
-          You&apos;re in
+        <h2 className="font-mono text-[14px] font-bold text-[#1C1917] tracking-widest uppercase mb-[12px]">
+          {"// "}SYS: PAYLOAD_TRANSFERRED
         </h2>
 
         {/* Personalized title */}
         {campaignTitle && (
-          <p className="text-[14px] text-[#64748B] mb-[12px]">
-            Your response to &ldquo;{campaignTitle}&rdquo; has been submitted.
+          <p className="text-[14px] text-[#A8A29E] mb-[24px] font-mono leading-[1.6]">
+            DATA FOR <span className="font-bold text-[#1C1917]">[{campaignTitle.toUpperCase()}]</span> SECURELY WRITTEN.
           </p>
         )}
 
         {/* V2 money state callout */}
         {hasReward && (
-          <div className="text-left bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-[16px] mb-[16px]">
-            <div className="flex items-center gap-[8px] mb-[8px]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
-              <span className="text-[13px] font-semibold text-[#111111]">Base status: Pending qualification</span>
+          <div className="bg-[#1C1917] border border-transparent rounded-[16px] p-[20px] mb-[24px] shadow-[0_4px_16px_rgba(28,25,23,0.1)] relative">
+            <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#F59E0B]/40 to-transparent" />
+            <div className="flex items-center gap-[8px] mb-[12px]">
+              <div className="w-[6px] h-[6px] rounded-full bg-[#F59E0B] animate-pulse" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#F59E0B]">SYS_STATE: PENDING_QUALIFICATION</span>
             </div>
-            <p className="text-[12px] text-[#64748B] leading-[1.5]">
-              If qualified, your base payout will move to <span className="font-semibold">Locked</span>.
-              Locked payouts become <span className="font-semibold">Available</span> when the campaign closes.
-              This can take up to 7 days.
-            </p>
-            <p className="text-[12px] text-[#94A3B8] mt-[6px]">
-              Bonus status: Pending until campaign closes
+            <p className="font-mono text-[10px] text-[#A8A29E] leading-[1.6] uppercase tracking-widest">
+              BASE YIELD MOVES TO <span className="text-white font-bold">LOCKED</span> IF QUALIFIED.<br />
+              LOCKED YIELDS BECOME <span className="text-white font-bold">AVAILABLE</span> UPON CAMPAIGN TERMINAL CLOSE (T+7d).
             </p>
           </div>
         )}
 
         {/* Stats summary */}
         {(questionCount || totalTimeMs) && (
-          <p className="text-[13px] text-[#94A3B8] mb-[8px]">
-            {questionCount && <>You answered {questionCount} questions</>}
-            {questionCount && totalTimeMs && <> in </>}
-            {totalTimeMs && <>{formatTime(totalTimeMs)}</>}
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[#1C1917] font-bold mb-[24px] bg-black/5 inline-flex px-[8px] py-[4px] rounded-md">
+            [ METRICS: {questionCount && `${questionCount} NODES`}
+            {questionCount && totalTimeMs && ` | `}
+            {totalTimeMs && `T-${formatTime(totalTimeMs)}`} ]
           </p>
-        )}
-
-        <p className="text-[13px] text-[#94A3B8] mb-[16px]">
-          {hasReward
-            ? "Higher quality responses earn more. Take your time and share real experiences."
-            : "Good feedback makes good products. Thanks for being part of it."}
-        </p>
-
-        {/* Post-submission idea reveal */}
-        {campaignDescription && (
-          <div className="text-left bg-white border border-[#E2E8F0] rounded-xl p-[16px] mb-[24px]">
-            <p className="text-[11px] uppercase tracking-[1px] text-[#94A3B8] font-semibold mb-[8px]">
-              The idea you helped test
-            </p>
-            <p className="text-[13px] text-[#64748B] leading-[1.6]">
-              {campaignDescription}
-            </p>
-          </div>
         )}
 
         {/* Suggested next campaigns */}
         {suggestedCampaigns && suggestedCampaigns.length > 0 ? (
-          <div className="text-left">
-            <p className="text-[12px] font-semibold text-[#64748B] mb-[12px]">
+          <div className="text-left mt-[24px] pt-[24px] border-t border-black/10">
+            <p className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#78716C] mb-[16px]">
               {potentialEarnings > 0 ? (
-                <>You earned {hasReward ? <span className="font-mono text-[#34D399]">${rewardAmount}</span> : "karma"}. Earn up to <span className="font-mono text-[#34D399]">${potentialEarnings}</span> more from these:</>
+                <>YIELD ACCRUED. <span className="text-[#34D399]">MULTIPLY YIELD</span> VIA SUBSEQUENT ACTIVE NODES:</>
               ) : (
-                <>Keep the momentum going</>
+                <>SYSTEM READY. DISCOVER ADDITIONAL NODES:</>
               )}
             </p>
-            <div className="flex flex-col gap-[8px] mb-[20px]">
+            <div className="flex flex-col gap-[8px] mb-[32px]">
               {suggestedCampaigns.map((c) => (
                 <a
                   key={c.id}
                   href={`/dashboard/the-wall/${c.id}`}
-                  className="flex items-center gap-[12px] p-[12px] rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 no-underline group"
+                  className="flex items-center gap-[12px] p-[16px] rounded-[16px] bg-white border border-black/10 hover:border-black/30 hover:shadow-[0_4px_16px_rgba(0,0,0,0.03)] transition-all duration-300 no-underline group"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-[#111111] truncate group-hover:text-[#E5654E] transition-colors">
-                      {c.title}
+                    <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917] truncate group-hover:text-[#E5654E] transition-colors mb-[4px]">
+                      {"// "}{c.title}
                     </div>
-                    <div className="text-[11px] text-[#94A3B8] mt-[2px]">
-                      {c.creatorName}{c.category ? ` · ${c.category}` : ""} · ~{c.estimatedMinutes}min
+                    <div className="font-mono text-[9px] uppercase tracking-[1px] text-[#A8A29E]">
+                      ROOT.{c.creatorName.split(" ")[0].toUpperCase()} {c.category ? `[ ${c.category.toUpperCase()} ]` : ""} T-{c.estimatedMinutes}M
                     </div>
                   </div>
                   {c.rewardAmount > 0 && (
-                    <span className="text-[12px] font-mono font-semibold text-[#34D399] bg-[#34D399]/8 px-[8px] py-[3px] rounded-lg shrink-0">
-                      ${c.rewardAmount}
+                    <span className="font-mono text-[10px] font-bold text-[#34D399] bg-[#34D399]/10 px-[6px] py-[4px] rounded-md shrink-0">
+                      +${c.rewardAmount}
                     </span>
                   )}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 group-hover:stroke-[#E5654E] transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[#A8A29E] group-hover:text-[#1C1917] transition-colors">
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </a>
               ))}
             </div>
-            <div className="flex gap-[12px] justify-center">
-              <Button href="/dashboard/the-wall" variant="outline" className="px-[20px] py-[10px] text-[13px]">
-                Browse The Wall
+            
+            <div className="flex max-sm:flex-col gap-[12px]">
+              <Button href="/dashboard/the-wall" className="flex-1 py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase !bg-[#1C1917] !text-white rounded-xl shadow-none hover:shadow-[0_4px_16px_rgba(28,25,23,0.15)] justify-center flex transition-all">
+                [ BROWSE_WALL ]
               </Button>
-              <Button href="/dashboard/my-responses" variant="outline" className="px-[20px] py-[10px] text-[13px]">
-                My Responses
+              <Button href="/dashboard/my-responses" variant="outline" className="flex-1 py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase border-black/10 hover:bg-black/5 justify-center flex transition-all text-[#1C1917]">
+                [ VIEW_LOGS ]
               </Button>
             </div>
           </div>
         ) : (
-          <div className="flex gap-[12px] justify-center max-sm:flex-col max-sm:w-full">
-            <Button href="/dashboard/the-wall" className="px-[24px] py-[12px] text-[14px]">
-              Keep Responding
+          <div className="flex gap-[12px] max-sm:flex-col pt-[24px] mt-[24px] border-t border-black/10">
+            <Button href="/dashboard/the-wall" className="flex-1 py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase !bg-[#1C1917] !text-white rounded-xl shadow-none justify-center flex transition-all">
+               [ NEXT_NODE ]
             </Button>
             <Button
               href="/dashboard/my-responses"
               variant="outline"
-              className="px-[24px] py-[12px] text-[14px]"
+              className="flex-1 py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase border-black/10 hover:bg-black/5 justify-center flex transition-all text-[#1C1917]"
             >
-              View My Responses
+              [ VIEW_LOGS ]
             </Button>
           </div>
         )}

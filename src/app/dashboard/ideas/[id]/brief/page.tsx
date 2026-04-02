@@ -10,6 +10,11 @@ import type { ConsistencyReport } from "@/lib/ai/detect-consistency-gaps";
 import type { SegmentReport } from "@/lib/ai/segment-disagreements";
 import type { PriorRoundVerdicts } from "@/lib/ai/synthesize-brief";
 import sql from "@/lib/db";
+import { getSubscription } from "@/lib/plan-guard";
+import { DEFAULTS } from "@/lib/defaults";
+
+/** Minimum campaign funding to unlock the full Decision Brief (from defaults) */
+const BRIEF_FUNDING_GATE = DEFAULTS.BRIEF_FUNDING_GATE;
 
 /* ─── Verdict colors ─── */
 
@@ -64,7 +69,7 @@ export default async function BriefPage({
   /* Fetch campaign */
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, title, description, key_assumptions, creator_id, current_responses, status")
+    .select("id, title, description, key_assumptions, creator_id, current_responses, status, reward_amount")
     .eq("id", id)
     .eq("creator_id", user.id)
     .single();
@@ -110,6 +115,80 @@ export default async function BriefPage({
           >
             View campaign
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  /* Brief gating: full brief requires $10+ funding or a paid plan */
+  const rewardAmount = Number(campaign.reward_amount) || 0;
+  const sub = await getSubscription(user.id);
+  const hasBriefAccess = rewardAmount >= BRIEF_FUNDING_GATE || sub.tier !== "free";
+
+  if (!hasBriefAccess) {
+    return (
+      <div className="max-w-[720px] mx-auto px-4 py-12">
+        <Link
+          href={`/dashboard/ideas/${id}`}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#64748B] hover:text-[#111111] transition-colors mb-8"
+        >
+          <svg width="16" height="16" fill="none" viewBox="0 0 16 16">
+            <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back to campaign
+        </Link>
+
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-[32px]">
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E5654E]/10">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4" stroke="#E5654E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="12" r="10" stroke="#E5654E" strokeWidth="2" />
+              </svg>
+            </div>
+            <h2 className="text-[18px] font-semibold text-[#111111] mb-2">
+              Your responses are in
+            </h2>
+            <p className="text-[14px] text-[#64748B] max-w-[440px] mx-auto leading-relaxed">
+              You have {count} response{count === 1 ? "" : "s"} ready. To unlock the full Decision Brief with
+              assumption verdicts, evidence synthesis, and next steps, fund your campaign with at least ${BRIEF_FUNDING_GATE}.
+            </p>
+          </div>
+
+          {/* Preview: show assumption list without verdicts */}
+          {campaign.key_assumptions && campaign.key_assumptions.length > 0 && (
+            <div className="border-t border-[#E2E8F0] pt-6 mt-6">
+              <h3 className="text-[14px] font-semibold text-[#111111] mb-3">
+                Assumptions to be tested
+              </h3>
+              <ul className="space-y-2">
+                {campaign.key_assumptions.map((a: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-[14px] text-[#64748B]">
+                    <span className="text-[#94A3B8] mt-0.5 shrink-0">{i + 1}.</span>
+                    <span>{a}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[12px] text-[#94A3B8] mt-4">
+                Verdicts, evidence, and recommendations are available in the full brief.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-8">
+            <Link
+              href={`/dashboard/ideas/${id}`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#111111] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] transition-all duration-200"
+            >
+              Fund campaign
+            </Link>
+            <Link
+              href={`/dashboard/ideas/${id}/responses`}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-5 py-2.5 text-[14px] font-medium text-[#64748B] hover:text-[#111111] hover:border-[#CBD5E1] transition-all duration-200"
+            >
+              View raw responses
+            </Link>
+          </div>
         </div>
       </div>
     );

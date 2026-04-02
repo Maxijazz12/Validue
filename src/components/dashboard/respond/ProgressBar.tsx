@@ -8,10 +8,10 @@ type ProgressBarProps = {
 };
 
 function getEncouragement(index: number, total: number): string {
-  if (index === 0) return "Great start — take your time";
-  if (index === total - 1) return "Final question — make it count";
-  if (index === total - 2) return "Almost there!";
-  return "You're on a roll";
+  if (index === 0) return "[ INITIALIZING_SURVEY ]";
+  if (index === total - 1) return "[ LAST_QUESTION ]";
+  if (index === total - 2) return "[ ALMOST_THERE ]";
+  return "[ AWAITING_INPUT ]";
 }
 
 function formatTime(ms: number): string {
@@ -30,53 +30,44 @@ export default function ProgressBar({
   return (
     <div className="mb-[24px]">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-[12px]">
+      <div className="flex items-center justify-between mb-[16px]">
         <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-semibold text-[#111111]">
-            Question {currentIndex + 1} of {total}
+          <span className="font-mono text-[11px] font-bold tracking-widest uppercase text-[#1C1917]">
+            [ NODE_{currentIndex + 1} / {total} ]
           </span>
           {questionLabel && (
-            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#F3F4F6] text-[#555555]">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[1px] px-[8px] py-[3px] rounded-md border border-black/10 bg-black/5 text-[#A8A29E]">
               {questionLabel}
             </span>
           )}
         </div>
         {elapsedMs > 0 && (
-          <span className="text-[12px] text-[#94A3B8] font-mono">
-            {formatTime(elapsedMs)} so far
+          <span className="text-[10px] text-[#A8A29E] font-mono tracking-widest uppercase">
+            {formatTime(elapsedMs)} ELAPSED
           </span>
         )}
       </div>
 
       {/* Step dots */}
-      <div className="flex items-center gap-[4px]">
+      <div className="flex items-center gap-[4px] opacity-80">
         {Array.from({ length: total }, (_, i) => (
           <div key={i} className="flex items-center flex-1">
-            {/* Dot */}
+            {/* Dot / Box indicator */}
             <div
-              className={`w-[10px] h-[10px] rounded-full shrink-0 transition-all duration-400 ${
+              className={`h-[4px] flex-1 rounded-sm transition-all duration-400 ${
                 i < currentIndex
-                  ? "bg-[#34D399]"
+                  ? "bg-[#A8A29E]"
                   : i === currentIndex
-                    ? "bg-[#E5654E] step-current"
-                    : "bg-[#E2E8F0]"
+                    ? "bg-[#1C1917] animate-pulse"
+                    : "bg-black/5"
               }`}
             />
-            {/* Connecting line (except after last dot) */}
-            {i < total - 1 && (
-              <div
-                className="flex-1 h-[2px] mx-[2px] rounded-full transition-all duration-400"
-                style={{
-                  background: i < currentIndex ? "#34D399" : "#F1F5F9",
-                }}
-              />
-            )}
           </div>
         ))}
       </div>
 
-      {/* Encouragement microcopy */}
-      <p className="text-[12px] text-[#94A3B8] mt-[8px] italic">
+      {/* System state microcopy */}
+      <p className="font-mono text-[9px] font-bold text-[#A8A29E] mt-[12px] uppercase tracking-widest">
         {getEncouragement(currentIndex, total)}
       </p>
     </div>

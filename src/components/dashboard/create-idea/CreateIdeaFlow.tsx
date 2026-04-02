@@ -1,16 +1,33 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { CampaignDraft } from "@/lib/ai/types";
-import { generateCampaignDraft } from "@/lib/ai/generate-campaign";
 import { publishCampaign, saveDraft } from "@/app/dashboard/ideas/new/actions";
 import { createFundingSession } from "@/app/dashboard/ideas/new/payment-actions";
+import {
+  getUserTier,
+  fetchReciprocalAssignments,
+  type ReciprocalAssignment,
+} from "@/app/dashboard/ideas/new/reciprocal-actions";
 import ScribbleStep from "./ScribbleStep";
 import GeneratingStep from "./GeneratingStep";
 import DraftReviewStep from "./DraftReviewStep";
 
 type Step = "scribble" | "generating" | "review";
+
+function DebugPanel({ status }: { status: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="fixed bottom-4 left-4 bg-black text-green-400 font-mono text-[11px] px-3 py-2 rounded-lg z-50 opacity-80">
+      [{elapsed}s] {status}
+    </div>
+  );
+}
 
 const AUTOSAVE_KEY = "vldta-draft-autosave";
 
@@ -26,7 +43,7 @@ function loadAutosave(): { step: Step; scribbleText: string; draft: CampaignDraf
 
 function saveAutosave(step: Step, scribbleText: string, draft: CampaignDraft | null) {
   try {
-    if (step === "generating") return; // don't save transient state
+    if (step === "generating") return;
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ step, scribbleText, draft, savedAt: Date.now() }));
   } catch { /* quota exceeded — ignore */ }
 }
@@ -43,17 +60,30 @@ export default function CreateIdeaFlow() {
   const [draft, setDraft] = useState<CampaignDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const pendingText = useRef<string | null>(null);
 
-  const noop = useCallback(() => () => {}, []);
-  const hasAutosave = useSyncExternalStore(
-    noop,
-    () => {
-      const saved = loadAutosave();
-      return !!(saved && (saved.draft || saved.scribbleText));
-    },
-    () => false,
-  );
+  // Tier + reciprocal gate state
+  const [isFree, setIsFree] = useState(false);
+  const [assignments, setAssignments] = useState<ReciprocalAssignment[] | null>(null);
+  const [gatePreCleared, setGatePreCleared] = useState(false);
+  const [coldStart, setColdStart] = useState(false);
+
+  // Dual-readiness: track both AI completion and reciprocal completion
+  const aiDraftRef = useRef<CampaignDraft | null>(null);
+  const aiReadyRef = useRef(false);
+  const reciprocalReadyRef = useRef(false);
+
+  // Fetch tier on mount
+  useEffect(() => {
+    getUserTier().then((tier) => {
+      setIsFree(tier === "free");
+    });
+  }, []);
+
+  const [hasAutosave] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = loadAutosave();
+    return !!(saved && (saved.draft || saved.scribbleText));
+  });
   const showRestore = hasAutosave && !dismissed;
 
   function handleRestore() {
@@ -70,37 +100,111 @@ export default function CreateIdeaFlow() {
     setDismissed(true);
   }
 
-  // Auto-save on every meaningful state change
   useEffect(() => {
-    if (showRestore) return; // don't overwrite saved state before user decides
+    if (showRestore) return;
     saveAutosave(step, scribbleText, draft);
   }, [step, scribbleText, draft, showRestore, dismissed]);
+
+  const [debugStatus, setDebugStatus] = useState("idle");
+
+  /** Try to transition to review — only succeeds when both AI and reciprocal are ready */
+  const tryTransition = useCallback(() => {
+    if (!aiReadyRef.current) return;
+    if (isFree && !reciprocalReadyRef.current) return;
+    const d = aiDraftRef.current;
+    if (!d) return;
+    setDraft(d);
+    setStep("review");
+  }, [isFree]);
 
   const handleScribbleSubmit = useCallback((text: string) => {
     setScribbleText(text);
     setError(null);
-    pendingText.current = text;
     setStep("generating");
-  }, []);
+    setDebugStatus("starting...");
 
-  // Start AI generation when entering generating step
-  useEffect(() => {
-    if (step !== "generating" || !pendingText.current) return;
-    const text = pendingText.current;
-    pendingText.current = null;
+    // Reset readiness flags
+    aiReadyRef.current = false;
+    reciprocalReadyRef.current = !isFree; // paid tier is immediately ready
+    aiDraftRef.current = null;
+    setAssignments(null);
+    setGatePreCleared(false);
+    setColdStart(false);
 
-    generateCampaignDraft(text)
-      .then((result) => {
-        setDraft(result);
-        setStep("review");
+    // If free tier, fetch reciprocal assignments in parallel with AI generation
+    if (isFree) {
+      fetchReciprocalAssignments().then((a) => {
+        if (a.length === 0) {
+          // No campaigns to answer — cold-start exemption
+          reciprocalReadyRef.current = true;
+          setColdStart(true);
+          setAssignments(null); // null = show paid UI (skeleton)
+          tryTransition();
+        } else {
+          setAssignments(a);
+        }
+      });
+    }
+
+    // AI generation
+    fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scribbleText: text }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        // Fast path: fallback returned inline
+        if (data.status === "done" && data.draft) {
+          setDebugStatus(`done-${data.draft.questions?.length}q`);
+          aiDraftRef.current = data.draft;
+          aiReadyRef.current = true;
+          tryTransition();
+          return;
+        }
+        if (data.error) throw new Error(data.error);
+        if (!data.jobId) throw new Error("No jobId returned");
+
+        setDebugStatus("polling...");
+
+        const poll = setInterval(() => {
+          fetch(`/api/generate?jobId=${data.jobId}`)
+            .then((r) => r.json())
+            .then((job) => {
+              if (job.status === "pending") {
+                setDebugStatus("polling...");
+                return;
+              }
+              clearInterval(poll);
+              if (job.status === "error") throw new Error(job.error);
+              setDebugStatus(`done-${job.draft?.questions?.length}q`);
+              aiDraftRef.current = job.draft;
+              aiReadyRef.current = true;
+              tryTransition();
+            })
+            .catch((err) => {
+              clearInterval(poll);
+              setDebugStatus(`ERR: ${err instanceof Error ? err.message : String(err)}`);
+              setError("We couldn't generate your campaign this time. Your idea is saved — try again?");
+              setStep("scribble");
+            });
+        }, 2000);
       })
-      .catch(() => {
+      .catch((err) => {
+        setDebugStatus(`ERR: ${err instanceof Error ? err.message : String(err)}`);
         setError(
           "We couldn't generate your campaign this time. Your idea is saved — try again?"
         );
         setStep("scribble");
       });
-  }, [step]);
+  }, [isFree, tryTransition]);
+
+  /** Called by GeneratingStep when all reciprocal questions are answered */
+  const handleReciprocalComplete = useCallback(() => {
+    reciprocalReadyRef.current = true;
+    setGatePreCleared(true);
+    tryTransition();
+  }, [tryTransition]);
 
   const handleBack = useCallback(() => {
     setStep("scribble");
@@ -137,7 +241,7 @@ export default function CreateIdeaFlow() {
     setError(null);
 
     try {
-      const result = await publishCampaign(draft);
+      const result = await publishCampaign(draft, { gatePreCleared, coldStart });
       if ("error" in result) {
         setError(result.error);
         setIsPublishing(false);
@@ -146,8 +250,8 @@ export default function CreateIdeaFlow() {
 
       clearAutosave();
 
-      // Reciprocal gate pending — redirect to campaign page (shows gate progress)
-      if (result.gatePending) {
+      // Gate pending and NOT pre-cleared — redirect to campaign page (shows gate progress)
+      if (result.gatePending && !gatePreCleared) {
         window.location.href = `/dashboard/ideas/${result.id}`;
         return;
       }
@@ -162,7 +266,6 @@ export default function CreateIdeaFlow() {
         }
         window.location.href = funding.url;
       } else {
-        // No reward pool — show the campaign detail page so founder sees metrics
         window.location.href = `/dashboard/ideas/${result.id}`;
       }
     } catch (err) {
@@ -170,7 +273,7 @@ export default function CreateIdeaFlow() {
       setError(`Failed to publish: ${message}`);
       setIsPublishing(false);
     }
-  }, [draft]);
+  }, [draft, gatePreCleared, coldStart]);
 
   return (
     <div>
@@ -218,7 +321,17 @@ export default function CreateIdeaFlow() {
         />
       )}
 
-      {step === "generating" && <GeneratingStep />}
+      {step === "generating" && (
+        <>
+          <GeneratingStep
+            assignments={assignments}
+            onReciprocalComplete={handleReciprocalComplete}
+          />
+          {process.env.NODE_ENV === "development" && (
+            <DebugPanel status={debugStatus} />
+          )}
+        </>
+      )}
 
       {step === "review" && draft && (
         <DraftReviewStep

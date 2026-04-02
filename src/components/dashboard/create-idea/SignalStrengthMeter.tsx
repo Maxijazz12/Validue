@@ -16,20 +16,22 @@ function DimensionBar({
   score: number;
 }) {
   let color: string;
-  if (score >= 70) color = "#22c55e";
+  if (score >= 70) color = "#2ca05a";
   else if (score >= 40) color = "#E5654E";
   else color = "#ef4444";
 
   return (
-    <div className="flex items-center gap-[8px]">
-      <span className="text-[11px] text-[#64748B] w-[90px] shrink-0">{label}</span>
-      <div className="flex-1 h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
+    <div className="flex items-center gap-[12px]">
+      <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E] w-[90px] shrink-0">
+        {"// "}{label}
+      </span>
+      <div className="flex-1 h-[2px] bg-black/5 overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500 ease-out"
+          className="h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)]"
           style={{ width: `${score}%`, background: color }}
         />
       </div>
-      <span className="text-[10px] font-semibold w-[24px] text-right" style={{ color }}>
+      <span className="font-mono text-[10px] font-bold w-[24px] text-right" style={{ color }}>
         {score}
       </span>
     </div>
@@ -49,29 +51,35 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
   const hiddenCount = (allWarnings.length - warnings.length) + (allInfos.length - infos.length);
 
   return (
-    <div className="bg-white border border-[#E5654E]/30 rounded-xl p-[20px]">
-      <h3 className="text-[14px] font-semibold text-[#111111] mb-[16px]">
-        Survey Strength
+    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[24px] relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-[24px] pointer-events-none opacity-10">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      </div>
+
+      <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917] mb-[20px]">
+        [ SIGNAL STRENGTH ]
       </h3>
 
       {/* Overall score bar */}
-      <div className="mb-[16px]">
-        <div className="flex items-center justify-between mb-[6px]">
-          <span className="text-[12px] text-[#64748B]">Overall</span>
+      <div className="mb-[24px]">
+        <div className="flex items-center justify-between mb-[8px]">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">ESTIMATED INTEGRITY</span>
           <div className="flex items-center gap-[6px]">
             <span
-              className="w-[6px] h-[6px] rounded-full"
-              style={{ background: result.color }}
+               className="w-[6px] h-[6px] rounded-full animate-pulse"
+               style={{ background: result.color, boxShadow: `0 0 8px ${result.color}` }}
             />
             <span
-              className="text-[13px] font-semibold"
+              className="font-mono text-[11px] font-bold tracking-widest uppercase"
               style={{ color: result.color }}
             >
               {result.score}/100 — {result.label}
             </span>
           </div>
         </div>
-        <div className="h-[6px] rounded-full bg-[#F3F4F6] overflow-hidden">
+        <div className="h-[2px] bg-black/5 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{
@@ -96,37 +104,37 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       )}
 
       {/* Quick stats */}
-      <div className="grid grid-cols-2 gap-[8px] mb-[16px]">
-        <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#64748B]">Questions</span>
-          <span className="text-[11px] font-semibold text-[#111111]">
+      <div className="grid grid-cols-2 gap-[12px] mb-[20px]">
+        <div className="flex flex-col gap-[2px]">
+          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}ACTIVE NODES</span>
+          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
             {draft.questions.length}
           </span>
         </div>
-        <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#64748B]">Assumptions</span>
-          <span className="text-[11px] font-semibold text-[#111111]">
+        <div className="flex flex-col gap-[2px]">
+          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}ASSUMPTIONS</span>
+          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
             {draft.assumptions.length}
           </span>
         </div>
-        <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#64748B]">Open-ended</span>
-          <span className="text-[11px] font-semibold text-[#111111]">
+        <div className="flex flex-col gap-[2px]">
+          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}OPEN PROBES</span>
+          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
             {draft.questions.filter((q) => q.type === "open").length}
           </span>
         </div>
-        <div className="flex items-center gap-[6px]">
-          <span className="text-[11px] text-[#64748B]">Quant</span>
-          <span className="text-[11px] font-semibold text-[#111111]">
+        <div className="flex flex-col gap-[2px]">
+          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}QUANT METRICS</span>
+          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
             {draft.questions.filter((q) => q.type === "multiple_choice").length}
           </span>
         </div>
       </div>
 
       {/* Coaching tips */}
-      <div className="border-t border-[#E2E8F0] pt-[14px] flex flex-col gap-[8px]">
-        <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8]">
-          Coaching
+      <div className="border-t border-black/5 pt-[20px] flex flex-col gap-[12px]">
+        <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+          [ LOG_OUTPUT ]
         </span>
 
         {warnings.map((tip, i) => (

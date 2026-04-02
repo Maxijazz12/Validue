@@ -60,7 +60,11 @@ export default async function DashboardLayout({
 
   return (
     <ImmersiveProvider>
-      <div className="min-h-screen bg-white dark:bg-[#0F0F11] immersive-shell">
+      <div className="min-h-screen bg-white dark:bg-[#0F0F11] immersive-shell relative overflow-hidden">
+        {/* Global Ambient Background Orbs */}
+        <div className="fixed top-[10%] left-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-br from-[#E8C1B0]/15 to-transparent blur-[120px] pointer-events-none z-0" />
+        <div className="fixed bottom-[15%] right-[-5%] w-[45%] h-[40%] rounded-full bg-gradient-to-tl from-[#2ca05a]/10 to-transparent blur-[120px] pointer-events-none z-0" />
+        
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-[8px] focus:left-[8px] focus:px-[16px] focus:py-[8px] focus:bg-[#1A1A1A] focus:text-white focus:rounded-lg focus:text-[14px] focus:font-medium">
           Skip to main content
         </a>

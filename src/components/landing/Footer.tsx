@@ -2,39 +2,39 @@ import Image from "next/image";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-[#3D3830]/60 py-[48px] flex justify-between items-start max-md:flex-col max-md:items-center max-md:gap-[32px] max-md:text-center">
+    <footer className="border-t border-white/5 py-[48px] flex justify-between items-start max-md:flex-col max-md:items-center max-md:gap-[32px] max-md:text-center mt-[48px]">
       {/* Left: Brand */}
       <div>
-        <div className="flex items-center gap-[8px] max-md:justify-center">
+        <div className="flex items-center gap-[12px] max-md:justify-center">
           <Image src="/logo-icon.svg" alt="" width={18} height={18} className="brightness-0 invert" />
-          <span className="text-[16px] text-white font-semibold">
-            Validue
+          <span className="font-mono text-[14px] text-white font-bold tracking-[2px] uppercase">
+            VALIDUE
           </span>
         </div>
-        <p className="text-[13px] text-[#78716C] mt-[8px]">
-          Where ideas meet their audience.
+        <p className="font-mono text-[10px] text-[#78716C] mt-[16px] uppercase tracking-widest">
+          {"// "}SYS.INTEGRITY.VERIFIED
         </p>
-        <p className="text-[12px] text-[#57534E] mt-[12px]">
-          &copy; 2026 Validue
+        <p className="font-mono text-[9px] text-white/20 mt-[12px] uppercase">
+          &copy; 2026 VALIDUE_INC
         </p>
       </div>
 
       {/* Right: Link groups */}
       <div className="flex gap-[64px] max-md:gap-[40px]">
         <div>
-          <div className="text-[11px] text-[#78716C] uppercase tracking-[0.08em] font-medium mb-[12px]">
-            Product
+          <div className="font-mono text-[9px] text-[#78716C] uppercase tracking-widest font-bold mb-[16px]">
+            [ REGISTRY_NODES ]
           </div>
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[12px]">
             {[
-              { label: "The Wall", href: "/dashboard/the-wall" },
-              { label: "Pricing", href: "#pricing" },
-              { label: "Earn Money", href: "#respond" },
+              { label: "INDEX_NETWORK", href: "/dashboard/the-wall" },
+              { label: "ALLOCATION_MATRIX", href: "#pricing" },
+              { label: "EARN_YIELD", href: "#respond" },
             ].map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="text-[14px] text-[#A8A29E] no-underline hover:text-white transition-colors"
+                className="font-mono text-[11px] text-[#A8A29E] no-underline hover:text-white transition-colors"
               >
                 {link.label}
               </a>
@@ -42,20 +42,20 @@ export default function Footer() {
           </div>
         </div>
         <div>
-          <div className="text-[11px] text-[#78716C] uppercase tracking-[0.08em] font-medium mb-[12px]">
-            Company
+          <div className="font-mono text-[9px] text-[#78716C] uppercase tracking-widest font-bold mb-[16px]">
+            [ ROOT_SYS ]
           </div>
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[12px]">
             {[
-              { label: "Terms", href: "#" },
-              { label: "Privacy", href: "#" },
-              { label: "Twitter", href: "#" },
-              { label: "Discord", href: "#" },
+              { label: "PROTOCOL_TERMS", href: "#" },
+              { label: "DATA_PRIVACY", href: "#" },
+              { label: "X_STREAM", href: "#" },
+              { label: "DISCORD_RELAY", href: "#" },
             ].map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="text-[14px] text-[#A8A29E] no-underline hover:text-white transition-colors"
+                className="font-mono text-[11px] text-[#A8A29E] no-underline hover:text-white transition-colors"
               >
                 {link.label}
               </a>

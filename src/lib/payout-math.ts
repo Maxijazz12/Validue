@@ -13,132 +13,8 @@ export type ScoredResponse = {
   confidence: number;
 };
 
-export type PayoutAllocation = {
-  responseId: string;
-  respondentId: string;
-  respondentName: string;
-  qualityScore: number;
-  suggestedAmount: number;
-  weight: number;
-};
-
-/**
- * Computes payout weight from a quality score.
- * Power-law with threshold at 25 — scores ≤ 25 get zero weight.
- */
-export function payoutWeight(qualityScore: number): number {
-  const shifted = Math.max(qualityScore - 25, 0);
-  return Math.pow(shifted, 1.5);
-}
-
-/**
- * Distributes a pool across scored responses using weighted power-law allocation.
- *
- * - High-confidence responses get weighted allocation
- * - Low-confidence responses get equal share from a reserved pool
- * - Zero-weight fallback: equal split when all weights are 0
- * - Sub-minimum redistribution: amounts < MIN_PAYOUT redistributed to above-minimum
- * - Remainder reconciliation: adjusts top earner so sum === distributable exactly
- */
-export function distributePayouts(
-  responses: ScoredResponse[],
-  distributable: number
-): PayoutAllocation[] {
-  if (responses.length === 0 || distributable <= 0) return [];
-
-  // Separate high-confidence (weighted) and low-confidence (equal share)
-  const highConf = responses.filter(
-    (r) => r.confidence >= DEFAULTS.PAYOUT_CONFIDENCE_THRESHOLD
-  );
-  const lowConf = responses.filter(
-    (r) => r.confidence < DEFAULTS.PAYOUT_CONFIDENCE_THRESHOLD
-  );
-
-  // Reserve proportional share for low-confidence responses
-  const lowConfShare =
-    lowConf.length > 0
-      ? (lowConf.length / responses.length) * distributable
-      : 0;
-  const highConfPool = distributable - lowConfShare;
-
-  let allocations: PayoutAllocation[] = [];
-
-  // High-confidence weighted allocation
-  if (highConf.length > 0) {
-    const scored = highConf.map((r) => ({
-      ...r,
-      weight: payoutWeight(r.qualityScore),
-    }));
-
-    const totalWeight = scored.reduce((sum, r) => sum + r.weight, 0);
-
-    if (totalWeight === 0) {
-      // Zero-weight fallback: equal distribution
-      const equalShare = Math.round((highConfPool / scored.length) * 100) / 100;
-      allocations = scored.map((r) => ({
-        ...r,
-        suggestedAmount: equalShare,
-      }));
-    } else {
-      // Proportional allocation
-      const initial: PayoutAllocation[] = scored.map((r) => ({
-        ...r,
-        suggestedAmount:
-          Math.round(((r.weight / totalWeight) * highConfPool) * 100) / 100,
-      }));
-
-      // Sub-minimum redistribution
-      const aboveMin = initial.filter(
-        (s) => s.suggestedAmount >= DEFAULTS.MIN_PAYOUT
-      );
-      const belowMinTotal = initial
-        .filter((s) => s.suggestedAmount < DEFAULTS.MIN_PAYOUT)
-        .reduce((sum, s) => sum + s.suggestedAmount, 0);
-
-      allocations = aboveMin;
-
-      if (belowMinTotal > 0 && allocations.length > 0) {
-        const remainingWeight = allocations.reduce((s, r) => s + r.weight, 0);
-        if (remainingWeight > 0) {
-          for (const s of allocations) {
-            s.suggestedAmount += (s.weight / remainingWeight) * belowMinTotal;
-            s.suggestedAmount = Math.round(s.suggestedAmount * 100) / 100;
-          }
-        }
-      }
-    }
-  }
-
-  // Low-confidence equal share
-  if (lowConf.length > 0) {
-    const equalLowShare =
-      Math.round((lowConfShare / lowConf.length) * 100) / 100;
-    for (const r of lowConf) {
-      allocations.push({
-        ...r,
-        suggestedAmount: equalLowShare,
-        weight: 0,
-      });
-    }
-  }
-
-  // Remainder reconciliation: ensure sum === distributable to the cent
-  const totalAllocated = allocations.reduce(
-    (s, a) => s + a.suggestedAmount,
-    0
-  );
-  const remainder = Math.round((distributable - totalAllocated) * 100) / 100;
-  if (allocations.length > 0 && remainder !== 0) {
-    allocations.sort((a, b) => b.suggestedAmount - a.suggestedAmount);
-    allocations[0].suggestedAmount =
-      Math.round((allocations[0].suggestedAmount + remainder) * 100) / 100;
-  }
-
-  return allocations;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
- * V2 Economics — base + bonus model
+ * V2 Economics — flat qualified payout model
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 export type CampaignFormat = "quick" | "standard";
@@ -168,14 +44,6 @@ export type PayoutAllocationV2 = {
   suggestedAmount: number;
   weight: number;
 };
-
-/**
- * V2 bonus weight — linear, starting at BONUS_MIN_SCORE.
- * Every point above the threshold earns proportionally more bonus.
- */
-export function bonusWeightV2(qualityScore: number): number {
-  return Math.max(qualityScore - DEFAULTS.BONUS_MIN_SCORE, 0);
-}
 
 /**
  * Determines whether a response qualifies for base pay.
@@ -241,13 +109,17 @@ export function defaultTargetResponses(
 }
 
 /**
- * V2 payout distribution — base + bonus model.
+ * V2 payout distribution — flat qualified model.
  *
  * 1. Separate qualified vs disqualified responses
- * 2. Base pool (60%) split equally among qualified
- * 3. Bonus pool (40%) split proportionally by bonusWeightV2 among score >= 50
- * 4. If no bonus earners, fold bonus pool into base pool
- * 5. Remainder reconciliation to the cent
+ * 2. Full distributable pool split equally among qualified
+ * 3. Disqualified responses get $0 (their share stays in pool)
+ * 4. Remainder reconciliation to the cent
+ *
+ * Bonus pool removed — at current price points ($0.45–0.60/response),
+ * the bonus delta doesn't motivate behavior. Qualification gates do
+ * the anti-spam work. Reintroduce quality-weighted payouts when avg
+ * campaign funding crosses $50+.
  *
  * For subsidized campaigns, use distributeSubsidizedPayouts instead.
  */
@@ -285,49 +157,22 @@ export function distributePayoutsV2(
     }));
   }
 
-  // Compute bonus weights for qualified responses
-  const withWeights = qualified.map((r) => ({
-    ...r,
-    weight: bonusWeightV2(r.qualityScore),
-  }));
-  const totalBonusWeight = withWeights.reduce((sum, r) => sum + r.weight, 0);
-
-  // Determine pool split
-  let basePool: number;
-  let bonusPool: number;
-
-  if (totalBonusWeight === 0) {
-    // No bonus earners — fold everything into base
-    basePool = distributable;
-    bonusPool = 0;
-  } else {
-    basePool = distributable * DEFAULTS.BASE_POOL_RATIO;
-    bonusPool = distributable * DEFAULTS.BONUS_POOL_RATIO;
-  }
-
-  // Base pay: equal among qualified
-  const rawBasePay = basePool / qualified.length;
-  const basePay = Math.round(rawBasePay * 100) / 100;
+  // Flat equal payout among qualified
+  const flatPay = Math.round((distributable / qualified.length) * 100) / 100;
 
   // Build allocations for qualified responses
-  const allocations: PayoutAllocationV2[] = withWeights.map((r) => {
-    const bonus =
-      totalBonusWeight > 0
-        ? Math.round(((r.weight / totalBonusWeight) * bonusPool) * 100) / 100
-        : 0;
-    return {
-      responseId: r.responseId,
-      respondentId: r.respondentId,
-      respondentName: r.respondentName,
-      qualityScore: r.qualityScore,
-      qualified: true,
-      disqualificationReasons: [],
-      basePayout: basePay,
-      bonusPayout: bonus,
-      suggestedAmount: Math.round((basePay + bonus) * 100) / 100,
-      weight: r.weight,
-    };
-  });
+  const allocations: PayoutAllocationV2[] = qualified.map((r) => ({
+    responseId: r.responseId,
+    respondentId: r.respondentId,
+    respondentName: r.respondentName,
+    qualityScore: r.qualityScore,
+    qualified: true,
+    disqualificationReasons: [],
+    basePayout: flatPay,
+    bonusPayout: 0,
+    suggestedAmount: flatPay,
+    weight: 0,
+  }));
 
   // Add disqualified responses
   for (const r of disqualified) {
@@ -356,7 +201,7 @@ export function distributePayoutsV2(
     qualifiedAllocations.sort((a, b) => b.suggestedAmount - a.suggestedAmount);
     const top = qualifiedAllocations[0];
     top.basePayout = Math.round((top.basePayout + remainder) * 100) / 100;
-    top.suggestedAmount = Math.round((top.basePayout + top.bonusPayout) * 100) / 100;
+    top.suggestedAmount = top.basePayout;
   }
 
   return allocations;

@@ -30,44 +30,44 @@ export default function DidYouKnow() {
 
   return (
     <section className="text-center relative">
-      <div className="text-[12px] tracking-[0.06em] uppercase font-medium mb-[48px]">
-        <span className="text-[#A8A29E]">{"// "}</span><span className="text-gradient-warm">While You Wait</span>
+      <div className="font-mono text-[10px] font-bold tracking-widest uppercase mb-[48px]">
+        <span className="text-[#A8A29E]">{"// "}</span><span className="text-[#E5654E]">DID YOU KNOW?</span>
       </div>
-      <div className="max-w-[600px] mx-auto p-[48px_40px] bg-white shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] border border-[#EDE8E3] rounded-2xl relative overflow-hidden">
-        <div className="text-[12px] tracking-[0.06em] uppercase mb-[8px] font-medium text-[#A8A29E]">
-          Did You Know?
+      <div className="max-w-[600px] mx-auto p-[48px_40px] bg-white/80 backdrop-blur-3xl shadow-[0_4px_24px_rgba(229,101,78,0.06),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/80 rounded-[24px] relative overflow-hidden group hover:shadow-[0_16px_48px_rgba(229,101,78,0.1),inset_0_1px_0_rgba(255,255,255,1)] transition-all duration-500">
+        <div className="font-mono text-[10px] font-bold tracking-widest uppercase mb-[16px] text-[#A8A29E]">
+          [ STARTUP LORE ]
         </div>
 
         <div className="flex gap-[4px] justify-center mb-[28px]">
-          <span className="w-[5px] h-[5px] bg-[#D4A088]/40 rounded-full animate-[loadDot_1.4s_ease_infinite]" />
-          <span className="w-[5px] h-[5px] bg-[#D4A088]/40 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
-          <span className="w-[5px] h-[5px] bg-[#D4A088]/40 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
+          <span className="w-[4px] h-[4px] bg-[#1C1917] rounded-full animate-[loadDot_1.4s_ease_infinite]" />
+          <span className="w-[4px] h-[4px] bg-[#1C1917]/60 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
+          <span className="w-[4px] h-[4px] bg-[#1C1917]/30 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
         </div>
 
         <div
-          className={`text-[17px] leading-[1.7] text-[#1C1917] min-h-[54px] transition-opacity duration-400 ${
+          className={`font-mono text-[13px] leading-[1.8] text-[#1C1917] font-medium min-h-[54px] transition-opacity duration-400 ${
             fading ? "opacity-0" : "opacity-100"
           }`}
         >
-          {quote.text}
+          &gt; {quote.text}
         </div>
         <div
-          className={`text-[12px] text-[#A8A29E] mt-[16px] tracking-[0.5px] transition-opacity duration-400 ${
+          className={`font-mono text-[10px] text-[#A8A29E] mt-[16px] uppercase tracking-widest transition-opacity duration-400 ${
             fading ? "opacity-0" : "opacity-100"
           }`}
         >
-          {quote.source}
+          {"// "}{quote.source}
         </div>
 
         <button
           onClick={showNext}
-          className="mt-[24px] bg-transparent border border-[#EDE8E3] text-[#A8A29E] text-[12px] px-[20px] py-[8px] rounded-xl cursor-pointer tracking-[0.5px] transition-all duration-200 hover:border-[#DDD6CE] hover:text-[#1C1917] font-medium"
+          className="mt-[32px] bg-transparent border border-black/10 text-[#1C1917] font-mono font-bold uppercase tracking-[1px] text-[10px] px-[20px] py-[8px] rounded-full cursor-pointer transition-all duration-300 hover:border-[#1C1917] hover:bg-black/5"
         >
-          Next fact
+          [ NEXT FACT ]
         </button>
       </div>
-      <p className="text-[14px] text-[#A8A29E] mt-[24px]">
-        Every great company started as an unproven idea. <span className="font-semibold">Validue</span> helps you prove yours.
+      <p className="font-mono text-[11px] uppercase tracking-widest text-[#A8A29E] mt-[32px]">
+        EVERY MAJOR PRODUCT STARTED AS AN UNPROVEN IDEA. <span className="text-[#1C1917] font-bold">VALIDUE</span> CONFIRMS INTEGRITY.
       </p>
     </section>
   );

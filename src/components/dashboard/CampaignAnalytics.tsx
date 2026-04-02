@@ -118,10 +118,10 @@ export default function CampaignAnalytics({
 
   if (loading) {
     return (
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
+      <div className="bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] p-[32px]">
         <div className="flex items-center gap-[8px]">
-          <div className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-pulse" />
-          <span className="text-[13px] text-[#94A3B8]">Loading analytics...</span>
+          <div className="w-[5px] h-[5px] bg-[#1C1917]/50 rounded-full animate-pulse" />
+          <span className="font-mono text-[11px] text-[#A8A29E] uppercase tracking-widest">Loading telemetry...</span>
         </div>
       </div>
     );
@@ -132,12 +132,12 @@ export default function CampaignAnalytics({
   const hasScores = data.scoreDistribution.some((d) => d.count > 0);
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden">
+    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] overflow-hidden transition-all duration-400">
       {/* Header — always visible */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-[24px_32px] max-md:p-[20px] text-left cursor-pointer hover:bg-[#FCFCFD] transition-colors bg-transparent border-none"
+        className="w-full flex items-center justify-between p-[24px_32px] max-md:p-[20px] text-left cursor-pointer hover:bg-white/40 transition-colors bg-transparent border-none"
       >
         <div className="flex items-center gap-[10px]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -161,22 +161,22 @@ export default function CampaignAnalytics({
       </button>
 
       {expanded && (
-        <div className="border-t border-[#E2E8F0] p-[24px_32px] max-md:p-[20px]">
+        <div className="border-t border-white/40 p-[24px_32px] max-md:p-[20px]">
           {/* Quick stats */}
-          <div className="grid grid-cols-2 gap-[12px] mb-[24px]">
-            <div className="p-[12px] rounded-xl bg-[#F8FAFC]">
-              <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px]">
-                Avg time/answer
+          <div className="grid grid-cols-2 gap-[16px] mb-[32px]">
+            <div className="p-[20px] rounded-[16px] bg-white/40 border border-white/60 shadow-sm relative overflow-hidden">
+              <span className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest">
+                Avg time/rep
               </span>
-              <div className="font-mono text-[18px] font-bold text-[#111111] mt-[2px]">
+              <div className="font-mono text-[24px] font-bold text-[#1C1917] mt-[4px]">
                 {data.avgTimePerResponse > 0 ? `${data.avgTimePerResponse}s` : "—"}
               </div>
             </div>
-            <div className="p-[12px] rounded-xl bg-[#F8FAFC]">
-              <span className="text-[11px] text-[#94A3B8] uppercase tracking-[0.5px]">
-                Paste detected
+            <div className="p-[20px] rounded-[16px] bg-white/40 border border-white/60 shadow-sm relative overflow-hidden">
+              <span className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest">
+                Pattern matches
               </span>
-              <div className={`font-mono text-[18px] font-bold mt-[2px] ${data.totalPasteDetected > 0 ? "text-[#E5654E]" : "text-[#111111]"}`}>
+              <div className={`font-mono text-[24px] font-bold mt-[4px] ${data.totalPasteDetected > 0 ? "text-[#E5654E]" : "text-[#1C1917]"}`}>
                 {data.totalPasteDetected}
               </div>
             </div>

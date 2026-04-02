@@ -106,7 +106,7 @@ export async function canCreateCampaign(
   // Determine effective campaign limit
   const baseLimit = PLAN_CONFIG[sub.tier].campaignsPerMonth;
 
-  // Scale tier: unlimited campaigns
+  // Defensive: unlimited campaigns if campaignsPerMonth is null
   if (baseLimit === null) {
     return {
       allowed: true,

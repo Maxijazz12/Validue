@@ -271,10 +271,10 @@ export async function generateCampaignDraftFallback(
   const assumptions = generateAssumptions(scribbleText);
   const audience = inferAudience(scribbleText);
 
-  // Format-aware question counts
-  const openCount = format === "quick" ? 1 : 2;
-  const followupCount = 1;
-  const baselineCount = format === "quick" ? 1 : 2;
+  // Format-aware question counts — quick still needs enough for meaningful signal
+  const openCount = format === "quick" ? 3 : 4;
+  const followupCount = format === "quick" ? 1 : 2;
+  const baselineCount = format === "quick" ? 2 : 3;
 
   const assumptionCount = assumptions.length;
   const openQuestions = selectQuestions(OPEN_TEMPLATES, scribbleText, openCount, assumptionCount);

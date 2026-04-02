@@ -11,50 +11,50 @@ export default function Pricing() {
     <section id="pricing">
       <SectionHeader
         label="Pricing"
-        title="Pick your reach"
+        title="Scalable network access"
         subtitle="Your plan sets your baseline reach. Fund individual campaigns to go further. Higher plans get more from every dollar."
       />
-      <div className="grid grid-cols-4 gap-[12px] mt-[72px] max-lg:grid-cols-2 max-md:grid-cols-1">
+      <div className="grid grid-cols-3 gap-[16px] mt-[72px] max-lg:grid-cols-2 max-md:grid-cols-1">
         {pricingTiers.map((tier, i) => (
           <ScrollReveal key={tier.tier} animation="slide-up" staggerIndex={i}>
           <div
-            className={`group bg-white rounded-2xl p-[32px_24px] transition-all duration-250 relative ${
+            className={`group bg-white/60 backdrop-blur-3xl rounded-[24px] p-[32px_24px] transition-all duration-500 relative ${
               tier.featured
-                ? "border border-[#D4A088]/30 shadow-[0_4px_24px_rgba(212,160,136,0.14),0_2px_8px_rgba(212,160,136,0.08)]"
-                : "shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] border border-[#EDE8E3] hover:shadow-[0_8px_24px_rgba(180,140,110,0.12),0_2px_6px_rgba(212,160,136,0.06)] hover:border-[#DDD6CE] hover:-translate-y-[2px]"
+                ? "border border-black/10 shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)]"
+                : "shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px]"
             }`}
           >
             {tier.featured && (
-              <div className="absolute -top-[1px] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] tracking-[1.5px] uppercase text-white px-[14px] py-[4px] rounded-full font-semibold" style={{ background: 'linear-gradient(135deg, #C4856E, #D4A088)' }}>
-                Popular
+              <div className="absolute -top-[1px] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[9px] font-mono tracking-widest uppercase text-white bg-[#1C1917] px-[14px] py-[6px] rounded-full font-bold">
+                [ RECOMMENDED ]
               </div>
             )}
-            <div className="text-[14px] font-medium mb-[8px] text-[#78716C]">
+            <div className="font-mono text-[10px] tracking-widest uppercase font-bold mb-[8px] text-[#A8A29E]">
               {tier.tier}
             </div>
-            <div className="font-mono text-[40px] font-bold mb-[4px] text-[#1C1917]">
+            <div className="font-sans text-[48px] tracking-tight font-bold mb-[4px] text-[#1C1917] leading-none">
               {tier.price}
             </div>
-            <div className="text-[12px] text-[#A8A29E] mb-[8px]">
+            <div className="font-mono text-[10px] uppercase text-[#A8A29E] mb-[16px] tracking-widest">
               {tier.per}
             </div>
             {tier.efficiency && (
-              <div className={`inline-block text-[11px] font-semibold px-[8px] py-[3px] rounded-full mb-[20px] ${
+              <div className={`inline-block font-mono text-[9px] uppercase tracking-widest font-bold px-[10px] py-[4px] rounded-md mb-[24px] ${
                 tier.featured
-                  ? "bg-[#E8C1B0]/8 text-[#D4A494]"
-                  : "bg-[#F0EBE6] text-[#78716C]"
+                  ? "bg-[#E5654E]/10 text-[#E5654E]"
+                  : "bg-black/5 text-[#A8A29E]"
               }`}>
-                {tier.efficiency} funding power
+                {tier.efficiency} POWER MULTIPLIER
               </div>
             )}
             <ul className="flex flex-col gap-[12px] mb-[32px] list-none">
               {tier.features.map((feature) => (
                 <li
                   key={feature}
-                  className="text-[13px] text-[#78716C] flex items-center gap-[10px]"
+                  className="text-[13px] text-[#A8A29E] flex items-start gap-[10px]"
                 >
-                  <span className="w-[4px] h-[4px] rounded-full bg-[#D4A088]" />
-                  {feature}
+                  <span className="font-mono text-[10px] text-[#1C1917] mt-[2px] leading-none">[+]</span>
+                  <span className="leading-[1.5]">{feature}</span>
                 </li>
               ))}
             </ul>
@@ -70,10 +70,10 @@ export default function Pricing() {
 
       <PricingCalculator />
 
-      <div className="mt-[24px] p-[20px_24px] bg-white shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] border border-[#EDE8E3] rounded-2xl text-center">
-        <p className="text-[14px] text-[#78716C]">
-          <span className="font-semibold text-[#1C1917]">Your idea deserves a real audience.</span>{" "}
-          Every plan includes real respondents and ranked insights.
+      <div className="mt-[24px] p-[20px_24px] bg-white/60 backdrop-blur-md shadow-[0_4px_16px_rgba(229,101,78,0.04)] border border-white/80 rounded-[16px] text-center">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-[#A8A29E]">
+          <span className="font-bold text-[#1C1917]">{"// "}CORE PROMISE:</span>{" "}
+          EVERY PLAN INCLUDES REAL RESPONDENTS AND RANKED INSIGHTS.
         </p>
       </div>
     </section>

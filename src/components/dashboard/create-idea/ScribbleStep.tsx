@@ -60,60 +60,54 @@ export default function ScribbleStep({
   const canSubmit = text.trim().length >= 50 && !isGenerating;
 
   return (
-    <div className="max-w-[720px] mx-auto">
+    <div className="w-full flex flex-col h-full min-h-[75vh]">
       {/* Header */}
-      <div className="mb-[32px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.03em]">
-          New Idea
+      <div className="mb-[32px] flex flex-col gap-2">
+        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-[#1C1917] font-mono uppercase">
+          [ SYS.INITIALIZE_NODE ]
         </h1>
-        <p className="text-[15px] text-[#64748B] mt-[4px]">
-          Start with the raw thought. We&apos;ll help shape it into a validation
-          campaign.
+        <p className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase">
+          Awaiting raw input variables for validation synthesis.
         </p>
       </div>
 
-      {/* Scribble card */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] relative">
-        {/* Notebook accent line */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl bg-gradient-to-r from-[#E5654E] to-[#E5654E]/30" />
+      {/* Scribble Glass Pane */}
+      <div className="flex-1 flex flex-col bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[40px] md:p-[56px] relative overflow-hidden group transition-all duration-700 hover:shadow-[0_16px_48px_rgba(229,101,78,0.03),inset_0_1px_0_rgba(255,255,255,1)]">
+        {/* Glowing top line */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E5654E]/30 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-1000" />
 
         <div className="flex flex-col gap-[16px]">
           <textarea
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Dump your idea here — rough thoughts are fine."
+            placeholder="[ ENTER RAW CONCEPT ] — describe the problem, target demographic, and validation metrics."
             disabled={isGenerating}
-            className="w-full min-h-[200px] text-[17px] leading-[1.7] text-[#111111] font-sans placeholder:text-[#bbb] outline-none resize-none bg-transparent disabled:opacity-50"
+            className="w-full flex-1 min-h-[240px] text-[16px] md:text-[18px] leading-[1.7] text-[#1C1917] font-sans font-normal tracking-[0.01em] placeholder:text-[#A8A29E]/60 outline-none resize-none bg-transparent disabled:opacity-50"
           />
-
-          <p className="text-[13px] text-[#94A3B8] leading-[1.5]">
-            Describe the problem, who it&apos;s for, and what you&apos;re unsure
-            about. The messier the better — we&apos;ll help you structure it.
-          </p>
 
           {/* Example ideas carousel */}
           {text.trim().length < 10 && (
-            <div>
-              <p className="text-[11px] font-semibold tracking-[1px] uppercase text-[#94A3B8] mb-[8px]">
-                Need inspiration? Try a template
+            <div className="mt-8">
+              <p className="font-mono text-[10px] font-bold tracking-widest text-[#A8A29E] uppercase mb-[12px]">
+                Or load pre-configured template:
               </p>
-              <div className="flex gap-[10px] overflow-x-auto pb-[4px]" style={{ scrollSnapType: "x mandatory" }}>
+              <div className="flex gap-[16px] overflow-x-auto pb-[16px] hide-scrollbar" style={{ scrollSnapType: "x mandatory" }}>
                 {EXAMPLE_IDEAS.map((example) => (
                   <button
                     key={example.title}
                     onClick={() => setText(example.scribble)}
-                    className="flex-shrink-0 w-[200px] text-left p-[12px] rounded-xl border border-[#E2E8F0] bg-[#FAFAFA] hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer group"
+                    className="flex-shrink-0 w-[240px] text-left p-[20px] rounded-[20px] border border-white/60 bg-white/40 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:bg-white/70 backdrop-blur-md transition-all duration-300 cursor-pointer group"
                     style={{ scrollSnapAlign: "start" }}
                   >
-                    <span className="text-[10px] font-medium text-[#E5654E] bg-[#E5654E]/8 px-[6px] py-[2px] rounded-md">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#1C1917] bg-white opacity-90 px-[8px] py-[4px] border border-black/5 rounded-md shadow-sm">
                       {example.category}
                     </span>
-                    <p className="text-[13px] font-semibold text-[#111111] mt-[6px] leading-[1.3] group-hover:text-[#E5654E] transition-colors">
+                    <p className="text-[15px] font-semibold tracking-tight text-[#1C1917] mt-[12px] leading-[1.3] group-hover:opacity-70 transition-opacity">
                       {example.title}
                     </p>
-                    <p className="text-[11px] text-[#94A3B8] mt-[4px]">
-                      {example.responses} responses received
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E] mt-[16px]">
+                      {example.responses} EXECUTIONS
                     </p>
                   </button>
                 ))}
@@ -121,38 +115,26 @@ export default function ScribbleStep({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-[8px]">
+          <div className="flex items-center justify-between pt-[24px] mt-auto border-t border-white/40">
             {/* Character count */}
             <span
-              className={`text-[12px] transition-colors ${
+              className={`font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
                 text.trim().length >= 50
-                  ? "text-[#94A3B8]"
-                  : "text-[#d4d4d4]"
+                  ? "text-[#2ca05a]"
+                  : "text-[#A8A29E]"
               }`}
             >
               {text.trim().length < 50
-                ? `${50 - text.trim().length} more characters to go`
-                : `${text.trim().length} characters`}
+                ? `[ ${50 - text.trim().length} BYTES REQ ]`
+                : `[ STABLE : ${text.trim().length} BYTES ]`}
             </span>
 
             <button
               onClick={() => onSubmit(text.trim())}
               disabled={!canSubmit}
-              className="inline-flex items-center gap-[8px] px-[28px] py-[13px] rounded-xl text-[15px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#111111]"
+              className="inline-flex items-center gap-[12px] px-[32px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest bg-[#1C1917] text-white hover:bg-white hover:text-[#1C1917] hover:shadow-[0_0_32px_rgba(229,101,78,0.2)] hover:border-[#E5654E]/30 transition-all duration-500 cursor-pointer border border-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#1C1917] disabled:hover:text-white"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 3v3m6.36-.64l-2.12 2.12M21 12h-3m.64 6.36l-2.12-2.12M12 21v-3m-6.36.64l2.12-2.12M3 12h3m-.64-6.36l2.12 2.12" />
-              </svg>
-              Generate Campaign
+              [ INITIATE _SYNTHESIS ]
             </button>
           </div>
         </div>

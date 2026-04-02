@@ -1,38 +1,16 @@
 type FloatingCardProps = {
   text: string;
   className?: string;
-  accent?: "warm" | "blue";
+  accent?: "warm" | "blue" | "none";
 };
-
-function MiniPeach({ accent }: { accent: "warm" | "blue" }) {
-  const s0 = accent === "blue" ? "#9BC4C8" : "#E5654E";
-  const s1 = accent === "blue" ? "#B5D5D8" : "#E8C1B0";
-
-  return (
-    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px] shrink-0">
-      <defs>
-        <linearGradient id={`fp-${accent}-s`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={s0} />
-          <stop offset="100%" stopColor={s1} />
-        </linearGradient>
-        <linearGradient id={`fp-${accent}-f`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={s0} stopOpacity="0.12" />
-          <stop offset="100%" stopColor={s1} stopOpacity="0.06" />
-        </linearGradient>
-      </defs>
-      <ellipse cx="32" cy="32" rx="27" ry="27" fill={`url(#fp-${accent}-f)`} stroke={`url(#fp-${accent}-s)`} strokeWidth="3" />
-      <path d="M32 6 Q29 30 32 58" stroke={`url(#fp-${accent}-s)`} strokeWidth="1.8" fill="none" opacity="0.3" />
-    </svg>
-  );
-}
 
 export default function FloatingCard({ text, className = "", accent = "warm" }: FloatingCardProps) {
   return (
     <div
-      className={`absolute flex items-center gap-[8px] bg-white/92 backdrop-blur-xl rounded-2xl px-[12px] py-[8px] shadow-[0_4px_16px_rgba(180,140,110,0.10),0_1px_3px_rgba(0,0,0,0.04)] border border-[#EDE8E3]/50 will-change-transform ${className}`}
+      className={`absolute flex items-center gap-[12px] bg-white/60 backdrop-blur-3xl rounded-[16px] px-[16px] py-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/80 will-change-transform ${className}`}
     >
-      <MiniPeach accent={accent} />
-      <span className="text-[12px] text-[#78716C] whitespace-nowrap font-medium">
+      <div className={`w-[6px] h-[6px] rounded-full animate-pulse ${accent === 'blue' ? 'bg-[#1C1917]' : 'bg-[#E5654E]'}`} />
+      <span className="font-mono text-[10px] tracking-widest text-[#1C1917] font-bold uppercase whitespace-nowrap">
         {text}
       </span>
     </div>

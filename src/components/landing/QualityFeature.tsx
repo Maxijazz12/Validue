@@ -11,30 +11,30 @@ export default function QualityFeature() {
       {/* Left: Copy */}
       <div>
         <SectionHeader
-          label="Quality Over Quantity"
-          title="Better answers rise to the top"
-          subtitle="Founders see their best insights first. Respondents earn more by being thoughtful. Good work pays - literally."
+          label="INTEGRITY_CHECK"
+          title="Yield correlates to quality"
+          subtitle="Architects review pristine data streams. Nodes generating high-fidelity inputs map to higher monetary compensation."
           align="left"
         />
         <div className="mt-[36px] flex flex-col gap-[16px]">
           {qualityBullets.map((bullet) => (
             <div key={bullet} className="flex items-center gap-[12px]">
-              <span className="w-[5px] h-[5px] rounded-full bg-[#D4A088]" />
-              <span className="text-[14px] text-[#78716C]">{bullet}</span>
+              <span className="font-mono text-[9px] text-[#A8A29E] font-bold">[{bullet.slice(0, 1)}]</span>
+              <span className="text-[14px] text-[#A8A29E] tracking-tight">{bullet}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Right: Mock response cards */}
-      <div className="bg-[#F7F4F1] border border-[#EDE8E3] rounded-2xl p-[32px] relative overflow-hidden">
+      <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[32px] relative overflow-hidden">
         {mockResponses.map((resp) => (
           <div
             key={resp.name}
-            className={`p-[20px] border rounded-xl mb-[12px] last:mb-0 transition-all duration-200 ${
+            className={`p-[20px] border rounded-[16px] mb-[12px] last:mb-0 transition-all duration-200 ${
               resp.isTop
-                ? "border-[#DDD6CE] bg-white shadow-[0_4px_16px_rgba(180,140,110,0.10),0_2px_4px_rgba(0,0,0,0.03)]"
-                : "border-[#EDE8E3] bg-white"
+                ? "border-black/5 bg-white/70 shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
+                : "border-transparent bg-white/30"
             }`}
           >
             <div className="flex justify-between items-center mb-[10px]">
@@ -48,19 +48,19 @@ export default function QualityFeature() {
                 </div>
               </div>
               {resp.isTop && (
-                <div className="text-[10px] font-medium tracking-[1px] uppercase text-gradient-warm">
-                  Top Insight
+                <div className="font-mono text-[9px] font-bold tracking-widest uppercase text-[#1C1917] bg-black/5 px-2 py-1 rounded-md">
+                  [ HIGH_FIDELITY ]
                 </div>
               )}
             </div>
-            <div className="text-[13px] text-[#78716C] leading-[1.6]">
+            <div className="text-[13px] text-[#A8A29E] leading-[1.6]">
               {resp.text}
             </div>
-            <div className="flex justify-between items-center mt-[12px] pt-[12px] border-t border-[#EDE8E3]">
-              <div className="text-[11px] tracking-[2px] text-gradient-warm">
-                {"★".repeat(resp.stars)}
+            <div className="flex justify-between items-center mt-[12px] pt-[12px] border-t border-black/5">
+              <div className="font-mono text-[9px] font-bold tracking-widest text-[#1C1917]">
+                [ RATING: {resp.stars}/5 ]
               </div>
-              <div className="font-mono text-[12px] text-[#A8A29E] font-medium">
+              <div className="font-mono text-[11px] text-[#1C1917] font-bold">
                 {resp.amount}
               </div>
             </div>

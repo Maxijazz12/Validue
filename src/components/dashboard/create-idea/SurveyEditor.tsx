@@ -78,49 +78,49 @@ function QuestionCard({
   }
 
   return (
-    <div className="group flex gap-[12px] p-[16px] rounded-xl border border-[#E2E8F0] bg-white hover:border-[#CBD5E1] transition-all">
+    <div className="group flex flex-col md:flex-row gap-[16px] p-[20px] rounded-[24px] border border-white/60 bg-white/40 shadow-sm backdrop-blur-md hover:border-white/80 hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition-all duration-300 relative overflow-hidden">
       {/* Numbering */}
-      <div className="flex-shrink-0 w-[28px] h-[28px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-        <span className="text-[12px] font-semibold text-[#64748B]">
-          {index + 1}
+      <div className="flex-shrink-0 w-[32px] h-[32px] rounded-full bg-white flex items-center justify-center border border-[#E7E5E4] shadow-sm relative z-10">
+        <span className="font-mono text-[11px] font-bold text-[#1C1917]">
+          {String(index + 1).padStart(2, "0")}
         </span>
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 relative z-10">
         {/* Type badge */}
-        <div className="flex items-center gap-[8px] mb-[8px]">
+        <div className="flex items-center gap-[12px] mb-[12px]">
           <span
-            className={`text-[10px] font-semibold tracking-[1px] uppercase px-[8px] py-[2px] rounded-full ${
+            className={`font-mono text-[9px] font-bold uppercase tracking-widest px-[10px] py-[4px] rounded-full shadow-sm ${
               question.isBaseline
-                ? "bg-[#E5654E]/15 text-[#CC5340]"
+                ? "bg-[#E5654E]/10 text-[#E5654E] border border-[#E5654E]/20"
                 : question.type === "open"
-                  ? "bg-[#dbeafe] text-[#1d4ed8]"
-                  : "bg-[#f3e8ff] text-[#7c3aed]"
+                  ? "bg-[#1C1917]/5 text-[#1C1917] border border-[#1C1917]/10"
+                  : "bg-[#2ca05a]/10 text-[#2ca05a] border border-[#2ca05a]/20"
             }`}
           >
             {question.isBaseline
-              ? "Baseline"
+              ? "[ BASELINE_NODE ]"
               : question.type === "open"
-                ? "Open-ended"
-                : "Multiple choice"}
+                ? "[ OPEN_NODE ]"
+                : "[ MULTI_NODE ]"}
           </span>
           {question.category && (
-            <span className="text-[10px] text-[#94A3B8] tracking-[0.5px]">
-              {question.category}
+            <span className="font-mono text-[9px] text-[#A8A29E] uppercase tracking-widest">
+              {"// "}{question.category}
             </span>
           )}
         </div>
 
         {/* Question text */}
         {isEditing ? (
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[12px]">
             <textarea
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
               rows={2}
               autoFocus
-              className="w-full px-[12px] py-[8px] rounded-lg border border-[#CBD5E1] bg-white text-[14px] text-[#111111] font-sans outline-none resize-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+              className="w-full px-[16px] py-[12px] rounded-[12px] border border-[#D6D3D1] bg-white text-[15px] font-medium text-[#1C1917] font-sans outline-none resize-none focus:border-[#1C1917] focus:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -132,28 +132,29 @@ function QuestionCard({
                 }
               }}
             />
-            <div className="flex gap-[6px]">
+            <div className="flex gap-[8px]">
               <button
                 onClick={saveEdit}
-                className="text-[12px] font-medium text-[#111111] px-[10px] py-[4px] rounded-md bg-[#F3F4F6] hover:bg-[#E2E8F0] transition-colors cursor-pointer border-none"
+                className="font-mono text-[10px] font-bold uppercase tracking-widest text-white px-[16px] py-[8px] rounded-full bg-[#1C1917] hover:bg-[#E5654E] hover:shadow-[0_0_12px_rgba(229,101,78,0.3)] transition-all cursor-pointer border-none"
               >
-                Save
+                [ COMMIT ]
               </button>
               <button
                 onClick={() => {
                   setEditText(question.text);
                   setIsEditing(false);
                 }}
-                className="text-[12px] text-[#94A3B8] px-[10px] py-[4px] rounded-md hover:text-[#64748B] transition-colors cursor-pointer border-none bg-transparent"
+                className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#A8A29E] px-[16px] py-[8px] rounded-full hover:text-[#1C1917] hover:bg-white transition-all cursor-pointer border border-transparent hover:border-[#E7E5E4]"
               >
-                Cancel
+                [ REVERT ]
               </button>
             </div>
           </div>
         ) : (
           <p
-            className="text-[14px] text-[#111111] leading-[1.5] cursor-pointer hover:text-[#64748B] transition-colors"
+            className="text-[16px] font-medium tracking-tight text-[#1C1917] leading-[1.5] cursor-pointer hover:text-[#E5654E] transition-colors"
             onClick={() => {
+              if (question.isBaseline) return;
               setEditText(question.text);
               setIsEditing(true);
             }}
@@ -368,19 +369,19 @@ export default function SurveyEditor({
   ) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-[12px]">
+        <div className="flex items-center justify-between mb-[16px]">
           <div>
-            <h3 className="text-[14px] font-semibold text-[#111111]">
+            <h3 className="font-mono text-[11px] font-bold tracking-widest text-[#1C1917]">
               {title}
             </h3>
-            <p className="text-[12px] text-[#94A3B8] mt-[2px]">{subtitle}</p>
+            <p className="font-mono text-[9px] font-bold tracking-widest uppercase text-[#A8A29E] mt-[4px]">{subtitle}</p>
           </div>
           {sectionKey !== "baseline" && (
             <button
               onClick={() => addQuestion(sectionKey)}
-              className="text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all duration-200 cursor-pointer bg-transparent"
+              className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#1C1917] px-[14px] py-[8px] rounded-full border border-[#D6D3D1] hover:border-[#1C1917] bg-white transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
             >
-              + Add question
+              [ + ADD_NODE ]
             </button>
           )}
         </div>
@@ -413,37 +414,40 @@ export default function SurveyEditor({
   }
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
-      <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
-        Survey Draft
-      </h2>
-      <p className="text-[13px] text-[#64748B] mb-[24px]">
-        Edit, reorder, or regenerate questions. Click any question text to edit
-        it.
-      </p>
+    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
+      <div className="flex items-end justify-between mb-[28px]">
+        <div>
+          <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+            [ 02: VALIDATION TOPOLOGY ]
+          </h2>
+          <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E]">
+            Edit node sequences or run automated regeneration protocol.
+          </p>
+        </div>
+      </div>
 
       {rewriteError && (
-        <div className="mb-[16px] px-[12px] py-[8px] rounded-xl bg-red-50 border border-red-200 text-[12px] text-red-700">
-          {rewriteError}
+        <div className="mb-[24px] px-[20px] py-[16px] rounded-[16px] bg-[#ef4444]/10 border border-[#ef4444]/20 backdrop-blur-md">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">[ ERR: {rewriteError} ]</span>
         </div>
       )}
 
-      <div className="flex flex-col gap-[28px]">
+      <div className="flex flex-col gap-[40px]">
         {renderSection(
-          "Open-ended Questions",
-          "Deep qualitative insight from your target audience",
+          "[ CORE_QUALITATIVE ]",
+          "Open-ended probes analyzing core pain points.",
           openQs,
           "open"
         )}
         {renderSection(
-          "Follow-up Questions",
-          "Targeted probes based on your specific idea",
+          "[ TARGETED_PROBES ]",
+          "Follow-up sequence evaluating solution specific behaviors.",
           followupQs,
           "followup"
         )}
         {renderSection(
-          "Baseline Questions",
-          "Standardized quant signal — swap from the curated library",
+          "[ STANDARDIZED_METRICS ]",
+          "Immutable quant signals pulled from standardized library.",
           baselineQs,
           "baseline"
         )}

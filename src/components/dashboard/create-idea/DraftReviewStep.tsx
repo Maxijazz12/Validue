@@ -7,7 +7,7 @@ import type { BaselineQuestion } from "@/lib/baseline-questions";
 import SurveyEditor from "./SurveyEditor";
 import BaselineQuestionPicker from "./BaselineQuestionPicker";
 import SignalStrengthMeter from "./SignalStrengthMeter";
-import WallCard from "@/components/dashboard/WallCard";
+import WallCardUnified from "@/components/dashboard/WallCardUnified";
 import AudienceTargetingPanel from "./AudienceTargetingPanel";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
 import CampaignStrengthMeter from "@/components/dashboard/CampaignStrengthMeter";
@@ -144,13 +144,12 @@ export default function DraftReviewStep({
 
   return (
     <>
-      <div className="mb-[32px]">
-        <h1 className="text-[28px] font-bold text-[#111111] tracking-[-0.03em]">
-          Review Your Campaign
+      <div className="mb-[40px] flex flex-col gap-2">
+        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-[#1C1917] font-mono uppercase">
+          [ SYNTHESIS COMPLETE. AWAITING REVIEW ]
         </h1>
-        <p className="text-[15px] text-[#64748B] mt-[4px]">
-          We generated a draft from your idea. Edit everything below before
-          publishing.
+        <p className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase">
+          Verify and modify campaign nodes before execution.
         </p>
       </div>
 
@@ -158,13 +157,12 @@ export default function DraftReviewStep({
         {/* Left column */}
         <div className="flex flex-col gap-[24px]">
           {/* ─── Idea Summary ─── */}
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
-            <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
-              Idea Summary
+          <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
+            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+              [ 01: CORE METADATA ]
             </h2>
-            <p className="text-[13px] text-[#64748B] mb-[24px]">
-              This is what respondents will see. Edit to make it clear and
-              compelling.
+            <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E] mb-[24px]">
+              Public-facing parameters.
             </p>
 
             <div className="flex flex-col gap-[20px]">
@@ -350,27 +348,27 @@ export default function DraftReviewStep({
           />
 
           {/* ─── V2: Campaign Format Toggle ─── */}
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
-            <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">Campaign Format</h2>
-            <div className="flex gap-[8px] mt-[12px]">
+          <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
+            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">[ 04: EXECUTION PROTOCOL ]</h2>
+            <div className="flex gap-[12px] mt-[16px]">
               {(["quick", "standard"] as const).map((fmt) => (
                 <button
                   key={fmt}
                   type="button"
                   onClick={() => updateField("format", fmt)}
-                  className={`flex-1 text-left px-[14px] py-[12px] rounded-lg border text-[13px] transition-all cursor-pointer ${
+                  className={`flex-1 text-left px-[16px] py-[16px] rounded-[16px] border text-[13px] transition-all cursor-pointer ${
                     (draft.format || "quick") === fmt
-                      ? "border-[#111111] bg-[#111111] text-white"
-                      : "border-[#E2E8F0] bg-white text-[#111111] hover:border-[#CBD5E1]"
+                      ? "border-[#1C1917] bg-[#1C1917] text-white shadow-lg"
+                      : "border-white/60 bg-white/40 text-[#1C1917] hover:border-white/80 hover:bg-white/60"
                   }`}
                 >
-                  <span className="font-semibold block">
-                    {fmt === "quick" ? "Quick" : "Standard"}
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-widest block mb-1">
+                    {fmt === "quick" ? "[ QUICK_RUN ]" : "[ STD_RUN ]"}
                   </span>
-                  <span className={`text-[11px] ${(draft.format || "quick") === fmt ? "text-white/70" : "text-[#94A3B8]"}`}>
+                  <span className={`font-mono text-[9px] uppercase tracking-wider block ${(draft.format || "quick") === fmt ? "text-white/70" : "text-[#A8A29E]"}`}>
                     {fmt === "quick"
-                      ? "3 questions \u00B7 ~3 min \u00B7 Fast validation"
-                      : "5 questions \u00B7 ~5 min \u00B7 Deeper insights"}
+                      ? "3 NODES \u00B7 ~3 MIN"
+                      : "5 NODES \u00B7 ~5 MIN"}
                   </span>
                 </button>
               ))}
@@ -381,13 +379,12 @@ export default function DraftReviewStep({
           </div>
 
           {/* ─── Campaign Funding ─── */}
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
-            <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
-              Set Your Campaign Budget
+          <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
+            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+              [ 05: RESOURCE ALLOCATION ]
             </h2>
-            <p className="text-[13px] text-[#64748B] mb-[24px]">
-              Your budget goes directly toward rewarding respondents. Higher
-              budgets attract more and better responses — and fill faster.
+            <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E] mb-[28px]">
+              Fuel the execution engine to increase range and speed.
             </p>
 
             <div className="flex flex-col gap-[20px]">
@@ -480,7 +477,7 @@ export default function DraftReviewStep({
                     {(draft.rewardPool ?? 0) > PLAN_CONFIG[tier].efficientZone && (
                       <p className="mt-[6px] text-[11px] text-[#E5654E]">
                         You&apos;re getting less value per dollar above ${PLAN_CONFIG[tier].efficientZone} on your current plan.{" "}
-                        {tier !== "scale" && (
+                        {tier !== "pro" && (
                           <Link href="/#pricing" className="text-[#111111] font-semibold underline">
                             A higher plan stretches this budget further.
                           </Link>
@@ -495,16 +492,16 @@ export default function DraftReviewStep({
               {(draft.rewardPool ?? 0) > 0 && (
                 <div className="flex items-center gap-[8px] text-[12px] text-[#94A3B8]">
                   <span>
-                    Service fee (15%):{" "}
+                    Service fee (20%):{" "}
                     <span className="font-mono">
-                      ${((draft.rewardPool ?? 0) * 0.15).toFixed(2)}
+                      ${((draft.rewardPool ?? 0) * 0.20).toFixed(2)}
                     </span>
                   </span>
                   <span className="text-[#d4d4d4]">&middot;</span>
                   <span>
                     Respondents receive:{" "}
                     <span className="font-mono font-semibold text-[#111111]">
-                      ${((draft.rewardPool ?? 0) * 0.85).toFixed(2)}
+                      ${((draft.rewardPool ?? 0) * 0.80).toFixed(2)}
                     </span>
                   </span>
                 </div>
@@ -525,9 +522,9 @@ export default function DraftReviewStep({
               {/* Tier upgrade nudge for free/starter */}
               {(tier === "free" || tier === "starter") && (draft.rewardPool ?? 0) > 0 && (
                 <div className="px-[14px] py-[10px] rounded-lg bg-[#F3F4F6] border border-[#E2E8F0]/50 text-[12px] text-[#64748B]">
-                  With a {tier === "free" ? "Pro" : "Scale"} plan, this same ${draft.rewardPool} would reach significantly more people — Strength{" "}
+                  With a Pro plan, this same ${draft.rewardPool} would reach significantly more people — Strength{" "}
                   <strong>
-                    {calculateReach(tier === "free" ? "pro" : "scale", draft.rewardPool ?? 0, { qualityScore }).campaignStrength}
+                    {calculateReach("pro", draft.rewardPool ?? 0, { qualityScore }).campaignStrength}
                   </strong>{" "}
                   vs {reachEstimate.campaignStrength}.{" "}
                   <Link href="/#pricing" className="text-[#111111] font-semibold underline">
@@ -548,7 +545,7 @@ export default function DraftReviewStep({
                       Respondents who write higher-quality answers earn additional bonus.
                     </p>
                     <p>
-                      Your budget &rarr; 15% platform fee &rarr; 60% base pool (split equally) &rarr; 40% quality bonus pool (earned by top scorers)
+                      Your budget &rarr; 20% platform fee &rarr; remaining pool split equally among qualifying respondents
                     </p>
                   </div>
                 </details>
@@ -564,38 +561,33 @@ export default function DraftReviewStep({
           </div>
 
           {/* ─── Actions ─── */}
-          {(draft.rewardPool ?? 0) > 0 && (
-            <p className="text-[12px] text-[#64748B] pt-[8px]">
-              After publishing, you&apos;ll complete a secure checkout to go live.
-            </p>
-          )}
-          <div className="flex items-center gap-[12px] pt-[8px]">
+          <div className="flex items-center gap-[12px] pt-[16px]">
             <button
               onClick={onPublish}
               disabled={isPublishing || isSaving}
-              className="inline-flex items-center justify-center px-[32px] py-[14px] rounded-xl text-[15px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center px-[32px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest bg-[#1C1917] text-white hover:bg-white hover:text-[#1C1917] hover:shadow-[0_0_24px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer border border-[#1C1917] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPublishing
-                ? "Publishing…"
+                ? "[ INITIATING... ]"
                 : (draft.rewardPool ?? 0) > 0
-                  ? "Publish & Fund"
-                  : "Publish Campaign"}
+                  ? "[ DEPLOY & FUND RUN ]"
+                  : "[ DEPLOY RUN ]"}
             </button>
             {onSaveDraft && (
               <button
                 onClick={onSaveDraft}
                 disabled={isPublishing || isSaving}
-                className="inline-flex items-center justify-center px-[24px] py-[14px] rounded-xl text-[15px] font-medium text-[#111111] border border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest text-[#1C1917] bg-white border border-white hover:border-[#1C1917] hover:shadow-sm transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? "Saving…" : "Save Draft"}
+                {isSaving ? "[ SAVING CACHE... ]" : "[ SUSPEND TO CACHE ]"}
               </button>
             )}
             <button
               onClick={onBack}
               disabled={isPublishing || isSaving}
-              className="inline-flex items-center justify-center px-[32px] py-[14px] rounded-xl text-[15px] font-medium text-[#64748B] hover:text-[#111111] transition-all cursor-pointer border-none bg-transparent disabled:opacity-50"
+              className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest text-[#A8A29E] hover:text-[#1C1917] transition-all cursor-pointer border-none bg-transparent disabled:opacity-50"
             >
-              Back to Scribble
+              [ ABORT TO RAW ]
             </button>
           </div>
         </div>
@@ -611,28 +603,29 @@ export default function DraftReviewStep({
                 Wall Preview
               </p>
               <div className="pointer-events-none opacity-90 scale-[0.92] origin-top-left">
-                <WallCard
-                  id="preview"
-                  title={draft.title || "Your Idea Title"}
-                  description={draft.summary || "Your idea description will appear here..."}
-                  category={draft.category || null}
-                  tags={draft.tags.slice(0, 3)}
-                  estimatedMinutes={5}
-                  rewardAmount={draft.rewardPool ?? 0}
-                  currentResponses={0}
-                  targetResponses={50}
-                  createdAt={new Date().toISOString()}
-                  deadline={null}
-                  creatorName="You"
-                  creatorAvatar={null}
-                  bonusAvailable={false}
-                  rewardsTopAnswers={false}
-                  rewardType={null}
-                  isSubsidized={false}
-                  economicsVersion={2}
-                  format={draft.format ?? "quick"}
-                  matchScore={85}
-                  isVisible
+                <WallCardUnified
+                  idea={{
+                    id: "preview",
+                    title: draft.title || "Your Idea Title",
+                    description: draft.summary || "Your idea description will appear here...",
+                    category: draft.category || null,
+                    tags: draft.tags.slice(0, 3),
+                    estimatedMinutes: 5,
+                    rewardAmount: draft.rewardPool ?? 0,
+                    currentResponses: 0,
+                    targetResponses: 50,
+                    createdAt: new Date().toISOString(),
+                    deadline: null,
+                    creatorName: "You",
+                    creatorAvatar: null,
+                    bonusAvailable: false,
+                    rewardsTopAnswers: false,
+                    rewardType: null,
+                    isSubsidized: false,
+                    economicsVersion: 2,
+                    format: draft.format ?? "quick",
+                    matchScore: 85,
+                  }}
                 />
               </div>
             </div>

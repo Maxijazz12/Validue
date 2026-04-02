@@ -170,7 +170,7 @@ export default function PayoutAllocator({
         Distribute ${distributableAmount.toFixed(2)} among your best
         respondents.
         <span className="text-[#94A3B8]">
-          {" "}(${rewardAmount.toFixed(2)} pool minus 15% platform fee)
+          {" "}(${rewardAmount.toFixed(2)} pool minus 20% platform fee)
         </span>
       </p>
 

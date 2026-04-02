@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Input from "@/components/ui/Input";
 
 export default function PasswordChangeForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -69,60 +68,78 @@ export default function PasswordChangeForm() {
   }
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
-      <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
+    <div className="bg-white rounded-[28px] border border-[#E7E5E4]/60 shadow-[0_8px_30px_rgba(0,0,0,0.03)] overflow-hidden p-[32px]">
+      <h2 className="text-[20px] font-medium tracking-tight text-[#1C1917] mb-[4px]">
         Change Password
       </h2>
-      <p className="text-[13px] text-[#64748B] mb-[24px]">
+      <p className="text-[14px] text-[#A8A29E] font-medium mb-[32px]">
         Update your password to keep your account secure
       </p>
 
       {success && (
-        <div className="mb-[16px] px-[14px] py-[10px] bg-[#22c55e]/5 border border-[#22c55e]/20 rounded-lg text-[13px] text-[#22c55e] font-medium">
+        <div className="mb-[20px] px-[16px] py-[12px] bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-[12px] text-[13px] text-[#22c55e] font-semibold tracking-wide">
           Password updated successfully
         </div>
       )}
 
       {error && (
-        <div className="mb-[16px] px-[14px] py-[10px] bg-red-50 border border-red-200 rounded-xl text-[13px] text-red-600">
+        <div className="mb-[20px] px-[16px] py-[12px] bg-red-50 border border-red-200 rounded-[12px] text-[13px] text-red-600 font-semibold tracking-wide">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[16px] max-w-[400px]">
-        <Input
-          id="currentPassword"
-          label="Current password"
-          type="password"
-          placeholder="Enter current password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          required
-        />
-        <Input
-          id="newPassword"
-          label="New password"
-          type="password"
-          placeholder="Min 6 characters"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          required
-          minLength={6}
-        />
-        <Input
-          id="confirmPassword"
-          label="Confirm new password"
-          type="password"
-          placeholder="Repeat new password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          minLength={6}
-        />
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[20px] max-w-[440px]">
+        <div className="flex flex-col gap-[8px]">
+          <label htmlFor="currentPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-[#A8A29E]">
+            Current password
+          </label>
+          <input
+            id="currentPassword"
+            type="password"
+            placeholder="Enter current password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-[#F5F5F4]/60 text-[15px] text-[#1C1917] font-medium outline-none transition-all duration-300 hover:border-[#E7E5E4] focus:bg-white focus:border-[#1C1917] focus:ring-1 focus:ring-[#1C1917] shadow-sm placeholder:text-[#D6D3D1]"
+            required
+          />
+        </div>
+
+        <div className="flex flex-col gap-[8px]">
+          <label htmlFor="newPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-[#A8A29E]">
+            New password
+          </label>
+          <input
+            id="newPassword"
+            type="password"
+            placeholder="Min 6 characters"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-[#F5F5F4]/60 text-[15px] text-[#1C1917] font-medium outline-none transition-all duration-300 hover:border-[#E7E5E4] focus:bg-white focus:border-[#1C1917] focus:ring-1 focus:ring-[#1C1917] shadow-sm placeholder:text-[#D6D3D1]"
+            required
+            minLength={6}
+          />
+        </div>
+
+        <div className="flex flex-col gap-[8px]">
+          <label htmlFor="confirmPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-[#A8A29E]">
+            Confirm new password
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            placeholder="Repeat new password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-[#F5F5F4]/60 text-[15px] text-[#1C1917] font-medium outline-none transition-all duration-300 hover:border-[#E7E5E4] focus:bg-white focus:border-[#1C1917] focus:ring-1 focus:ring-[#1C1917] shadow-sm placeholder:text-[#D6D3D1]"
+            required
+            minLength={6}
+          />
+        </div>
+
         <button
           type="submit"
           disabled={loading}
-          className={`self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-[#111111] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none mt-[8px] ${
+          className={`self-start inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-[#1C1917] text-white transition-all duration-500 hover:bg-[#292524] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4)] cursor-pointer mt-[12px] ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >

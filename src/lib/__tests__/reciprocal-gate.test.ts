@@ -14,7 +14,6 @@ describe("initialGateStatus", () => {
   it("returns 'exempt' for paid tiers", () => {
     expect(initialGateStatus("starter")).toBe("exempt");
     expect(initialGateStatus("pro")).toBe("exempt");
-    expect(initialGateStatus("scale")).toBe("exempt");
   });
 });
 
@@ -23,7 +22,6 @@ describe("requiresGate", () => {
     expect(requiresGate("free")).toBe(true);
     expect(requiresGate("starter")).toBe(false);
     expect(requiresGate("pro")).toBe(false);
-    expect(requiresGate("scale")).toBe(false);
   });
 });
 

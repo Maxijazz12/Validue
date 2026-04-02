@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import WallFeed from "@/components/dashboard/WallFeed";
 import WallOnboarding from "@/components/dashboard/WallOnboarding";
 import ProfilePrompt from "@/components/dashboard/ProfilePrompt";
-import type { WallCardProps } from "@/components/dashboard/WallCard";
+import type { WallCardProps } from "@/components/dashboard/WallCardUnified";
 import type { WallUserProfile } from "@/components/dashboard/WallFeed";
-import type { ActivityItem } from "@/components/dashboard/ActivityTicker";
 import {
   computeWallScore,
   sortByWallScore,
@@ -263,63 +262,6 @@ export default async function TheWallPage() {
     current_streak: currentStreak,
   };
 
-  // Build activity ticker items from recent payouts and new campaigns
-  const activityItems: ActivityItem[] = [];
-  const { data: recentPayouts } = await supabase
-    .from("payouts")
-    .select("amount, profiles!respondent_id(full_name)")
-    .order("created_at", { ascending: false })
-    .limit(5);
-  for (const p of recentPayouts || []) {
-    const name = ((Array.isArray(p.profiles) ? p.profiles[0] : p.profiles) as { full_name: string } | null)?.full_name || "Someone";
-    const first = name.split(" ")[0];
-    activityItems.push({ text: `${first} just earned $${Number(p.amount).toFixed(0)} for feedback`, accent: "green" });
-  }
-  // Add campaign creation activity
-  const oneDay = new Date(serverNow() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: newCampaignCount } = await supabase
-    .from("campaigns")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "active")
-    .gte("created_at", oneDay);
-  if (newCampaignCount && newCampaignCount > 0) {
-    activityItems.push({ text: `${newCampaignCount} new campaign${newCampaignCount > 1 ? "s" : ""} posted in the last 24h`, accent: "warm" });
-  }
-  // Add total responses today
-  const { count: todayResponses } = await supabase
-    .from("responses")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["submitted", "ranked"])
-    .gte("created_at", oneDay);
-  if (todayResponses && todayResponses > 0) {
-    activityItems.push({ text: `${todayResponses} response${todayResponses > 1 ? "s" : ""} submitted today`, accent: "blue" });
-  }
-
-  // Weekly digest data
-  const oneWeekAgo = new Date(serverNow() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { count: responsesThisWeek } = await supabase
-    .from("responses")
-    .select("*", { count: "exact", head: true })
-    .eq("respondent_id", user!.id)
-    .in("status", ["submitted", "ranked"])
-    .gte("created_at", oneWeekAgo);
-
-  const { data: weekPayouts } = await supabase
-    .from("payouts")
-    .select("amount")
-    .eq("respondent_id", user!.id)
-    .gte("created_at", oneWeekAgo);
-  const earnedThisWeek = (weekPayouts || []).reduce((sum, p) => sum + Number(p.amount), 0);
-
-  const weeklyDigest = (responsesThisWeek ?? 0) > 0 || earnedThisWeek > 0
-    ? {
-        responsesThisWeek: responsesThisWeek ?? 0,
-        earnedThisWeek,
-        qualityDelta: 0,
-        percentile: safeNumber(profile?.reputation_score) >= 70 ? 20 : safeNumber(profile?.reputation_score) >= 50 ? 40 : 0,
-      }
-    : undefined;
-
   const showOnboarding = profile && !profile.onboarding_completed;
 
   return (
@@ -338,7 +280,7 @@ export default async function TheWallPage() {
 
       {profileIncomplete && <ProfilePrompt />}
 
-      <WallFeed ideas={ideas} userProfile={userProfile} activityItems={activityItems} weeklyDigest={weeklyDigest} />
+      <WallFeed ideas={ideas} userProfile={userProfile} />
     </>
   );
 }

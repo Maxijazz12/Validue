@@ -53,17 +53,16 @@ export default function BaselineQuestionPicker({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] max-w-[560px] w-full max-h-[80vh] flex flex-col">
+      <div className="relative bg-white/60 backdrop-blur-3xl rounded-[32px] border border-white/80 shadow-[0_40px_80px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)] max-w-[560px] w-full max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-[24px] pb-[16px] border-b border-[#E2E8F0]">
+        <div className="p-[32px] pb-[24px] border-b border-white/40 border-dashed">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-[16px] font-semibold text-[#111111]">
-                Swap Baseline Question
+              <h2 className="font-mono text-[14px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+                [ SWAP BASELINE NODE ]
               </h2>
-              <p className="text-[13px] text-[#64748B] mt-[2px]">
-                Pick from the curated library. These create comparable signal
-                across campaigns.
+              <p className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-wider">
+                Select replacement from standardized library.
               </p>
             </div>
             <button
@@ -79,7 +78,7 @@ export default function BaselineQuestionPicker({
         </div>
 
         {/* Question list */}
-        <div className="overflow-y-auto p-[24px] flex flex-col gap-[10px]">
+        <div className="overflow-y-auto p-[32px] pt-[24px] flex flex-col gap-[16px] hide-scrollbar">
           {BASELINE_QUESTIONS.map((bq) => {
             const isUsed = usedBaselineIds.has(bq.id) || usedBaselineTexts.has(bq.text.toLowerCase().trim());
             const isCurrent = currentBaselines.find(
@@ -96,48 +95,48 @@ export default function BaselineQuestionPicker({
                   }
                 }}
                 disabled={isUsed}
-                className={`text-left p-[16px] rounded-xl border transition-all cursor-pointer ${
+                className={`text-left p-[20px] rounded-[20px] border transition-all duration-300 cursor-pointer shadow-sm relative overflow-hidden ${
                   isCurrent
-                    ? "border-[#E5654E] bg-[#E5654E]/5"
+                    ? "border-[#E5654E] bg-[#E5654E]/10 backdrop-blur-md shadow-[0_8px_24px_rgba(229,101,78,0.1)]"
                     : isUsed
-                      ? "border-[#E2E8F0] bg-[#FCFCFD] opacity-40 cursor-not-allowed"
-                      : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                      ? "border-white/40 bg-white/20 opacity-50 cursor-not-allowed"
+                      : "border-white/60 bg-white/40 hover:border-white/80 hover:bg-white/60 hover:shadow-[0_8px_32px_rgba(0,0,0,0.05)]"
                 }`}
               >
-                <div className="flex items-center gap-[8px] mb-[6px]">
+                <div className="flex items-center gap-[12px] mb-[12px]">
                   <span
-                    className={`text-[10px] font-semibold tracking-[1px] uppercase px-[8px] py-[2px] rounded-full ${
+                    className={`font-mono text-[9px] font-bold tracking-[1.5px] uppercase px-[10px] py-[4px] rounded-full shadow-sm ${
                       CATEGORY_COLORS[bq.category]
                     }`}
                   >
-                    {CATEGORY_LABELS[bq.category]}
+                    [ {CATEGORY_LABELS[bq.category]} ]
                   </span>
                   {isCurrent && (
-                    <span className="text-[10px] font-medium text-[#E5654E]">
-                      Current
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#E5654E]">
+                      {"// "}CURRENTLY BOUND
                     </span>
                   )}
                   {isUsed && !isCurrent && (
-                    <span className="text-[10px] text-[#94A3B8]">
-                      Already in survey
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+                      {"// "}ACTIVE IN POOL
                     </span>
                   )}
                 </div>
-                <p className="text-[14px] text-[#111111] leading-[1.4] mb-[6px]">
+                <p className="text-[15px] font-medium tracking-tight text-[#1C1917] leading-[1.4] mb-[12px]">
                   {bq.text}
                 </p>
-                <div className="flex flex-wrap gap-[4px]">
+                <div className="flex flex-wrap gap-[6px]">
                   {bq.options.map((opt) => (
                     <span
                       key={opt}
-                      className="text-[11px] px-[8px] py-[2px] rounded-full border border-[#E2E8F0] text-[#64748B] bg-[#FCFCFD]"
+                      className="font-mono text-[9px] font-bold uppercase tracking-widest px-[10px] py-[4px] rounded-full border border-black/5 bg-black/5 text-[#1C1917]"
                     >
                       {opt}
                     </span>
                   ))}
                 </div>
-                <p className="text-[11px] text-[#94A3B8] mt-[6px]">
-                  {bq.description}
+                <p className="font-mono text-[10px] text-[#A8A29E] mt-[12px]">
+                  {"// "}{bq.description}
                 </p>
               </button>
             );

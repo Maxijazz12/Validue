@@ -16,7 +16,7 @@ import type { PlanTier } from "./plans";
 /* ─── Config ─── */
 
 /** Number of reciprocal responses required to clear the gate (free-tier only) */
-export const RECIPROCAL_REQUIRED = 3;
+export const RECIPROCAL_REQUIRED = 1;
 
 /** Maximum questions per reciprocal response (same as partial assignment) */
 export const RECIPROCAL_QUESTIONS_PER_RESPONSE = 3;

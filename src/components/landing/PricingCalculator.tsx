@@ -8,7 +8,6 @@ const tiers: { label: string; tier: PlanTier; featured: boolean }[] = [
   { label: "Free", tier: "free", featured: false },
   { label: "Starter", tier: "starter", featured: false },
   { label: "Pro", tier: "pro", featured: true },
-  { label: "Scale", tier: "scale", featured: false },
 ];
 
 const amounts = [10, 25, 50, 100];
@@ -32,29 +31,29 @@ export default function PricingCalculator() {
   const maxResponses = Math.max(...results.map((r) => r.responses));
 
   return (
-    <div className="mt-[32px]">
-      <div className="bg-white rounded-2xl border border-[#EDE8E3] shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] p-[40px] max-md:p-[28px_20px]">
+    <div className="mt-[48px]">
+      <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] p-[40px] max-md:p-[28px_20px]">
         {/* Header */}
-        <div className="text-center mb-[28px]">
-          <h3 className="text-[18px] font-semibold text-[#1C1917] mb-[6px]">
-            See what ${selectedAmount} gets you
+        <div className="text-center mb-[32px]">
+          <h3 className="font-mono text-[14px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+            [ NODE_SCALE: ${selectedAmount} ]
           </h3>
-          <p className="text-[13px] text-[#78716C]">
-            Higher plans get more responses from the same budget.
+          <p className="text-[13px] text-[#A8A29E] tracking-tight">
+            Advanced allocation yields exponential throughput at equal cost. 
           </p>
         </div>
 
         {/* Amount selector */}
-        <div className="flex items-center justify-center mb-[32px]">
-          <div className="inline-flex bg-[#F0EBE6] rounded-xl p-[3px]">
+        <div className="flex items-center justify-center mb-[40px]">
+          <div className="inline-flex bg-black/5 rounded-full p-[4px]">
             {amounts.map((amount) => (
               <button
                 key={amount}
                 onClick={() => setSelectedAmount(amount)}
-                className={`px-[20px] py-[8px] rounded-[10px] text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
+                className={`px-[24px] py-[8px] rounded-full font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-300 cursor-pointer ${
                   selectedAmount === amount
-                    ? "bg-white text-[#1C1917] shadow-[0_1px_4px_rgba(180,140,110,0.12)]"
-                    : "text-[#78716C] hover:text-[#1C1917]"
+                    ? "bg-white text-[#1C1917] shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+                    : "text-[#A8A29E] hover:text-[#1C1917]"
                 }`}
               >
                 ${amount}
@@ -69,34 +68,33 @@ export default function PricingCalculator() {
             const widthPercent = (result.responses / maxResponses) * 100;
 
             return (
-              <div key={result.label} className="flex items-center gap-[16px]">
+              <div key={result.label} className="flex items-center gap-[16px] h-[24px]">
                 {/* Tier label */}
-                <span className={`text-[13px] w-[56px] shrink-0 ${
+                <span className={`font-mono text-[10px] uppercase tracking-widest w-[72px] shrink-0 text-right ${
                   result.featured
-                    ? "font-semibold text-[#1C1917]"
-                    : "font-medium text-[#78716C]"
+                    ? "font-bold text-[#1C1917]"
+                    : "font-medium text-[#A8A29E]"
                 }`}>
                   {result.label}
                 </span>
 
                 {/* Bar track */}
-                <div className="flex-1 h-[6px] rounded-full bg-[#EDE8E3] overflow-hidden">
+                <div className="flex-1 h-[4px] rounded-full bg-black/5 overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500 ease-out"
+                    className={`h-full rounded-full transition-all duration-500 ease-out ${
+                      result.featured ? "bg-[#1C1917]" : "bg-black/20"
+                    }`}
                     style={{
                       width: `${widthPercent}%`,
-                      background: result.featured
-                        ? "linear-gradient(90deg, #C4856E, #D4A088)"
-                        : "#D6CFC7",
                     }}
                   />
                 </div>
 
                 {/* Response count */}
-                <span className={`font-mono text-[13px] font-semibold shrink-0 w-[110px] text-right ${
-                  result.featured ? "text-gradient-warm" : "text-[#1C1917]"
+                <span className={`font-mono text-[10px] uppercase tracking-widest shrink-0 w-[110px] text-right ${
+                  result.featured ? "font-bold text-[#1C1917]" : "text-[#A8A29E]"
                 }`}>
-                  ~{result.responses} responses
+                  {result.responses} NODES
                 </span>
               </div>
             );

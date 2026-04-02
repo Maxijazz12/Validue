@@ -43,18 +43,18 @@ export default function NotificationPreferences({ preferences, role }: Notificat
   }
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
+    <div className="bg-white rounded-[28px] border border-[#E7E5E4]/60 shadow-[0_8px_30px_rgba(0,0,0,0.03)] overflow-hidden p-[32px]">
       <div className="flex items-center justify-between mb-[24px]">
         <div>
-          <h2 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
+          <h2 className="text-[20px] font-medium tracking-tight text-[#1C1917] mb-[4px]">
             Notifications
           </h2>
-          <p className="text-[13px] text-[#64748B]">
+          <p className="text-[14px] text-[#A8A29E] font-medium">
             Choose which notifications you receive
           </p>
         </div>
         {saved && (
-          <span className="text-[12px] text-[#22c55e] font-medium">Saved</span>
+          <span className="text-[13px] text-[#2ca05a] font-semibold tracking-wide bg-[#2ca05a]/10 px-3 py-1 rounded-full">Saved</span>
         )}
       </div>
 
@@ -62,13 +62,13 @@ export default function NotificationPreferences({ preferences, role }: Notificat
         {options.map((opt) => (
           <label
             key={opt.key}
-            className="flex items-center justify-between p-[14px] rounded-xl hover:bg-[#FCFCFD] transition-colors cursor-pointer"
+            className="flex items-center justify-between p-[16px] rounded-[16px] hover:bg-[#F5F5F4]/60 transition-colors cursor-pointer"
           >
             <div className="min-w-0 mr-[16px]">
-              <span className="text-[14px] font-medium text-[#111111] block">
+              <span className="text-[15px] font-semibold tracking-tight text-[#1C1917] block">
                 {opt.label}
               </span>
-              <span className="text-[12px] text-[#94A3B8]">
+              <span className="text-[13px] font-medium text-[#78716C] mt-[2px] block">
                 {opt.description}
               </span>
             </div>
@@ -78,12 +78,12 @@ export default function NotificationPreferences({ preferences, role }: Notificat
               aria-checked={prefs[opt.key] !== false}
               onClick={() => handleToggle(opt.key)}
               disabled={isPending}
-              className={`relative w-[44px] h-[24px] rounded-full transition-colors duration-200 cursor-pointer border-none shrink-0 ${
-                prefs[opt.key] !== false ? "bg-[#111111]" : "bg-[#E2E8F0]"
+              className={`relative w-[46px] h-[26px] rounded-full transition-colors duration-300 cursor-pointer border-none shrink-0 ${
+                prefs[opt.key] !== false ? "bg-[#1C1917]" : "bg-[#E7E5E4]"
               } ${isPending ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-[2px] left-[2px] w-[20px] h-[20px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                className={`absolute top-[3px] left-[3px] w-[20px] h-[20px] rounded-full bg-white shadow-sm transition-transform duration-300 ease-out ${
                   prefs[opt.key] !== false ? "translate-x-[20px]" : "translate-x-0"
                 }`}
               />

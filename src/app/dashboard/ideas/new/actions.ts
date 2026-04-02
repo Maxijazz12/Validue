@@ -13,9 +13,11 @@ import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { rateLimit } from "@/lib/rate-limit";
 import { initialGateStatus, requiresGate } from "@/lib/reciprocal-gate";
+import { hasReciprocalCampaigns } from "@/app/dashboard/ideas/new/reciprocal-actions";
 
 export async function publishCampaign(
-  draft: CampaignDraft
+  draft: CampaignDraft,
+  opts?: { gatePreCleared?: boolean; coldStart?: boolean }
 ): Promise<{ id: string; gatePending?: boolean } | { error: string }> {
   // 1. Authenticate via Supabase SDK
   let user;
@@ -119,11 +121,12 @@ export async function publishCampaign(
     ? DEFAULTS.SUBSIDY_TARGET_RESPONSES
     : (distributableAmount > 0 ? defaultTargetResponses(distributableAmount, format) : 0);
 
-  // V2 publish-time constraint: base pay per response >= MIN_BASE_PAYOUT
+  // V2 publish-time constraint: payout per response >= MIN_BASE_PAYOUT
+  // V2 uses flat equal split of full distributable pool (no base/bonus split)
   if (distributableAmount > 0) {
-    const basePay = (distributableAmount * DEFAULTS.BASE_POOL_RATIO) / Math.max(targetResponses, 1);
-    if (basePay < DEFAULTS.MIN_BASE_PAYOUT) {
-      return { error: `Budget too low for target response count. Minimum base pay per response is $${DEFAULTS.MIN_BASE_PAYOUT.toFixed(2)}.` };
+    const payPerResponse = distributableAmount / Math.max(targetResponses, 1);
+    if (payPerResponse < DEFAULTS.MIN_BASE_PAYOUT) {
+      return { error: `Budget too low for target response count. Minimum pay per response is $${DEFAULTS.MIN_BASE_PAYOUT.toFixed(2)}.` };
     }
   }
 
@@ -136,13 +139,43 @@ export async function publishCampaign(
   // - Free-tier with reciprocal gate → pending_funding (awaits gate clearance, reuses status)
   // - Free-tier without gate → active
   const gateRequired = requiresGate(allowance.tier) && !isSubsidized;
-  const gateStatus = isSubsidized ? null : initialGateStatus(allowance.tier);
+
+  // Verify gate clearance server-side — don't trust the client flag alone
+  let gateAlreadyCleared = false;
+  if (gateRequired && opts?.gatePreCleared) {
+    const [reciprocalCheck] = await sql`
+      SELECT COUNT(*)::int AS completed
+      FROM responses
+      WHERE respondent_id = ${user.id}
+        AND is_partial = true
+        AND status = 'submitted'
+    `;
+    gateAlreadyCleared = (reciprocalCheck?.completed ?? 0) >= 1;
+  }
+
+  // Cold-start exemption: no campaigns available for the gate
+  if (gateRequired && !gateAlreadyCleared && opts?.coldStart) {
+    const hasCampaigns = await hasReciprocalCampaigns();
+    if (!hasCampaigns) {
+      gateAlreadyCleared = true;
+      logOps({
+        event: "reciprocal_gate.cold_start_exempt",
+        userId: user.id,
+        reason: "No eligible campaigns available for reciprocal gate",
+      });
+    }
+  }
+  const gateStatus = isSubsidized
+    ? null
+    : gateAlreadyCleared
+      ? ("cleared" as const)
+      : initialGateStatus(allowance.tier);
   const initialStatus = isSubsidized
     ? "active"
     : fundingAmount > 0
       ? "pending_funding"
-      : gateRequired
-        ? "pending_funding"
+      : gateRequired && !gateAlreadyCleared
+        ? "pending_gate"
         : "active";
   // Subsidized: use subsidy budget as reward_amount for display; funded: use actual amount
   const effectiveRewardAmount = isSubsidized ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN : fundingAmount;
@@ -158,8 +191,9 @@ export async function publishCampaign(
         ON CONFLICT (id) DO NOTHING
       `;
 
-      // Subsidized campaigns get expires_at set at publish (they skip Stripe)
-      const expiresAt = isSubsidized ? sql`NOW() + INTERVAL '${sql.unsafe(String(DEFAULTS.CAMPAIGN_EXPIRY_DAYS))} days'` : null;
+      // Set expires_at when campaign goes active at publish (subsidized or gate pre-cleared)
+      const needsExpiry = isSubsidized || (gateAlreadyCleared && fundingAmount <= 0);
+      const expiresAt = needsExpiry ? sql`NOW() + INTERVAL '${sql.unsafe(String(DEFAULTS.CAMPAIGN_EXPIRY_DAYS))} days'` : null;
 
       const [campaign] = await tx`
         INSERT INTO campaigns (
@@ -264,7 +298,7 @@ export async function publishCampaign(
       `;
     }
 
-    return { id: result.id, gatePending: gateRequired };
+    return { id: result.id, gatePending: gateRequired && !gateAlreadyCleared };
   } catch (err) {
     const message = (err as Error).message || "Unknown database error";
     console.error("[publishCampaign] DB error:", message);

@@ -1,6 +1,6 @@
 /* ─── Plan Tier Config ─── */
 
-export type PlanTier = "free" | "starter" | "pro" | "scale";
+export type PlanTier = "free" | "starter" | "pro";
 
 export type PlanConfig = {
   price: number;
@@ -24,12 +24,12 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
   free: {
     price: 0,
     campaignsPerMonth: 1,
-    baselineReachUnits: 75,
+    baselineReachUnits: 100,
     reachPerDollar: 12,
     efficientZone: 15,
     minFundingAmount: 5,
     matchPriority: 1,
-    maxAiQuestions: 3,
+    maxAiQuestions: 5,
     hasInsightSummary: false,
     hasExport: false,
     hasPriorityMatching: false,
@@ -54,7 +54,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     stripePriceId: process.env.STRIPE_STARTER_PRICE_ID ?? null,
   },
   pro: {
-    price: 49,
+    price: 39,
     campaignsPerMonth: 10,
     baselineReachUnits: 600,
     reachPerDollar: 24,
@@ -68,22 +68,6 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     hasAbTesting: false,
     hasDedicatedSupport: false,
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? null,
-  },
-  scale: {
-    price: 99,
-    campaignsPerMonth: null, // unlimited
-    baselineReachUnits: 1500,
-    reachPerDollar: 30,
-    efficientZone: 150,
-    minFundingAmount: 3,
-    matchPriority: 4,
-    maxAiQuestions: 15,
-    hasInsightSummary: "trends",
-    hasExport: "api",
-    hasPriorityMatching: true,
-    hasAbTesting: true,
-    hasDedicatedSupport: true,
-    stripePriceId: process.env.STRIPE_SCALE_PRICE_ID ?? null,
   },
 };
 
@@ -104,7 +88,7 @@ export const STRENGTH_THRESHOLDS = [0, 50, 100, 200, 400, 700, 1100, 1600, 2200,
 
 /* ─── Helpers ─── */
 
-export const PLAN_TIERS: PlanTier[] = ["free", "starter", "pro", "scale"];
+export const PLAN_TIERS: PlanTier[] = ["free", "starter", "pro"];
 
 export function getPlanConfig(tier: PlanTier): PlanConfig {
   return PLAN_CONFIG[tier];
@@ -115,4 +99,4 @@ export function isValidTier(tier: string): tier is PlanTier {
 }
 
 /** Platform fee rate applied to campaign reward pools */
-export const PLATFORM_FEE_RATE = 0.15;
+export const PLATFORM_FEE_RATE = 0.20;

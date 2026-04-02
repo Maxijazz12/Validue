@@ -271,227 +271,71 @@ body {
   border-color: #DDD6CE;
 }
 
-/* ─── Wall page: kinso inspired clean light aesthetic ─── */
-.wall-background {
-  position: relative;
-  background: #FCFAFA;
+/* ─── Wall page: full-bleed background ─── */
+/* When .wall-page-bleed is present, color the entire main + shell bg */
+.immersive-shell:has(.wall-page-bleed) {
+  background: #FBF9F7;
 }
-.wall-background::before {
+.immersive-shell:has(.wall-page-bleed) > main {
+  background: #FBF9F7;
+}
+
+/* ─── Wall: card stagger entrance ─── */
+@keyframes wallCardEntrance {
+  0% { opacity: 0; transform: translateY(24px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.wall-card-stagger {
+  animation: wallCardEntrance 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+@keyframes cardEntranceV2 {
+  0% { opacity: 0; transform: translateY(24px) scale(0.96) rotateX(-4deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
+}
+.wall-card-stagger-v2 {
+  opacity: 0;
+  animation: cardEntranceV2 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+/* ─── Wall: ambient background orbs ─── */
+.immersive-shell:has(.wall-page-bleed) > main::before {
   content: '';
   position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 150% 150% at 50% -20%, rgba(229, 101, 78, 0.03) 0%, transparent 60%);
+  top: -10%;
+  left: -10%;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(232,193,176,0.2), transparent 70%);
+  filter: blur(120px);
   pointer-events: none;
   z-index: 0;
 }
-.wall-background::after {
+.immersive-shell:has(.wall-page-bleed) > main::after {
   content: '';
   position: fixed;
-  inset: 0;
-  background: none;
+  bottom: 20%;
+  right: -5%;
+  width: 50%;
+  height: 50%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(44,160,90,0.1), transparent 70%);
+  filter: blur(100px);
   pointer-events: none;
   z-index: 0;
 }
 
-/* ─── Wall card: kinso-inspired light card ─── */
-.wall-card-surface {
-  position: relative;
-  z-index: 1;
-  background: linear-gradient(135deg, rgba(229,101,78,0.02), rgba(232,193,176,0.03)), #FFFFFF;
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border: 1px solid rgba(229, 101, 78, 0.08);
-  border-radius: 24px;
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 220px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* ─── Wall: scroll entrance (keep for WallCardTracker) ─── */
+.wall-card-enter {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.wall-card-surface:hover {
-  background: linear-gradient(135deg, rgba(229,101,78,0.04), rgba(232,193,176,0.05)), #FFFFFF;
-  border-color: rgba(229, 101, 78, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(229, 101, 78, 0.06), 0 4px 8px rgba(0, 0, 0, 0.02);
-}
-.wall-card-elevated {
-  background: linear-gradient(135deg, rgba(229,101,78,0.06), rgba(232,193,176,0.07)), #FFFFFF !important;
-  border-color: rgba(229, 101, 78, 0.2) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(229, 101, 78, 0.08), 0 6px 12px rgba(0, 0, 0, 0.03) !important;
-}
-
-/* ─── Wall: glass utility classes ─── */
-.wall-glass-surface {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(229, 101, 78, 0.1);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 20px;
-}
-.wall-glass-pill {
-  background: #FFFFFF;
-  border: 1px solid rgba(229, 101, 78, 0.12);
-  border-radius: 100px;
-  padding: 8px 18px;
-  font-family: var(--font-wall-body);
-  font-size: 13px;
-  font-weight: 500;
-  color: #78716C;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.015);
-  transition: all 0.2s ease;
-}
-.wall-glass-pill:hover {
-  border-color: rgba(229, 101, 78, 0.3);
-  color: #1C1917;
-  background: rgba(255, 255, 255, 1);
-}
-.wall-glass-pill-active {
-  background: linear-gradient(to right, #E5654E, #E8C1B0) !important;
-  border-color: transparent !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 4px 12px rgba(229, 101, 78, 0.2) !important;
-}
-.wall-floating-bar {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(229, 101, 78, 0.15);
-  border-radius: 100px;
-  padding: 12px 28px;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(229, 101, 78, 0.05);
-}
-@media (max-width: 768px) {
-  .wall-floating-bar {
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  }
-}
-.wall-floating-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 1);
-  border: 1px solid rgba(229, 101, 78, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #78716C;
-}
-.wall-floating-btn:hover {
-  background: rgba(229, 101, 78, 0.04);
-  border-color: rgba(229, 101, 78, 0.2);
-  color: #E5654E;
-}
-.wall-floating-btn-active {
-  background: rgba(229, 101, 78, 0.08) !important;
-  border-color: rgba(229, 101, 78, 0.2) !important;
-  color: #E5654E !important;
-}
-.wall-context-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding: 0 4px 10px;
-  margin-bottom: 4px;
-  scroll-snap-type: x mandatory;
-}
-.wall-context-row::-webkit-scrollbar {
-  display: none;
-}
-.wall-context-row > * {
-  scroll-snap-align: start;
-  min-width: 200px;
-  max-width: 280px;
-  flex-shrink: 0;
-}
-
-/* ─── Wall: search overlay ─── */
-.wall-search-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 15vh;
-}
-@keyframes searchOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.wall-search-overlay {
-  animation: searchOverlayIn 0.2s ease forwards;
-}
-
-/* ─── Wall: filter bottom sheet ─── */
-.wall-filter-sheet {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 45;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(229, 101, 78, 0.15);
-  border-radius: 24px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  padding: 20px;
-  width: min(480px, calc(100vw - 32px));
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08), 0 -2px 12px rgba(229, 101, 78, 0.05);
-  animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes sheetSlideUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-@media (max-width: 768px) {
-  .wall-filter-sheet {
-    bottom: calc(80px + 72px + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-/* ─── Wall card: new dot pulse ─── */
-.wall-card-new-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #E5654E;
-  animation: dotPulse 2s ease-in-out infinite;
-}
-@keyframes dotPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-/* ─── Wall card: match pill (dark glass) ─── */
-.wall-card-match-pill {
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 1px 6px;
-  border-radius: 999px;
-  letter-spacing: 0.02em;
+.wall-card-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ─── StatCard: premium warm surface ─── */
@@ -569,201 +413,16 @@ body {
   100% { transform: translateX(350%); }
 }
 
-/* shimmer removed — decorative only */
-.wall-shimmer { }
-
-/* ─── Wall feed: scroll entrance transition ─── */
-.wall-card-enter {
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+/* ─── Skeleton shimmer (shared utility) ─── */
+@keyframes warmShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
-.wall-card-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ─── Wall feed: progress ring stroke animation ─── */
-.progress-ring-circle {
-  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ─── Immersive feed: 2-up grid ─── */
-.immersive-feed {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-/* ─── Immersive slide: compact light card tile ─── */
-.immersive-slide {
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 20px;
-  background: #FFFFFF;
-  border: 1px solid rgba(229, 101, 78, 0.08);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.immersive-slide:hover {
-  border-color: rgba(229, 101, 78, 0.18);
-  box-shadow: 0 8px 24px rgba(229, 101, 78, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
-  transform: translateY(-1px);
-}
-
-/* Card bg — hidden in compact mode, tint comes from .immersive-slide itself */
-.immersive-slide-bg {
-  display: none;
-}
-
-/* Arcs — hidden on compact tiles */
-.immersive-arcs {
-  display: none;
-}
-
-/* Glass surface for action buttons */
-.immersive-glass-surface {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(229, 101, 78, 0.08);
-  border-radius: 12px;
-}
-
-/* Stat panel — light tinted cards */
-.immersive-stat-panel {
-  display: flex;
-  flex-direction: column;
-  background: #FAF8F5;
-  border: 1px solid rgba(229, 101, 78, 0.06);
-  border-radius: 14px;
-  padding: 14px 16px;
-}
-
-/* Scroll hint animation */
-.immersive-scroll-hint {
-  animation: scrollHintBounce 2.5s ease-in-out infinite;
-}
-@keyframes scrollHintBounce {
-  0%, 100% { transform: translateY(0); opacity: 0.4; }
-  50% { transform: translateY(5px); opacity: 0.8; }
-}
-
-/* Mobile: single column */
-@media (max-width: 768px) {
-  .immersive-feed {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-}
-
-/* ─── Wall feed: trending row scrollbar hide ─── */
-.trending-row {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.trending-row::-webkit-scrollbar {
-  display: none;
-}
-
-/* ─── Wall feed: sticky collapsible header ─── */
-.wall-header-collapsible {
-  max-height: 300px;
-  opacity: 1;
-  overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.2s ease,
-              padding 0.3s ease,
-              margin 0.3s ease;
-}
-.wall-header-collapsed .wall-header-collapsible {
-  max-height: 0;
-  opacity: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-.wall-header-collapsed {
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: 0 0 20px 20px;
-  border: 1px solid rgba(229, 101, 78, 0.1) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
-}
-
-/* bookmark bounce removed — decorative only */
-.bookmark-bounce { }
-
-/* ─── Wall feed: peek expansion ─── */
-.wall-card-peek {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.25s ease;
-}
-.wall-card-peek-open {
-  max-height: 600px;
-  opacity: 1;
-}
-
-/* ─── Wall feed: mobile snap scroll ─── */
-@media (max-width: 768px) {
-  html:has(#wall-feed) {
-    scroll-snap-type: y proximity;
-  }
-  .wall-card-enter {
-    scroll-snap-align: start;
-    scroll-margin-top: 64px;
-  }
-}
-
-/* ─── Wall feed: keyboard focus ring ─── */
-.wall-card-focused {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25), 0 0 0 4px rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
-}
-
-/* ─── Wall feed: achievement banner slide-in ─── */
-@keyframes slideInFromTop {
-  0% { transform: translateY(-100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.achievement-enter {
-  animation: slideInFromTop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ─── Wall feed: keyboard hint auto-fade ─── */
-@keyframes hintFade {
-  0%, 70% { opacity: 1; }
-  100% { opacity: 0; }
-}
-.keyboard-hint {
-  animation: hintFade 5s ease forwards;
-  pointer-events: none;
-}
-
-/* ─── Wall feed: stats bar collapse ─── */
-.wall-header-collapsed .wall-stats-bar {
-  max-height: 0;
-  opacity: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-.wall-stats-bar {
-  transition: max-height 0.3s ease, opacity 0.2s ease, margin 0.3s ease, padding 0.3s ease;
-}
-
-/* ─── Wall feed: comment input expand on focus ─── */
-.wall-comment-input {
-  transition: height 0.2s ease;
-}
-.wall-comment-input:focus {
-  height: 72px;
+.skeleton-warm {
+  background: linear-gradient(90deg, #F5F0EB 25%, #EDE8E3 50%, #F5F0EB 75%);
+  background-size: 200% 100%;
+  animation: warmShimmer 1.8s ease infinite;
+  border-radius: 8px;
 }
 
 /* ─── Response flow: question slide transitions ─── */

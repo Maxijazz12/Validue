@@ -12,7 +12,17 @@
       "Read(//tmp/**)",
       "Read(//private/tmp/**)",
       "Skill(schedule)",
-      "Skill(schedule:*)"
+      "Skill(schedule:*)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_migrations",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/maxkranstad/.claude/plans",
+      "/Users/maxkranstad/.claude"
     ]
   }
 }

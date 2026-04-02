@@ -273,7 +273,7 @@ export default async function CampaignResponsesPage({
       <ResponseSection
         campaignId={id}
         rewardAmount={safeNumber(campaign.reward_amount)}
-        distributableAmount={safeNumber(campaign.distributable_amount, safeNumber(campaign.reward_amount) * 0.85)}
+        distributableAmount={safeNumber(campaign.distributable_amount, safeNumber(campaign.reward_amount) * 0.80)}
         payoutStatus={campaign.payout_status || "none"}
         rankedCount={rankedResponses.length}
         showAllocator={rankedResponses.length > 0 && safeNumber(campaign.reward_amount) > 0}

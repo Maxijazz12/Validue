@@ -63,7 +63,7 @@ function TrendIndicator({ direction, label }: { direction: "up" | "down" | "flat
 
 export default function StatCard({ label, value, detail, valueColor, progress, children, trend, sparkline }: StatCardProps) {
   return (
-    <div className="stat-card-surface rounded-2xl p-[14px_16px] relative">
+    <div className="flex flex-col w-full bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[20px] transition-all duration-400 relative overflow-hidden group hover:shadow-[0_12px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)]">
       <div className="flex items-start justify-between gap-[8px]">
         <span className="text-[10px] font-semibold text-[#1A1A1A]/35 uppercase tracking-[0.05em]">
           {label}
@@ -72,10 +72,10 @@ export default function StatCard({ label, value, detail, valueColor, progress, c
           <Sparkline data={sparkline} color={valueColor || "#E8C1B0"} />
         )}
       </div>
-      <div className="flex items-baseline gap-[6px] mt-[2px]">
+      <div className="flex items-baseline gap-[6px] mt-[6px]">
         <span
-          className="font-mono text-[20px] font-semibold tracking-[-0.02em] tabular-nums"
-          style={valueColor ? { color: valueColor } : { color: "#1A1A1A" }}
+          className="font-mono text-[28px] font-bold tracking-tight"
+          style={valueColor ? { color: valueColor } : { color: "#1C1917" }}
         >
           {value}
         </span>

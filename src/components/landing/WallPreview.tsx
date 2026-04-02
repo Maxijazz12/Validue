@@ -40,20 +40,20 @@ function PreviewCard({ idea, showViewing }: { idea: PreviewIdea; showViewing?: b
       : 0;
 
   return (
-    <div className="bg-white rounded-2xl p-[20px] shadow-[0_2px_8px_rgba(180,140,110,0.07),0_1px_2px_rgba(0,0,0,0.03)] border border-[#EDE8E3] hover:shadow-[0_8px_32px_rgba(180,140,110,0.12),0_2px_8px_rgba(212,160,136,0.08)] hover:border-[#DDD6CE] hover:scale-[1.01] transition-all duration-250 group relative overflow-hidden">
+    <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] p-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px] transition-all duration-500 group relative overflow-hidden">
 
       {/* Top row: category, tags, time estimate */}
-      <div className="flex items-center justify-between gap-[8px] mb-[12px]">
-        <div className="flex items-center gap-[6px] flex-wrap min-w-0">
+      <div className="flex items-center justify-between gap-[8px] mb-[16px]">
+        <div className="flex items-center gap-[8px] flex-wrap min-w-0">
           {idea.category && (
-            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#D4A088]/10 text-[#C4856E] shrink-0">
-              {idea.category}
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-[8px] py-[4px] rounded-md bg-[#1C1917] text-white shrink-0">
+              [{idea.category}]
             </span>
           )}
           {idea.tags.slice(0, 2).map((tag) => (
             <span
               key={tag}
-              className="text-[11px] px-[8px] py-[3px] rounded-full border border-[#EDE8E3] text-[#A8A29E] shrink-0"
+              className="font-mono text-[9px] font-bold uppercase tracking-widest px-[8px] py-[3px] rounded-md border border-black/10 text-[#A8A29E] shrink-0"
             >
               {tag}
             </span>
@@ -147,34 +147,33 @@ export default function WallPreview() {
   return (
     <section>
       {/* Section header */}
-      <div className="text-center mb-[48px]">
-        <div className="text-[12px] uppercase tracking-[0.06em] font-medium mb-[16px] text-gradient-warm">
-          The Wall
+      <div className="text-center mb-[64px]">
+        <div className="font-mono text-[10px] uppercase font-bold tracking-widest mb-[16px] text-[#A8A29E]">
+          {"// "}LIVE_NETWORK_NODES
         </div>
-        <h2 className="text-[clamp(30px,4.5vw,46px)] font-bold tracking-[-0.04em] leading-[1.1] text-[#1C1917] mb-[16px]">
-          See what founders are building{" "}
-          <span className="italic font-light tracking-[-1px] text-gradient-animated font-heading">
-            right now
+        <h2 className="text-[clamp(32px,5vw,56px)] font-bold tracking-tight leading-[1.05] text-[#1C1917] mb-[24px]">
+          Inspect current{" "}
+          <span className="italic font-light tracking-[-0.02em] text-[#1C1917]/50 font-sans">
+            validations
           </span>
         </h2>
-        <p className="text-[16px] text-[#78716C] max-w-[500px] mx-auto leading-[1.7]">
-          Live startup ideas, open for feedback. Browse, respond
-          thoughtfully, and get paid for your perspective.
+        <p className="font-mono text-[11px] uppercase tracking-widest text-[#A8A29E] max-w-[500px] mx-auto leading-[1.8]">
+          LIVE STARTUP CONSTRAINTS, OPEN FOR REVIEW. SYNTHESIZE FEEDBACK TO EARN YIELD.
         </p>
       </div>
 
       {/* Card grid with fade overlay */}
       <div className="relative">
-        <div className="grid grid-cols-2 max-md:grid-cols-1 gap-[12px]">
+        <div className="grid grid-cols-2 max-md:grid-cols-1 gap-[16px]">
           {mockWallIdeas.map((idea, i) => (
-            <ScrollReveal key={idea.title} animation="scale" staggerIndex={i}>
+            <ScrollReveal key={idea.title} animation="slide-up" staggerIndex={i}>
               <PreviewCard idea={idea} showViewing={i === 0} />
             </ScrollReveal>
           ))}
         </div>
 
         {/* Bottom fade overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-[200px] bg-gradient-to-b from-transparent via-[#FBF9F7]/80 to-[#FBF9F7] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-[300px] bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
       </div>
 
       {/* CTA */}
