@@ -95,7 +95,6 @@ export async function isFirstCampaign(userId: string): Promise<boolean> {
  * subscription tier and usage this billing period.
  *
  * V2: welcome bonus is 1 campaign (same as normal free limit).
- * Scale tier has unlimited campaigns (campaignsPerMonth = null).
  */
 export async function canCreateCampaign(
   userId: string
@@ -103,19 +102,7 @@ export async function canCreateCampaign(
   const sub = await getSubscription(userId);
   const firstMonth = sub.tier === "free" ? await isFirstMonth(userId) : false;
 
-  // Determine effective campaign limit
   const baseLimit = PLAN_CONFIG[sub.tier].campaignsPerMonth;
-
-  // Defensive: unlimited campaigns if campaignsPerMonth is null
-  if (baseLimit === null) {
-    return {
-      allowed: true,
-      tier: sub.tier,
-      used: 0,
-      limit: Infinity,
-      isFirstMonth: false,
-    };
-  }
 
   // V2: welcome bonus no longer increases campaign count (stays at 1)
   const effectiveLimit =

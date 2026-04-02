@@ -11,12 +11,6 @@ export const CATEGORY_OPTIONS = [
   "Other",
 ] as const;
 
-export const REWARD_TYPE_OPTIONS = [
-  { value: "fixed", label: "Fixed per response" },
-  { value: "pool", label: "Reward pool" },
-  { value: "top_only", label: "Top answers only" },
-] as const;
-
 /* ─── Respondent Profile Options ─── */
 
 export const INTEREST_OPTIONS = [

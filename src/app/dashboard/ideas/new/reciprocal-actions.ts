@@ -45,16 +45,6 @@ export type ReciprocalAssignment = {
   }[];
 };
 
-// Keep the old type for backward compat with ReciprocateStep
-export type ReciprocalQuestion = {
-  id: string;
-  text: string;
-  type: "open" | "multiple_choice";
-  options: string[] | null;
-  campaignId: string;
-  campaignTitle: string;
-};
-
 /**
  * Server-side check: are there any campaigns available for the reciprocal gate?
  * Used at publish time to verify cold-start exemption.
@@ -241,38 +231,6 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
   }
 
   return assignments;
-}
-
-/**
- * Legacy fetch for backward compat with existing ReciprocateStep.
- * Flattens assignments into individual questions.
- */
-export async function fetchReciprocalQuestions(opts?: {
-  mcqCount?: number;
-  includeOpenEnded?: boolean;
-}): Promise<ReciprocalQuestion[]> {
-  const assignments = await fetchReciprocalAssignments();
-  const result: ReciprocalQuestion[] = [];
-
-  for (const a of assignments) {
-    for (const q of a.questions) {
-      result.push({
-        id: q.id,
-        text: q.text,
-        type: q.type,
-        options: q.options,
-        campaignId: a.campaignId,
-        campaignTitle: a.campaignTitle,
-      });
-    }
-  }
-
-  // Respect the old limits if provided
-  const mcqCount = opts?.mcqCount ?? 3;
-  const includeOpenEnded = opts?.includeOpenEnded ?? true;
-  const mcqs = result.filter((q) => q.type === "multiple_choice").slice(0, mcqCount);
-  const opens = includeOpenEnded ? result.filter((q) => q.type === "open").slice(0, 1) : [];
-  return [...mcqs, ...opens];
 }
 
 /**

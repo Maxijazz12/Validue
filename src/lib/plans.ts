@@ -4,7 +4,7 @@ export type PlanTier = "free" | "starter" | "pro";
 
 export type PlanConfig = {
   price: number;
-  campaignsPerMonth: number | null; // null = unlimited (Scale)
+  campaignsPerMonth: number;
   baselineReachUnits: number;
   reachPerDollar: number;
   /** Funding amount below which reach conversion is fully linear */
@@ -15,8 +15,6 @@ export type PlanConfig = {
   hasInsightSummary: boolean | "basic" | "full" | "trends";
   hasExport: boolean | "csv" | "api";
   hasPriorityMatching: boolean;
-  hasAbTesting: boolean;
-  hasDedicatedSupport: boolean;
   stripePriceId: string | null;
 };
 
@@ -33,8 +31,6 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     hasInsightSummary: false,
     hasExport: false,
     hasPriorityMatching: false,
-    hasAbTesting: false,
-    hasDedicatedSupport: false,
     stripePriceId: null,
   },
   starter: {
@@ -49,8 +45,6 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     hasInsightSummary: "basic",
     hasExport: false,
     hasPriorityMatching: false,
-    hasAbTesting: false,
-    hasDedicatedSupport: false,
     stripePriceId: process.env.STRIPE_STARTER_PRICE_ID ?? null,
   },
   pro: {
@@ -65,8 +59,6 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     hasInsightSummary: "full",
     hasExport: "csv",
     hasPriorityMatching: true,
-    hasAbTesting: false,
-    hasDedicatedSupport: false,
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? null,
   },
 };
