@@ -36,10 +36,10 @@ export default async function RespondPage({
     .eq("campaign_id", id)
     .order("sort_order", { ascending: true });
 
-  // Check for existing response
+  // Check for existing response (include partial assignment data)
   const { data: existingResponse } = await supabase
     .from("responses")
-    .select("id, status")
+    .select("id, status, assigned_question_ids, is_partial")
     .eq("campaign_id", id)
     .eq("respondent_id", user.id)
     .maybeSingle();
@@ -122,6 +122,7 @@ export default async function RespondPage({
       }))}
       existingResponse={existingResponse}
       existingAnswers={existingAnswers}
+      assignedQuestionIds={existingResponse?.assigned_question_ids ?? null}
       isOwnCampaign={campaign.creator_id === user.id}
       isFull={(campaign.current_responses || 0) >= (campaign.target_responses || 50)}
       isActive={campaign.status === "active"}

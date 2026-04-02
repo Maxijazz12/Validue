@@ -2,6 +2,7 @@
 
 import Button from "@/components/ui/Button";
 import type { SuggestedCampaign } from "./ResponseFlow";
+import { FEATURES } from "@/lib/feature-flags";
 
 type SubmissionConfirmationProps = {
   campaignTitle?: string;
@@ -30,7 +31,7 @@ export default function SubmissionConfirmation({
   totalTimeMs,
   suggestedCampaigns,
 }: SubmissionConfirmationProps) {
-  const hasReward = rewardAmount && rewardAmount > 0;
+  const hasReward = FEATURES.RESPONDENT_PAYOUTS && rewardAmount && rewardAmount > 0;
   const potentialEarnings = (suggestedCampaigns || []).reduce((sum, c) => sum + c.rewardAmount, 0);
 
   return (

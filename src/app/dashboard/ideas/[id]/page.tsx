@@ -10,6 +10,7 @@ import { getCampaignStrength, getStrengthLabel, estimateFillSpeed, getQualityMod
 import { getStrengthColors } from "@/lib/strength-colors";
 import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
 import { WELCOME_BONUS } from "@/lib/plans";
+import { FEATURES } from "@/lib/feature-flags";
 
 import sql from "@/lib/db";
 import { completeCampaign } from "./campaign-actions";
@@ -292,6 +293,38 @@ export default async function CampaignDetailPage({
       )}
 
       {campaign.status === "pending_funding" && funded !== "true" && (() => {
+        const isGatePending = campaign.reciprocal_gate_status === "pending";
+
+        // Reciprocal gate pending — show gate progress instead of funding UI
+        if (isGatePending) {
+          const completed = campaign.reciprocal_responses_completed ?? 0;
+          return (
+            <div className="mb-[16px] bg-white border border-[#E5654E]/30 rounded-xl p-[20px]">
+              <p className="text-[15px] font-semibold text-[#111111]">
+                Answer questions to go live
+              </p>
+              <p className="text-[13px] text-[#64748B] mt-[2px]">
+                Help test assumptions from {3 - completed} more campaign{3 - completed !== 1 ? "s" : ""} to publish yours.
+              </p>
+              <div className="flex items-center gap-[8px] mt-[12px]">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-[4px] flex-1 rounded-full ${i < completed ? "bg-[#22C55E]" : "bg-[#E2E8F0]"}`}
+                  />
+                ))}
+              </div>
+              <Link
+                href="/dashboard/ideas/new"
+                className="inline-block mt-[12px] px-[16px] py-[8px] rounded-xl bg-[#111111] text-white text-[13px] font-medium no-underline hover:bg-[#1a1a1a] transition-colors"
+              >
+                Continue
+              </Link>
+            </div>
+          );
+        }
+
+        // Stripe funding pending (only shown when CAMPAIGN_FUNDING is enabled)
         const rewardAmt = Number(campaign.reward_amount) || 0;
         const strength = campaign.campaign_strength;
         const respLow = campaign.estimated_responses_low;
@@ -419,9 +452,13 @@ export default async function CampaignDetailPage({
             {/* Campaign actions for active campaigns */}
             {campaign.status === "active" && (
               <div className="mt-[16px] pt-[16px] border-t border-[#f0f0f0] flex flex-col gap-[10px]">
-                <p className="text-[12px] text-[#64748B]">Increase your budget to reach more people and attract additional responses.</p>
+                {FEATURES.CAMPAIGN_FUNDING && (
+                  <p className="text-[12px] text-[#64748B]">Increase your budget to reach more people and attract additional responses.</p>
+                )}
                 <div className="flex items-center gap-[10px]">
-                  <FundCampaignButton campaignId={campaign.id} rewardAmount={Number(campaign.reward_amount) || 0} label="Increase Budget" />
+                  {FEATURES.CAMPAIGN_FUNDING && (
+                    <FundCampaignButton campaignId={campaign.id} rewardAmount={Number(campaign.reward_amount) || 0} label="Increase Budget" />
+                  )}
                   <PauseCampaignButton campaignId={campaign.id} />
                   <CompleteCampaignButton campaignId={campaign.id} />
                 </div>

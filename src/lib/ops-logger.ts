@@ -128,6 +128,13 @@ type ContentFlagged = {
   entryPoint: string;
 };
 
+type CampaignAutoExtended = {
+  event: "campaign.auto_extended";
+  campaignId: string;
+  fillRatio: number;
+  extensionDays: number;
+};
+
 type CampaignCloned = {
   event: "campaign.cloned";
   originalCampaignId: string;
@@ -155,10 +162,18 @@ type CampaignDraftUpdated = {
   creatorId: string;
 };
 
+type ReciprocalGateCleared = {
+  event: "reciprocal_gate.cleared";
+  campaignId: string;
+  userId: string;
+  completedCount: number;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
   | CampaignStatusChanged
+  | CampaignAutoExtended
   | CampaignCloned
   | CampaignRetested
   | CampaignDraftSaved
@@ -172,7 +187,8 @@ type OpsEvent =
   | ReachError
   | ReputationUpdated
   | WebhookProcessed
-  | ContentFlagged;
+  | ContentFlagged
+  | ReciprocalGateCleared;
 
 /* ─── Logger ─── */
 

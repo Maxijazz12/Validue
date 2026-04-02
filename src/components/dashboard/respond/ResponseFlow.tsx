@@ -40,6 +40,8 @@ type ResponseFlowProps = {
   questions: Question[];
   existingResponse: { id: string; status: string } | null;
   existingAnswers: { question_id: string; text: string; metadata: Record<string, unknown> }[] | null;
+  /** If set, only show these questions (partial response mode) */
+  assignedQuestionIds: string[] | null;
   isOwnCampaign: boolean;
   isFull: boolean;
   isActive: boolean;
@@ -54,6 +56,7 @@ export default function ResponseFlow({
   questions,
   existingResponse,
   existingAnswers,
+  assignedQuestionIds,
   isOwnCampaign,
   isFull,
   isActive,
@@ -69,6 +72,9 @@ export default function ResponseFlow({
   const [stage, setStage] = useState<Stage>(initialStage);
   const [responseId, setResponseId] = useState<string | null>(
     existingResponse?.id || null
+  );
+  const [currentAssignedIds, setCurrentAssignedIds] = useState<string[] | null>(
+    assignedQuestionIds
   );
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -92,16 +98,23 @@ export default function ResponseFlow({
     return map.size > 0 ? map : undefined;
   })();
 
+  // Filter to assigned questions if in partial mode, then order
+  const activeQuestions = useMemo(() => {
+    if (!currentAssignedIds) return questions;
+    const assignedSet = new Set(currentAssignedIds);
+    return questions.filter((q) => assignedSet.has(q.id));
+  }, [questions, currentAssignedIds]);
+
   // Baselines first (original order), then custom questions shuffled per-respondent
   const orderedQuestions = useMemo(() => {
-    if (!responseId) return questions;
-    const baselines = questions.filter((q) => q.isBaseline);
-    const customs = questions.filter((q) => !q.isBaseline);
+    if (!responseId) return activeQuestions;
+    const baselines = activeQuestions.filter((q) => q.isBaseline);
+    const customs = activeQuestions.filter((q) => !q.isBaseline);
     return [...baselines, ...seededShuffle(customs, responseId)];
-  }, [questions, responseId]);
+  }, [activeQuestions, responseId]);
 
-  const openCount = questions.filter((q) => q.type === "open").length;
-  const mcCount = questions.filter((q) => q.type === "multiple_choice").length;
+  const openCount = activeQuestions.filter((q) => q.type === "open").length;
+  const mcCount = activeQuestions.filter((q) => q.type === "multiple_choice").length;
 
   const handleStart = useCallback(() => {
     setError(null);
@@ -109,6 +122,9 @@ export default function ResponseFlow({
       try {
         const result = await startResponse(campaign.id);
         setResponseId(result.responseId);
+        if (result.assignedQuestionIds) {
+          setCurrentAssignedIds(result.assignedQuestionIds);
+        }
         setStage("responding");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to start");

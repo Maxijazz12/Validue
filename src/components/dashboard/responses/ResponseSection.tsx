@@ -3,6 +3,7 @@
 import { useRef, useCallback } from "react";
 import PayoutAllocator from "./PayoutAllocator";
 import ResponseList, { type ResponseItem } from "./ResponseList";
+import { FEATURES } from "@/lib/feature-flags";
 
 type ResponseSectionProps = {
   campaignId: string;
@@ -38,7 +39,7 @@ export default function ResponseSection({
 
   return (
     <>
-      {showAllocator && (
+      {FEATURES.RESPONDENT_PAYOUTS && showAllocator && (
         <div className="mb-[24px]">
           <PayoutAllocator
             campaignId={campaignId}

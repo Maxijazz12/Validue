@@ -12,10 +12,11 @@ import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { rateLimit } from "@/lib/rate-limit";
+import { initialGateStatus, requiresGate } from "@/lib/reciprocal-gate";
 
 export async function publishCampaign(
   draft: CampaignDraft
-): Promise<{ id: string } | { error: string }> {
+): Promise<{ id: string; gatePending?: boolean } | { error: string }> {
   // 1. Authenticate via Supabase SDK
   let user;
   try {
@@ -129,8 +130,20 @@ export async function publishCampaign(
   const keyAssumptions = draft.assumptions
     .filter((a) => a.trim().length > 0)
     .map((a) => enforceLength(a, 500).text);
-  // Subsidized campaigns go active immediately (no Stripe); funded campaigns wait for payment
-  const initialStatus = isSubsidized ? "active" : (fundingAmount > 0 ? "pending_funding" : "active");
+  // Determine initial status:
+  // - Subsidized → active immediately
+  // - Funded → pending_funding (awaits Stripe)
+  // - Free-tier with reciprocal gate → pending_funding (awaits gate clearance, reuses status)
+  // - Free-tier without gate → active
+  const gateRequired = requiresGate(allowance.tier) && !isSubsidized;
+  const gateStatus = isSubsidized ? null : initialGateStatus(allowance.tier);
+  const initialStatus = isSubsidized
+    ? "active"
+    : fundingAmount > 0
+      ? "pending_funding"
+      : gateRequired
+        ? "pending_funding"
+        : "active";
   // Subsidized: use subsidy budget as reward_amount for display; funded: use actual amount
   const effectiveRewardAmount = isSubsidized ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN : fundingAmount;
 
@@ -161,7 +174,8 @@ export async function publishCampaign(
           quality_scores, quality_score,
           baseline_reach_units, funded_reach_units, total_reach_units,
           effective_reach_units, campaign_strength,
-          estimated_responses_low, estimated_responses_high, match_priority
+          estimated_responses_low, estimated_responses_high, match_priority,
+          reciprocal_gate_status
         ) VALUES (
           ${user.id}, ${draft.title}, ${draft.summary}, ${initialStatus},
           ${draft.category}, ${draft.tags}, ${estimatedMinutes},
@@ -174,7 +188,8 @@ export async function publishCampaign(
           ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb, ${qualityScore},
           ${reach.baselineRU}, ${reach.fundedRU}, ${reach.totalRU},
           ${reach.effectiveReach}, ${reach.campaignStrength},
-          ${reach.estimatedResponsesLow}, ${reach.estimatedResponsesHigh}, ${planConfig.matchPriority}
+          ${reach.estimatedResponsesLow}, ${reach.estimatedResponsesHigh}, ${planConfig.matchPriority},
+          ${gateStatus}
         )
         RETURNING id
       `;
@@ -249,7 +264,7 @@ export async function publishCampaign(
       `;
     }
 
-    return { id: result.id };
+    return { id: result.id, gatePending: gateRequired };
   } catch (err) {
     const message = (err as Error).message || "Unknown database error";
     console.error("[publishCampaign] DB error:", message);

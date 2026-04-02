@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
+import { FEATURES } from "@/lib/feature-flags";
 
 type CampaignDetailProps = {
   campaign: {
@@ -63,7 +64,7 @@ export default function CampaignDetail({
           100
         )
       : 0;
-  const hasReward = campaign.rewardAmount > 0;
+  const hasReward = FEATURES.RESPONDENT_PAYOUTS && campaign.rewardAmount > 0;
 
   const canStart = isActive && !isOwnCampaign && !isFull && !hasSubmitted;
 

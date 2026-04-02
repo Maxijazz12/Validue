@@ -149,3 +149,85 @@ Audience targeting quality is gated by respondent profile depth at signup. Exten
 ### What's next
 - Partial response model + reciprocal gate (pending Max's answers to open questions in `memory/next-up.md`)
 - Known gaps: matchSkew splits by quality not audience match, `Database` type not wired into clients
+
+## 2026-04-02 — Partial response model + reciprocal gate
+
+### Summary
+Complete backend implementation of the partial response model and reciprocal gate system. 8 steps, all passing (289 tests, 0 lint errors, build clean).
+
+### Design Decisions (Max)
+- Reciprocal gate: free-tier only (paid tiers exempt)
+- Questions per partial response: 3-5
+- Show idea headline to reciprocal respondents, not the assumption
+- Paid respondent economics: deferred pending analysis
+- Paste detection: keep current screening, don't disable paste entirely
+- Reciprocal response weighting: no downweighting — MCQ signal is equally valid rushed or not, and early campaigns only have reciprocal data
+
+### What was built
+
+**Step 1 — Migration `034_partial_responses.sql`**
+- `responses.assigned_question_ids uuid[]` — which questions assigned to this respondent
+- `responses.is_partial boolean` — partial vs full response flag
+- `responses` status constraint fix — added `abandoned` (was missing, latent bug)
+- `campaigns.reciprocal_gate_status` — `pending` | `cleared` | `exempt`
+- `campaigns.reciprocal_responses_completed` — gate progress counter
+- Two indexes for partial response + gate queue lookups
+- **NOT YET APPLIED TO REMOTE DB** — Max needs to run SQL in Supabase dashboard
+
+**Step 2 — Question assignment module (`question-assignment.ts`)**
+- Pure function: given questions + coverage counts + respondent profile → 3-5 question IDs
+- Optimizes for assumption coverage (under-served assumptions first), respondent match, category diversity
+- Guarantees at least 1 open + 2 MCQ, spreads across assumptions
+- 14 unit tests
+
+**Step 3 — Wire assignment into `startResponse`**
+- Campaigns with 6+ questions get partial assignment; fewer stay full-response
+- Fetches respondent profile + per-assumption coverage counts
+- Stores `assigned_question_ids` + `is_partial` on response row
+- Returns assignment to client; `ResponseFlow` filters displayed questions
+
+**Step 4 — Adapt `submitResponse` for partial responses**
+- Only requires assigned questions answered (not all campaign questions)
+- Time thresholds scale proportionally: `minTime × (assigned/total)` with 15s floor
+- Paste screening unchanged
+
+**Step 5 — Reciprocal gate (`reciprocal-gate.ts`)**
+- Pure logic: `initialGateStatus(tier)`, `checkGate(status, count)`, `requiresGate(tier)`
+- `RECIPROCAL_REQUIRED = 3` responses to clear gate
+- `publishCampaign` sets gate status; free-tier unfunded → `pending_funding` until cleared
+- `incrementReciprocalGate()` server action: increments counter, activates campaign when cleared
+- 11 unit tests
+
+**Step 6 — Reciprocal actions rewrite**
+- New `fetchReciprocalAssignments()` uses question assignment module (not ad-hoc picking)
+- Creates proper partial response rows per reciprocal campaign
+- `saveReciprocalAnswer()` auto-submits when all assigned questions answered
+- Legacy `fetchReciprocalQuestions()` kept as backward-compat wrapper
+
+**Step 7 — Brief synthesis threshold tuning**
+- Total response fallback: 3 → 2 (partial = more respondents, fewer questions each)
+- Per-assumption INSUFFICIENT_DATA: 3 → 2 relevant responses
+- AI prompt: added principle explaining partial responses and uneven evidence distribution
+- Coverage strength: "strong" 5+/3cat → 4+/2cat, "moderate" 3+/2cat → 2+/1cat
+
+**Step 8 — Mothball paid flows (`feature-flags.ts`)**
+- Single flag module: `RESPONDENT_PAYOUTS`, `EARNINGS_PAGE`, `REPUTATION_TIERS`, `CASHOUT`, `CAMPAIGN_FUNDING`, `WEEKLY_DIGEST` — all `false`
+- Sidebar: earnings link hidden
+- RespondentStatsBar: tier badge + earnings hidden
+- ResponseSection: PayoutAllocator hidden
+- CampaignDetail + SubmissionConfirmation: reward messaging hidden
+- Campaign page: reciprocal gate progress banner for pending campaigns; funding UI gated
+- CreateIdeaFlow: handles `gatePending` redirect
+
+### Blockers
+- **Migration 034 not applied to remote DB** — must be run via Supabase SQL Editor
+- UI for reciprocal step in create flow not wired (ReciprocateStep exists but CreateIdeaFlow doesn't show it for gated campaigns yet — needs UI work)
+
+### Stats
+- 289 tests passing across 16 test files. Lint + build clean.
+
+### What's next
+- Apply migration 034 to remote DB
+- Wire ReciprocateStep into CreateIdeaFlow for gated campaigns (UI task)
+- End-to-end test with real campaign data
+- Known gaps: matchSkew splits by quality not audience match, `Database` type not wired into clients

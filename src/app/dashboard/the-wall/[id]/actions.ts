@@ -7,6 +7,12 @@ import { DEFAULTS } from "@/lib/defaults";
 import { logOps } from "@/lib/ops-logger";
 import { rateLimit } from "@/lib/rate-limit";
 import sql from "@/lib/db";
+import {
+  assignQuestions,
+  type CampaignQuestion,
+  type AssumptionCoverageCount,
+} from "@/lib/question-assignment";
+import type { RespondentProfile } from "@/lib/wall-ranking";
 
 export type AnswerMetadata = {
   pasteDetected: boolean;
@@ -24,7 +30,10 @@ function sanitizeMetadata(m: AnswerMetadata): AnswerMetadata {
   };
 }
 
-export async function startResponse(campaignId: string) {
+export async function startResponse(campaignId: string): Promise<{
+  responseId: string;
+  assignedQuestionIds: string[] | null;
+}> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,10 +41,10 @@ export async function startResponse(campaignId: string) {
 
   if (!user) throw new Error("Not authenticated");
 
-  // Fetch campaign (include V2 fields)
+  // Fetch campaign (include V2 + targeting fields for question assignment)
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, creator_id, status, current_responses, target_responses, expires_at, economics_version")
+    .select("id, creator_id, status, current_responses, target_responses, expires_at, economics_version, target_interests, target_expertise, target_age_ranges, tags")
     .eq("id", campaignId)
     .single();
 
@@ -63,7 +72,7 @@ export async function startResponse(campaignId: string) {
   // Check for existing response to this campaign
   const { data: existing } = await supabase
     .from("responses")
-    .select("id, status")
+    .select("id, status, assigned_question_ids, is_partial")
     .eq("campaign_id", campaignId)
     .eq("respondent_id", user.id)
     .maybeSingle();
@@ -75,8 +84,11 @@ export async function startResponse(campaignId: string) {
       // Don't allow re-entry after abandonment — treat as used slot
       throw new Error("Your previous response to this campaign timed out.");
     }
-    // Resume in-progress response
-    return { responseId: existing.id };
+    // Resume in-progress response (preserve original assignment)
+    return {
+      responseId: existing.id,
+      assignedQuestionIds: existing.assigned_question_ids ?? null,
+    };
   }
 
   // V2: Fill cap — count qualifying + in-progress responses toward target (no overfill)
@@ -123,7 +135,99 @@ export async function startResponse(campaignId: string) {
     }
   }
 
+  // ─── Question Assignment (partial response mode) ───
+  // Fetch questions + respondent profile + coverage counts for assignment
+  let assignedQuestionIds: string[] | null = null;
+
+  const { data: campaignQuestions } = await supabase
+    .from("questions")
+    .select("id, text, type, sort_order, options, is_baseline, category, assumption_index")
+    .eq("campaign_id", campaignId)
+    .order("sort_order", { ascending: true });
+
+  const questions: CampaignQuestion[] = (campaignQuestions || []).map((q) => ({
+    id: q.id,
+    text: q.text,
+    type: q.type as "open" | "multiple_choice",
+    category: q.category,
+    assumptionIndex: q.assumption_index,
+    isBaseline: q.is_baseline ?? false,
+    sortOrder: q.sort_order,
+  }));
+
+  // Only run partial assignment if there are enough questions (>= 6)
+  // Campaigns with few questions should remain full-response
+  const usePartialAssignment = questions.length >= 6;
+
+  if (usePartialAssignment) {
+    // Fetch respondent profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("interests, expertise, age_range, reputation_score, total_responses_completed")
+      .eq("id", user.id)
+      .single();
+
+    const respondentProfile: RespondentProfile = {
+      interests: (profile?.interests as string[]) ?? [],
+      expertise: (profile?.expertise as string[]) ?? [],
+      age_range: (profile?.age_range as string | null) ?? null,
+      profile_completed: !!profile?.interests?.length,
+      reputation_score: Number(profile?.reputation_score ?? 0),
+      total_responses_completed: Number(profile?.total_responses_completed ?? 0),
+    };
+
+    // Get per-assumption coverage counts (how many submitted answers exist per assumption)
+    const coverageRows = await sql`
+      SELECT q.assumption_index, COUNT(*)::int AS count
+      FROM answers a
+      JOIN questions q ON q.id = a.question_id
+      JOIN responses r ON r.id = a.response_id
+      WHERE r.campaign_id = ${campaignId}
+        AND r.status IN ('submitted', 'ranked')
+        AND q.assumption_index IS NOT NULL
+      GROUP BY q.assumption_index
+    `;
+    const coverageCounts: AssumptionCoverageCount = {};
+    for (const row of coverageRows) {
+      coverageCounts[row.assumption_index as number] = row.count as number;
+    }
+
+    // Check if respondent already answered some questions (e.g. from reciprocal)
+    const { data: priorAnswers } = await supabase
+      .from("answers")
+      .select("question_id")
+      .in(
+        "response_id",
+        (await supabase
+          .from("responses")
+          .select("id")
+          .eq("campaign_id", campaignId)
+          .eq("respondent_id", user.id)
+        ).data?.map((r) => r.id) ?? []
+      );
+    const excludeIds = new Set((priorAnswers || []).map((a) => a.question_id));
+
+    const assignment = assignQuestions(
+      questions,
+      coverageCounts,
+      respondentProfile,
+      {
+        targetInterests: (campaign.target_interests as string[]) ?? [],
+        targetExpertise: (campaign.target_expertise as string[]) ?? [],
+        targetAgeRanges: (campaign.target_age_ranges as string[]) ?? [],
+        tags: (campaign.tags as string[]) ?? [],
+      },
+      { excludeQuestionIds: excludeIds.size > 0 ? excludeIds : undefined }
+    );
+
+    if (assignment) {
+      assignedQuestionIds = assignment.questionIds;
+    }
+    // If assignment fails (not enough questions), fall back to full response
+  }
+
   // Create new response (reserves a slot)
+  const isPartial = assignedQuestionIds !== null;
   const { data: response, error } = await supabase
     .from("responses")
     .insert({
@@ -131,13 +235,14 @@ export async function startResponse(campaignId: string) {
       respondent_id: user.id,
       status: "in_progress",
       ...(campaign.economics_version === 2 ? { money_state: "pending_qualification" } : {}),
+      ...(isPartial ? { assigned_question_ids: assignedQuestionIds, is_partial: true } : {}),
     })
     .select("id")
     .single();
 
   if (error) throw new Error(error.message);
 
-  return { responseId: response.id };
+  return { responseId: response.id, assignedQuestionIds };
 }
 
 export async function saveAnswer(
@@ -213,7 +318,7 @@ export async function submitResponse(responseId: string) {
   // Verify response belongs to user and is in_progress
   const { data: response } = await supabase
     .from("responses")
-    .select("id, status, campaign_id, money_state")
+    .select("id, status, campaign_id, money_state, assigned_question_ids, is_partial")
     .eq("id", responseId)
     .eq("respondent_id", user.id)
     .single();
@@ -222,11 +327,19 @@ export async function submitResponse(responseId: string) {
   if (response.status !== "in_progress")
     throw new Error("Response already submitted");
 
-  // Verify all questions are answered
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("id")
-    .eq("campaign_id", response.campaign_id);
+  // Determine required questions: assigned subset (partial) or all (full)
+  const isPartial = response.is_partial && response.assigned_question_ids?.length;
+  let requiredQuestionIds: string[];
+
+  if (isPartial) {
+    requiredQuestionIds = response.assigned_question_ids as string[];
+  } else {
+    const { data: questions } = await supabase
+      .from("questions")
+      .select("id")
+      .eq("campaign_id", response.campaign_id);
+    requiredQuestionIds = (questions || []).map((q) => q.id);
+  }
 
   const { data: answers } = await supabase
     .from("answers")
@@ -234,7 +347,7 @@ export async function submitResponse(responseId: string) {
     .eq("response_id", responseId);
 
   const answeredIds = new Set((answers || []).map((a) => a.question_id));
-  const unanswered = (questions || []).filter((q) => !answeredIds.has(q.id));
+  const unanswered = requiredQuestionIds.filter((id) => !answeredIds.has(id));
 
   if (unanswered.length > 0)
     throw new Error(`${unanswered.length} questions still unanswered`);
@@ -262,11 +375,24 @@ export async function submitResponse(responseId: string) {
       if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
     }
 
-    // Hard time floor — reject impossibly fast submissions
-    const minTime =
+    // Scale time threshold for partial responses
+    // Full: 90s standard / 45s quick. Partial: scale by (assigned / total) with 15s floor
+    let minTime: number =
       campaign.format === "quick"
         ? DEFAULTS.SUBMIT_MIN_TIME_QUICK_MS
         : DEFAULTS.SUBMIT_MIN_TIME_STANDARD_MS;
+
+    if (isPartial) {
+      const totalQuestionCount = (await supabase
+        .from("questions")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", response.campaign_id)
+      ).count ?? requiredQuestionIds.length;
+
+      const ratio = requiredQuestionIds.length / Math.max(1, totalQuestionCount);
+      minTime = Math.max(15_000, Math.round(minTime * ratio));
+    }
+
     if (totalTimeMs < minTime) {
       throw new Error(
         "Your response was submitted too quickly. Please take more time to provide thoughtful answers."

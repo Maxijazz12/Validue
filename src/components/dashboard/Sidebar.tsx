@@ -8,6 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/ui/Avatar";
 import { useImmersive } from "@/components/ImmersiveProvider";
+import { FEATURES } from "@/lib/feature-flags";
 
 type NavItem = { label: string; href: string; icon: string };
 
@@ -19,7 +20,7 @@ const primaryNav: NavItem[] = [
 
 const secondaryNav: NavItem[] = [
   { label: "My Responses", href: "/dashboard/my-responses", icon: "clipboard" },
-  { label: "Earnings", href: "/dashboard/earnings", icon: "chart" },
+  ...(FEATURES.EARNINGS_PAGE ? [{ label: "Earnings", href: "/dashboard/earnings", icon: "chart" }] : []),
   { label: "Settings", href: "/dashboard/settings", icon: "sliders" },
 ];
 
@@ -147,7 +148,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
 
         {/* Label — visible when expanded */}
         {expanded && (
-          <span className="text-[13px] font-medium whitespace-nowrap overflow-hidden">
+          <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap overflow-hidden">
             {item.label}
           </span>
         )}
@@ -161,7 +162,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
 
         {/* Tooltip — visible when collapsed */}
         {!expanded && (
-          <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+          <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#292524] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
             {item.label}
           </span>
         )}
@@ -206,7 +207,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
             </>
           )}
           {!expanded && (
-            <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+            <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#292524] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
               Search <span className="text-white/30 ml-[4px]">⌘K</span>
             </span>
           )}
@@ -238,9 +239,9 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
               </span>
             )}
           </span>
-          {expanded && <span className="text-[13px] font-medium">Notifications</span>}
+          {expanded && <span className="text-[13px] font-semibold tracking-wide">Notifications</span>}
           {!expanded && (
-            <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+            <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#292524] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
               Notifications
             </span>
           )}
@@ -274,7 +275,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
               >
                 <Avatar name={userName} imageUrl={userAvatar} size={28} />
               </button>
-              <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#1A1A1C] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+              <span className="pointer-events-none absolute left-full ml-[12px] px-[10px] py-[5px] rounded-lg bg-[#292524] text-white/80 text-[12px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
                 {userName}
               </span>
             </div>
@@ -290,7 +291,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
       <div className={`md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-[8px] px-[12px] py-[8px] backdrop-blur-xl border-b transition-colors duration-300 ${
         isImmersive
           ? "bg-[rgba(15,15,17,0.9)] border-white/[0.04]"
-          : "bg-white/95 dark:bg-[#0F0F11]/95 border-[#F0F0F0] dark:border-[#27272A]"
+          : "bg-white/95 dark:bg-[#1C1917]/95 border-[#F0F0F0] dark:border-[#27272A]"
       }`}>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -331,7 +332,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
 
       {/* Mobile sidebar — full width when open */}
       <aside
-        className={`md:hidden fixed top-0 left-0 h-screen w-[240px] z-40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-[#0F0F11] border-r border-white/[0.06] ${
+        className={`md:hidden fixed top-0 left-0 h-screen w-[240px] z-40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] bg-[#1C1917] border-r border-white/[0.06] ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -349,7 +350,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-[12px] px-[12px] py-[10px] rounded-xl text-[13px] font-medium no-underline transition-all duration-200 ${
+                className={`flex items-center gap-[12px] px-[12px] py-[10px] rounded-xl text-[13px] font-semibold tracking-wide no-underline transition-all duration-200 ${
                   isActive(item.href)
                     ? "bg-white/[0.08] text-white"
                     : "text-white/30 hover:text-white/70 hover:bg-white/[0.04]"
@@ -365,7 +366,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-[12px] px-[12px] py-[10px] rounded-xl text-[13px] font-medium no-underline transition-all duration-200 ${
+                className={`flex items-center gap-[12px] px-[12px] py-[10px] rounded-xl text-[13px] font-semibold tracking-wide no-underline transition-all duration-200 ${
                   isActive(item.href)
                     ? "bg-white/[0.08] text-white"
                     : "text-white/30 hover:text-white/70 hover:bg-white/[0.04]"
@@ -402,7 +403,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
         className={`max-md:hidden fixed top-0 left-0 h-screen z-40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] border-r ${
           isImmersive
             ? "bg-[rgba(15,15,17,0.85)] backdrop-blur-xl border-white/[0.04]"
-            : "bg-[#0F0F11] border-white/[0.06]"
+            : "bg-[#1C1917] border-white/[0.06]"
         } ${expanded ? "w-[200px]" : "w-[64px]"}`}
       >
         {railContent}

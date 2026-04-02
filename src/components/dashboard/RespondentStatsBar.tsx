@@ -1,4 +1,5 @@
 import { TIER_CONFIG, type ReputationTier } from "@/lib/reputation-config";
+import { FEATURES } from "@/lib/feature-flags";
 
 export type WallUserProfile = {
   reputation_score: number;
@@ -24,23 +25,27 @@ export default function RespondentStatsBar({
   const tierConfig = TIER_CONFIG[userProfile.reputation_tier];
 
   return (
-    <div className="wall-stats-bar flex items-center gap-[16px] p-[12px_16px] bg-[#FAFAFA] dark:bg-[#18181B] rounded-xl mb-[12px] max-h-[60px]">
-      {/* Tier */}
-      <div className="flex items-center gap-[6px] shrink-0">
-        <span className="text-[12px] font-semibold text-[#1A1A1A] dark:text-[#FAFAFA]">{tierConfig.label}</span>
-        <span className="text-[11px] text-[#A1A1AA] font-mono">{Math.round(userProfile.reputation_score)}</span>
-      </div>
+    <div className="wall-stats-bar flex items-center gap-[16px] p-[12px_24px] bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-full mb-[24px] max-w-fit mx-auto">
+      {/* Tier — hidden when reputation tiers are mothballed */}
+      {FEATURES.REPUTATION_TIERS && (
+        <div className="flex items-center gap-[6px] shrink-0">
+          <span className="text-[12px] font-semibold text-[#1A1A1A] dark:text-[#FAFAFA]">{tierConfig.label}</span>
+          <span className="text-[11px] text-[#A1A1AA] font-mono">{Math.round(userProfile.reputation_score)}</span>
+        </div>
+      )}
 
       {/* Responses */}
       <div className="flex items-center gap-[4px] shrink-0">
         <span className="text-[12px] text-[#71717A]">{userProfile.total_responses_completed} responses</span>
       </div>
 
-      {/* Earnings */}
-      <div className="flex items-center gap-[4px] shrink-0">
-        <span className="text-[12px] text-[#71717A]">Earned</span>
-        <span className="text-[12px] font-medium text-[#1A1A1A] dark:text-[#FAFAFA]">${Math.round(userProfile.total_earned)}</span>
-      </div>
+      {/* Earnings — hidden when payouts are mothballed */}
+      {FEATURES.RESPONDENT_PAYOUTS && (
+        <div className="flex items-center gap-[4px] shrink-0">
+          <span className="text-[12px] text-[#71717A]">Earned</span>
+          <span className="text-[12px] font-medium text-[#1A1A1A] dark:text-[#FAFAFA]">${Math.round(userProfile.total_earned)}</span>
+        </div>
+      )}
 
       {/* Matches */}
       {matchCount > 0 && (

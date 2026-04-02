@@ -146,6 +146,12 @@ export default function CreateIdeaFlow() {
 
       clearAutosave();
 
+      // Reciprocal gate pending — redirect to campaign page (shows gate progress)
+      if (result.gatePending) {
+        window.location.href = `/dashboard/ideas/${result.id}`;
+        return;
+      }
+
       // Campaign created with pending_funding — redirect to Stripe Checkout
       if (draft.rewardPool && draft.rewardPool > 0) {
         const funding = await createFundingSession(result.id);
@@ -169,36 +175,36 @@ export default function CreateIdeaFlow() {
   return (
     <div>
       {showRestore && (
-        <div className="mb-[16px] px-[16px] py-[14px] rounded-xl bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-between gap-[12px]">
-          <p className="text-[13px] text-[#64748B]">
-            You have an unsaved draft from a previous session.
+        <div className="mb-[16px] p-[16px] rounded-[16px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm flex items-center justify-between gap-[12px]">
+          <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#1C1917]">
+            [ SUSPENDED SESSION DETECTED INCORPORATING SAVED CACHE ]
           </p>
           <div className="flex items-center gap-[8px] shrink-0">
             <button
               onClick={handleRestore}
-              className="px-[14px] py-[6px] rounded-xl bg-[#111111] text-white text-[12px] font-medium border-none cursor-pointer hover:bg-[#1a1a1a] transition-all duration-200"
+              className="px-[16px] py-[8px] rounded-full bg-[#1C1917] text-white font-mono text-[10px] font-bold uppercase tracking-widest border border-transparent cursor-pointer hover:bg-white hover:text-[#1C1917] hover:border-[#1C1917] hover:shadow-md transition-all duration-300"
             >
-              Restore
+              [ RESTORE ]
             </button>
             <button
               onClick={handleDiscardRestore}
-              className="px-[14px] py-[6px] rounded-xl text-[#64748B] text-[12px] font-medium border border-[#E2E8F0] bg-white cursor-pointer hover:border-[#CBD5E1] transition-all duration-200"
+              className="px-[16px] py-[8px] rounded-full font-mono text-[10px] uppercase tracking-widest font-bold text-[#A8A29E] bg-transparent border border-[#E7E5E4] cursor-pointer hover:border-[#1C1917] hover:text-[#1C1917] transition-all duration-300"
             >
-              Discard
+              [ PURGE ]
             </button>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-red-50 border border-red-200 text-[13px] text-red-700 flex items-center justify-between gap-[12px]">
-          <span>{error}</span>
+        <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-[#ef4444]/10 border border-[#ef4444]/20 backdrop-blur-md flex items-center justify-between gap-[12px]">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">[ ERR: {error} ]</span>
           {error.includes("Upgrade") && (
             <Link
               href="/#pricing"
-              className="shrink-0 px-[14px] py-[6px] rounded-xl bg-[#111111] text-white text-[12px] font-medium no-underline hover:bg-[#1a1a1a] transition-all duration-200"
+              className="shrink-0 px-[16px] py-[8px] rounded-full bg-[#ef4444] text-white font-mono text-[10px] uppercase tracking-widest font-bold no-underline hover:shadow-[0_0_16px_rgba(239,68,68,0.3)] transition-all duration-300"
             >
-              View Plans
+              [ ELEVATE PERMISSIONS ]
             </Link>
           )}
         </div>

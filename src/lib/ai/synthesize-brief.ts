@@ -35,15 +35,15 @@ function buildFallbackBrief(
     recommendation: "PAUSE",
     confidence: "LOW",
     confidenceRationale:
-      responseCount < 3
-        ? `Only ${responseCount} response${responseCount === 1 ? "" : "s"} received. Need at least 5 for directional signal, 8+ for confidence.`
+      responseCount < 2
+        ? `Only ${responseCount} response${responseCount === 1 ? "" : "s"} received. Need at least 3 for directional signal, 8+ for confidence.`
         : "AI synthesis unavailable. Manual review of responses recommended.",
     uncomfortableTruth:
-      responseCount < 3
-        ? `Not enough responses to draw meaningful conclusions. ${responseCount} response${responseCount === 1 ? "" : "s"} received — need at least 5 for directional signal.`
+      responseCount < 2
+        ? `Not enough responses to draw meaningful conclusions. ${responseCount} response${responseCount === 1 ? "" : "s"} received — need at least 3 for directional signal.`
         : "AI synthesis is currently unavailable. Review the raw responses manually to extract insights.",
     signalSummary:
-      responseCount < 3
+      responseCount < 2
         ? "Insufficient data to synthesize meaning. Collect more responses before drawing conclusions."
         : "Responses collected but AI synthesis unavailable. Review raw responses for patterns.",
     assumptionVerdicts: assumptions.map((assumption, i) => ({
@@ -52,7 +52,7 @@ function buildFallbackBrief(
       verdict: "INSUFFICIENT_DATA" as const,
       confidence: "LOW" as const,
       evidenceSummary:
-        responseCount < 3
+        responseCount < 2
           ? "Too few responses to evaluate this assumption."
           : "AI synthesis unavailable — manual review required.",
       supportingCount: 0,
@@ -269,7 +269,10 @@ async function synthesizeFresh(
   const segmentReport = detectSegmentDisagreements(evidenceByAssumption, assumptions);
 
   // Too few responses for meaningful synthesis
-  if (methodology.responseCount < 3) {
+  // Threshold: 2 responses minimum (partial responses mean more respondents
+  // each answering fewer questions — per-assumption thresholds in the prompt
+  // handle individual assumption sufficiency)
+  if (methodology.responseCount < 2) {
     logGeneration({
       event: "response.ranked",
       campaignId,

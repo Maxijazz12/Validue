@@ -179,10 +179,12 @@ export function computeCoverage(evidence: AssumptionEvidence[]): AssumptionCover
   const categories = [...new Set(evidence.map((e) => e.evidenceCategory).filter(Boolean))];
   const hasNegative = categories.includes("negative");
 
+  // Adjusted for partial response model: each respondent answers 3-5 questions,
+  // so per-assumption evidence accumulates slower than full-response mode
   let strength: "strong" | "moderate" | "thin" = "thin";
-  if (evidence.length >= 5 && categories.length >= 3 && avgMatch >= 50) {
+  if (evidence.length >= 4 && categories.length >= 2 && avgMatch >= 50) {
     strength = "strong";
-  } else if (evidence.length >= 3 && categories.length >= 2) {
+  } else if (evidence.length >= 2 && categories.length >= 1) {
     strength = "moderate";
   }
 
