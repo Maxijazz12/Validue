@@ -286,6 +286,69 @@ describe("generation-quality: question quality checks", () => {
     const { scores } = runQualityPass(draft, "test scribble about a tool");
     expect(scores.behavioralCoverage).toBeGreaterThanOrEqual(50);
   });
+
+  it("recognizes common real-world disconfirmation options in MCQs", () => {
+    const draft = makeDraft({
+      questions: [
+        {
+          id: "q-mcq-1",
+          text: "How satisfied are you with how your team currently tracks decisions after meetings?",
+          type: "multiple_choice",
+          options: [
+            "Very satisfied - nothing needs to change",
+            "Mostly satisfied - minor gaps occasionally",
+            "Neutral - it works but wastes time",
+            "Frustrated - things regularly fall through the cracks",
+            "It is a serious recurring problem for my team",
+          ],
+          section: "open",
+          isBaseline: false,
+          assumptionIndex: 0,
+          category: "negative",
+        },
+        {
+          id: "q-mcq-2",
+          text: "If a meeting AI tool existed today, what would most likely stop you from switching to it from your current process?",
+          type: "multiple_choice",
+          options: [
+            "Cost - I wouldn't pay for this personally",
+            "Accuracy concerns - AI would miss context or get it wrong",
+            "Adoption - my team would not use it consistently",
+            "IT/security approval would block it",
+            "Nothing - I'd switch immediately if it worked",
+          ],
+          section: "followup",
+          isBaseline: false,
+          assumptionIndex: 1,
+          category: "willingness",
+        },
+        {
+          id: "q-mcq-3",
+          text: "What is the strongest reason you would NOT switch to a new solution for this?",
+          type: "multiple_choice",
+          options: [
+            "My current approach already works well enough",
+            "The problem is too minor to pay for",
+            "I do not trust a new solution to handle my situation",
+            "Switching would take too much effort",
+            "I do not run into this problem consistently",
+          ],
+          section: "open",
+          isBaseline: false,
+          assumptionIndex: 0,
+          category: "negative",
+        },
+        ...makeBaselineQuestions(),
+      ],
+    });
+
+    const { scores } = runQualityPass(draft, "test scribble");
+    const disconfirmationWarnings = scores.warnings.filter((warning) =>
+      warning.message.includes("MCQ missing a disconfirmation option")
+    );
+
+    expect(disconfirmationWarnings).toHaveLength(0);
+  });
 });
 
 describe("generation-quality: DraftQuestion type supports new fields", () => {

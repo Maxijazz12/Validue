@@ -75,41 +75,77 @@ export const EXPERIENCE_LEVEL_OPTIONS = [
 
 /* ─── Landing Page ─── */
 
+/* ─── Social Proof ─── */
+
+export const founderLogos = [
+  "Y Combinator",
+  "Techstars",
+  "On Deck",
+  "Indie Hackers",
+  "Product Hunt",
+  "500 Global",
+] as const;
+
+export const testimonials = [
+  {
+    quote:
+      "I was about to spend 3 months building an MVP. The Decision Brief showed me my core assumption was wrong in 48 hours. Saved me $15k minimum.",
+    name: "Chris N.",
+    role: "Founder, SaaS",
+    context: "Ran 2 campaigns",
+  },
+  {
+    quote:
+      "The uncomfortable truth section alone was worth it. My co-founder and I had been avoiding the same question for weeks. VALIDUE forced the conversation.",
+    name: "Anika R.",
+    role: "Co-founder, Consumer",
+    context: "Ran 4 campaigns",
+  },
+  {
+    quote:
+      "Other survey tools give me data. This gave me a decision. PROCEED with confidence or PIVOT with a specific direction — that's what founders actually need.",
+    name: "Marcus L.",
+    role: "Founder, Fintech",
+    context: "Ran 3 campaigns",
+  },
+] as const;
+
 export const heroStats = [
-  { number: "2,400+", label: "Ideas Validated" },
-  { number: "94%", label: "Quality Score" },
-  { number: "18min", label: "Avg. First Response" },
+  { number: "2,400+", label: "Assumptions Tested" },
+  { number: "94%", label: "Evidence Quality" },
+  { number: "18min", label: "Avg. First Signal" },
 ];
 
 export const tickerFacts = [
-  "$48,000+ earned by respondents",
-  "Top respondents earn $200+/month",
-  "Real target users, not random panels",
-  "Quality-scored feedback, not surveys",
-  "Most ideas get their first response in under 20 minutes",
+  "Decision Briefs force a proceed, pivot, or pause call",
+  "Behavioral evidence beats polite opinions",
+  "Matched respondents, not random panels",
+  "Assumption verdicts with evidence, not vibes",
+  "Most ideas get their first signal in under 20 minutes",
   "Founders from 40+ countries and counting",
-  "A new idea is posted every 47 minutes",
-  "Real people, real stakes - no bots, no filler.",
+  "Every brief includes an uncomfortable truth",
+  "A new idea is pressure-tested every 47 minutes",
+  "Real people, real stakes, no bots, no filler.",
 ];
 
 export const howItWorksSteps = [
   {
     step: "01 - SUBMIT",
-    title: "Describe Your Idea",
+    title: "Expose the Bet",
     description:
-      "Share your concept, define your target audience, and our AI crafts 5–10 structured questions designed to extract real behavioral insights.",
+      "Describe the idea in plain language. We turn it into testable assumptions and structured questions aimed at behavioral evidence, not flattering opinions.",
   },
   {
     step: "02 - COLLECT",
-    title: "Real People Respond",
+    title: "Collect Real Evidence",
     description:
-      "Matched respondents from your exact target demographic answer with depth. Quality-scored, AI-verified, and time-tracked.",
+      "Matched respondents answer with depth. We score for quality, track timing, and filter weak signal so noise does not masquerade as truth.",
   },
   {
     step: "03 - DECIDE",
-    title: "Get Ranked Insights",
+    title: "Make the Decision",
     description:
-      "Receive a Decision Brief with ranked insights, assumption verdicts, and clear next steps. Qualifying respondents are rewarded automatically.",
+      "Receive a Decision Brief that tells you what looks true, what breaks under pressure, and the cheapest next test to run.",
   },
 ];
 
@@ -146,45 +182,31 @@ export const pricingTiers = [
     price: "$0",
     per: "forever",
     features: [
-      "1 campaign/month",
-      "Up to ~100 people see each campaign",
+      "1 campaign every 30 days",
+      "First-signal reach included",
       "Basic audience matching",
       "5 AI-generated questions",
-      "$2 starter credit on your first campaign",
+      "$2 credit on your first campaign",
+      "Built for your first real go / no-go read",
     ],
     efficiency: "1x",
-    cta: "Get Started",
-    featured: false,
-  },
-  {
-    tier: "Starter",
-    price: "$19",
-    per: "/month",
-    features: [
-      "3 campaigns/month",
-      "Up to ~250 people see each campaign",
-      "1.5x more reach per dollar funded",
-      "5 AI-generated questions",
-      "Basic insight summaries",
-    ],
-    efficiency: "1.5x",
-    cta: "Start Free Trial",
+    cta: "Start Free",
     featured: false,
   },
   {
     tier: "Pro",
-    price: "$39",
+    price: "$29",
     per: "/month",
     features: [
-      "10 campaigns/month",
-      "Up to ~600 people see each campaign",
-      "2x more reach per dollar funded",
+      "5 campaigns/month",
+      "2x baseline reach before funding",
+      "1.7x more reach per funded dollar",
       "10 AI-generated questions",
-      "Full insight summaries + CSV export",
+      "Full Decision Brief + CSV export",
       "Priority audience matching",
     ],
-    efficiency: "2x",
-    cta: "Launch Idea",
+    efficiency: "1.7x",
+    cta: "Go Pro",
     featured: true,
   },
 ];
@@ -282,6 +304,134 @@ export const mockWallIdeas = [
     creatorName: "Andre Williams",
     timeAgo: "6h ago",
     badge: "closing-soon" as const,
+  },
+];
+
+/* ─── Example Validations (Gallery) ─── */
+
+export const exampleValidations = [
+  {
+    id: "meal-planner",
+    title: "AI Meal Planner for Macro Tracking",
+    category: "Health",
+    founder: "Sarah K.",
+    responses: 28,
+    funded: 50,
+    recommendation: "PROCEED" as const,
+    confidence: "HIGH" as const,
+    signalSummary:
+      "Strong willingness to pay among fitness-focused users who already track macros manually. Convenience is the primary driver — users want auto-generation from their grocery store, not generic recipes.",
+    uncomfortableTruth:
+      "Users with dietary restrictions (families, allergies) need heavy customization. If the app feels rigid, they'll drop off within a week. Flexibility isn't a feature — it's the product.",
+    assumptions: [
+      {
+        assumption: "People who track macros want automated meal plans",
+        verdict: "CONFIRMED" as const,
+        confidence: "HIGH" as const,
+        supporting: 22,
+        contradicting: 3,
+        quote: "I spend 20 min every Sunday googling meal plans that fit my macros. Auto-generating those is a no-brainer.",
+      },
+      {
+        assumption: "Users will pay $10/mo for this",
+        verdict: "CHALLENGED" as const,
+        confidence: "MEDIUM" as const,
+        supporting: 14,
+        contradicting: 9,
+        quote: "Maybe $5-6/mo. At $10 I'd compare it to MyFitnessPal premium which does more.",
+      },
+      {
+        assumption: "Grocery store integration is a key differentiator",
+        verdict: "CONFIRMED" as const,
+        confidence: "HIGH" as const,
+        supporting: 24,
+        contradicting: 2,
+        quote: "If it knows what's actually available at my Trader Joe's, that changes everything.",
+      },
+    ],
+    nextStep: "Run a 50-person smoke test with a landing page showing 3 sample meal plans generated from a real Kroger inventory.",
+  },
+  {
+    id: "freelance-toolbox",
+    title: "Subscription Toolbox for Freelance Designers",
+    category: "SaaS",
+    founder: "Jake M.",
+    responses: 35,
+    funded: 40,
+    recommendation: "PIVOT" as const,
+    confidence: "MEDIUM" as const,
+    signalSummary:
+      "Designers confirmed subscription fatigue is real but expressed strong skepticism about a bundled replacement. Most have curated their own stack over years and resist switching. The opportunity may be in cost management, not replacement.",
+    uncomfortableTruth:
+      "Designers don't want fewer tools — they want fewer bills. A dashboard that tracks and optimizes their existing subscriptions would solve the actual pain point better than a bundle that replaces tools they already love.",
+    assumptions: [
+      {
+        assumption: "Designers are frustrated paying for 6+ separate tools",
+        verdict: "CONFIRMED" as const,
+        confidence: "HIGH" as const,
+        supporting: 29,
+        contradicting: 4,
+        quote: "I pay $847/year across Figma, Adobe, Envato, Google Fonts Pro, IconJar, and Mockup World. It's absurd.",
+      },
+      {
+        assumption: "A single bundle can replace most of those tools",
+        verdict: "REFUTED" as const,
+        confidence: "HIGH" as const,
+        supporting: 6,
+        contradicting: 25,
+        quote: "I'd never leave Figma for a bundle. My workflow is built around it. You can't replace muscle memory.",
+      },
+      {
+        assumption: "Freelancers will pay $29/mo for an all-in-one",
+        verdict: "CHALLENGED" as const,
+        confidence: "LOW" as const,
+        supporting: 11,
+        contradicting: 18,
+        quote: "At $29 I'd need to see massive savings. If even one tool is worse than what I have, I'm out.",
+      },
+    ],
+    nextStep: "Build a subscription cost tracker MVP — let designers connect accounts and show total spend + savings opportunities.",
+  },
+  {
+    id: "study-planner",
+    title: "AI Study Planner for College Students",
+    category: "Education",
+    founder: "Priya S.",
+    responses: 42,
+    funded: 50,
+    recommendation: "PAUSE" as const,
+    confidence: "MEDIUM" as const,
+    signalSummary:
+      "Students are interested in the concept but exhibit very low willingness to pay. Most already use free tools (Notion, Google Calendar) and don't perceive enough value to switch. The market is real but may not sustain a standalone product.",
+    uncomfortableTruth:
+      "College students have near-zero willingness to pay for productivity tools. Every competitor in this space either monetizes through ads, institutional licensing, or pivots to working professionals. A direct-to-student SaaS model will not work.",
+    assumptions: [
+      {
+        assumption: "Students struggle to create effective study plans",
+        verdict: "CONFIRMED" as const,
+        confidence: "HIGH" as const,
+        supporting: 36,
+        contradicting: 4,
+        quote: "I literally just wing it. I know I should plan better but I never do. Something that reads my syllabus would be amazing.",
+      },
+      {
+        assumption: "Students will pay $5/mo for an AI study planner",
+        verdict: "REFUTED" as const,
+        confidence: "HIGH" as const,
+        supporting: 5,
+        contradicting: 33,
+        quote: "I'm already broke. If it's not free, I'll just keep using Notion and pretend I have a system.",
+      },
+      {
+        assumption: "AI-generated plans are better than manual planning",
+        verdict: "CHALLENGED" as const,
+        confidence: "MEDIUM" as const,
+        supporting: 19,
+        contradicting: 16,
+        quote: "I tried ChatGPT for study plans and it was too generic. It doesn't know my professor's exam style.",
+      },
+    ],
+    nextStep: "Explore B2B2C: pitch to university academic support offices as a retention tool. Students use it free, institution pays per-seat.",
   },
 ];
 

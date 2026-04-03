@@ -15,10 +15,16 @@ import {
 describe("publish → fund → activate flow", () => {
   const sql = getTestDb();
   const founderId = testId(40);
+  let dbAvailable = false;
+
+  const runIfDb = (fn: () => Promise<void>) => async () => {
+    if (!dbAvailable) return;
+    await fn();
+  };
 
   beforeAll(async () => {
-    const connected = await canConnectToTestDb();
-    if (!connected) {
+    dbAvailable = await canConnectToTestDb();
+    if (!dbAvailable) {
       console.warn("Skipping — no test database");
       return;
     }
@@ -28,16 +34,17 @@ describe("publish → fund → activate flow", () => {
   });
 
   afterEach(async () => {
+    if (!dbAvailable) return;
     await cleanupCampaignData();
     await sql`UPDATE subscriptions SET campaigns_used_this_period = 0 WHERE user_id = ${founderId}::uuid`;
   });
 
   afterAll(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
     await closeTestDb();
   });
 
-  it("atomic publish creates campaign + questions + increments sub counter", async () => {
+  it("atomic publish creates campaign + questions + increments sub counter", runIfDb(async () => {
     // Simulate the publishCampaign transaction
     const campaignId = crypto.randomUUID();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,9 +89,9 @@ describe("publish → fund → activate flow", () => {
 
     const campaign = await getCampaign(campaignId);
     expect(campaign.status).toBe("pending_funding");
-  });
+  }));
 
-  it("funded campaign has correct distributable (reward * 0.85)", async () => {
+  it("funded campaign has correct distributable (reward * 0.85)", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "pending_funding",
@@ -98,9 +105,9 @@ describe("publish → fund → activate flow", () => {
     expect(Number(result.distributable_amount)).toBeLessThanOrEqual(
       Number(result.reward_amount)
     );
-  });
+  }));
 
-  it("webhook activation: pending_funding → active", async () => {
+  it("webhook activation: pending_funding → active", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "pending_funding",
@@ -118,9 +125,9 @@ describe("publish → fund → activate flow", () => {
     const result = await getCampaign(campaign.id);
     expect(result.status).toBe("active");
     expect(result.funded_at).not.toBeNull();
-  });
+  }));
 
-  it("webhook is idempotent on retry", async () => {
+  it("webhook is idempotent on retry", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "pending_funding",
@@ -143,9 +150,9 @@ describe("publish → fund → activate flow", () => {
       RETURNING id
     `;
     expect(second.length).toBe(0);
-  });
+  }));
 
-  it("transaction rolls back on question insert failure", async () => {
+  it("transaction rolls back on question insert failure", runIfDb(async () => {
     const campaignId = crypto.randomUUID();
     const [initialSub] = await sql`SELECT campaigns_used_this_period FROM subscriptions WHERE user_id = ${founderId}::uuid`;
     const initialCount = initialSub?.campaigns_used_this_period ?? 0;
@@ -184,5 +191,5 @@ describe("publish → fund → activate flow", () => {
     // Sub counter should be unchanged
     const [sub] = await sql`SELECT campaigns_used_this_period FROM subscriptions WHERE user_id = ${founderId}::uuid`;
     expect(sub?.campaigns_used_this_period ?? 0).toBe(initialCount);
-  });
+  }));
 });

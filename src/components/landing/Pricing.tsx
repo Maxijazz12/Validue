@@ -11,17 +11,17 @@ export default function Pricing() {
     <section id="pricing">
       <SectionHeader
         label="Pricing"
-        title="Scalable network access"
-        subtitle="Your plan sets your baseline reach. Fund individual campaigns to go further. Higher plans get more from every dollar."
+        title="Plans for sharper decisions"
+        subtitle="Every plan helps you run focused validation and move toward a Decision Brief. Pro is the simple launch upgrade for founders who need more runs, more reach, and better leverage per funded test."
       />
-      <div className="grid grid-cols-3 gap-[16px] mt-[72px] max-lg:grid-cols-2 max-md:grid-cols-1">
+      <div className="grid grid-cols-2 gap-[16px] mt-[72px] max-md:grid-cols-1">
         {pricingTiers.map((tier, i) => (
           <ScrollReveal key={tier.tier} animation="slide-up" staggerIndex={i}>
           <div
             className={`group bg-white/60 backdrop-blur-3xl rounded-[24px] p-[32px_24px] transition-all duration-500 relative ${
               tier.featured
                 ? "border border-black/10 shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)]"
-                : "shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px]"
+                : "shadow-card border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px]"
             }`}
           >
             {tier.featured && (
@@ -73,7 +73,7 @@ export default function Pricing() {
       <div className="mt-[24px] p-[20px_24px] bg-white/60 backdrop-blur-md shadow-[0_4px_16px_rgba(229,101,78,0.04)] border border-white/80 rounded-[16px] text-center">
         <p className="font-mono text-[10px] uppercase tracking-widest text-[#A8A29E]">
           <span className="font-bold text-[#1C1917]">{"// "}CORE PROMISE:</span>{" "}
-          EVERY PLAN INCLUDES REAL RESPONDENTS AND RANKED INSIGHTS.
+          EVERY PLAN IS BUILT TO MOVE YOU TOWARD A REAL DECISION BRIEF.
         </p>
       </div>
     </section>

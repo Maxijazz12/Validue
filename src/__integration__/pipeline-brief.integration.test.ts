@@ -11,7 +11,6 @@ import {
   cleanupAll,
   testId,
 } from "./helpers";
-import { getEvidenceByAssumption, getBriefMethodology } from "@/lib/ai/assumption-evidence";
 import { DecisionBriefSchema } from "@/lib/ai/brief-schemas";
 
 /* ─── Setup ─── */
@@ -22,10 +21,19 @@ const RESPONDENT_2 = testId(202);
 const RESPONDENT_3 = testId(203);
 
 let dbAvailable = false;
+let getEvidenceByAssumption: typeof import("@/lib/ai/assumption-evidence").getEvidenceByAssumption;
+let getBriefMethodology: typeof import("@/lib/ai/assumption-evidence").getBriefMethodology;
+
+const runIfDb = (fn: () => Promise<void>) => async () => {
+  if (!dbAvailable) return;
+  await fn();
+};
 
 beforeAll(async () => {
   dbAvailable = await canConnectToTestDb();
   if (!dbAvailable) return;
+
+  ({ getEvidenceByAssumption, getBriefMethodology } = await import("@/lib/ai/assumption-evidence"));
 
   await cleanupAll();
   await seedUser(FOUNDER_ID, "Pipeline Founder");
@@ -85,7 +93,7 @@ async function seedScoredResponse(
 /* ─── Tests ─── */
 
 describe("Pipeline: evidence grouping by assumption", () => {
-  it.skipIf(!dbAvailable)("groups evidence by assumption_index sorted by quality", async () => {
+  it("groups evidence by assumption_index sorted by quality", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: FOUNDER_ID });
 
     // 2 questions testing different assumptions
@@ -128,17 +136,17 @@ describe("Pipeline: evidence grouping by assumption", () => {
 
     // Respondent labels are anonymous
     expect(a0[0].respondentLabel).toMatch(/^Respondent \d+$/);
-  });
+  }));
 
-  it.skipIf(!dbAvailable)("returns empty map when no responses exist", async () => {
+  it("returns empty map when no responses exist", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: FOUNDER_ID });
     await seedQuestionWithAssumption(campaign.id, "Test question", 0, 0);
 
     const evidenceMap = await getEvidenceByAssumption(campaign.id);
     expect(evidenceMap.size).toBe(0);
-  });
+  }));
 
-  it.skipIf(!dbAvailable)("excludes in_progress responses", async () => {
+  it("excludes in_progress responses", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: FOUNDER_ID });
     const q = await seedQuestionWithAssumption(campaign.id, "Test question", 0, 0);
 
@@ -153,11 +161,11 @@ describe("Pipeline: evidence grouping by assumption", () => {
 
     const evidenceMap = await getEvidenceByAssumption(campaign.id);
     expect(evidenceMap.size).toBe(0);
-  });
+  }));
 });
 
 describe("Pipeline: brief methodology stats", () => {
-  it.skipIf(!dbAvailable)("returns correct response count and avg quality", async () => {
+  it("returns correct response count and avg quality", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: FOUNDER_ID });
 
     await seedScoredResponse(campaign.id, RESPONDENT_1, 70);
@@ -169,9 +177,9 @@ describe("Pipeline: brief methodology stats", () => {
     expect(methodology.responseCount).toBe(3);
     expect(methodology.avgQuality).toBe(80);
     expect(methodology.completionRate).toBe(1);
-  });
+  }));
 
-  it.skipIf(!dbAvailable)("excludes in_progress from count and avg", async () => {
+  it("excludes in_progress from count and avg", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: FOUNDER_ID });
 
     await seedScoredResponse(campaign.id, RESPONDENT_1, 70);
@@ -187,16 +195,16 @@ describe("Pipeline: brief methodology stats", () => {
     expect(methodology.avgQuality).toBe(70);
     // 1 submitted out of 2 total
     expect(methodology.completionRate).toBe(0.5);
-  });
+  }));
 
-  it.skipIf(!dbAvailable)("returns zeros for campaign with no responses", async () => {
+  it("returns zeros for campaign with no responses", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: FOUNDER_ID });
 
     const methodology = await getBriefMethodology(campaign.id);
     expect(methodology.responseCount).toBe(0);
     expect(methodology.avgQuality).toBe(0);
     expect(methodology.completionRate).toBe(0);
-  });
+  }));
 });
 
 describe("Pipeline: fallback brief validation", () => {

@@ -2,6 +2,7 @@ import {
   PLAN_CONFIG,
   PLATFORM_FEE_RATE,
   STRENGTH_THRESHOLDS,
+  WELCOME_BONUS,
   type PlanTier,
 } from "./plans";
 import { DEFAULTS } from "./defaults";
@@ -155,10 +156,10 @@ export function calculateReach(
 ): ReachEstimate {
   const plan = PLAN_CONFIG[tier];
 
-  // Apply welcome bonus: 1.5x baseline on first campaign during first month (free only)
+  // Apply welcome bonus multiplier on first campaign during first month (free only)
   let baselineRU = plan.baselineReachUnits;
   if (tier === "free" && options?.isFirstMonth && options?.isFirstCampaign) {
-    baselineRU = Math.round(baselineRU * 1.5); // 150 RU instead of 100
+    baselineRU = Math.round(baselineRU * WELCOME_BONUS.firstCampaignReachMultiplier);
   }
 
   // Calculate funded RU with diminishing returns
@@ -182,6 +183,9 @@ export function calculateReach(
   const safeFunding = Math.max(0, fundingAmount);
   const distributable = safeFunding * (1 - PLATFORM_FEE_RATE);
 
+  // Iterative convergence: 3 passes is sufficient because estimateConversionRate
+  // is monotonic in ppr and the feedback loop (reach→responses→ppr→conversion)
+  // contracts toward a fixed point. Empirically converges within 2 iterations.
   let conversionRate = BASE_CONVERSION_RATE;
   for (let i = 0; i < 3; i++) {
     const resp = Math.max(1, effectiveReach * conversionRate);
@@ -217,7 +221,6 @@ export function calculateReach(
 /** Tier-aware recommended strength thresholds */
 const RECOMMENDED_STRENGTH: Record<PlanTier, number> = {
   free: 5,
-  starter: 5,
   pro: 7,
 };
 
@@ -226,7 +229,7 @@ export function getFundingPresets(
   qualityScore: number = DEFAULTS.QUALITY_SCORE
 ): FundingPreset[] {
   const amounts = [0, 10, 25, 50];
-  const labels = ["Free Tier", "Starter", "Recommended", "Maximum"];
+  const labels = ["No funding", "Initial push", "Recommended", "Max reach"];
   const opts = { qualityScore };
   const target = RECOMMENDED_STRENGTH[tier];
 
@@ -306,8 +309,8 @@ export function validateFunding(
     };
   }
 
-  // Ensure cent-aligned (no fractional cents)
-  if (Math.round(amount * 100) !== amount * 100) {
+  // Ensure cent-aligned (no fractional cents) — use tolerance for IEEE754 float imprecision
+  if (Math.abs(Math.round(amount * 100) - amount * 100) > 0.01) {
     return { valid: false, reason: "Amount must be in whole cents." };
   }
 

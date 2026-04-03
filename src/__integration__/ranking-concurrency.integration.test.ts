@@ -16,10 +16,16 @@ describe("ranking status concurrency", () => {
   const sql = getTestDb();
   const founderId = testId(30);
   const resp1Id = testId(31);
+  let dbAvailable = false;
+
+  const runIfDb = (fn: () => Promise<void>) => async () => {
+    if (!dbAvailable) return;
+    await fn();
+  };
 
   beforeAll(async () => {
-    const connected = await canConnectToTestDb();
-    if (!connected) {
+    dbAvailable = await canConnectToTestDb();
+    if (!dbAvailable) {
       console.warn("Skipping — no test database");
       return;
     }
@@ -29,11 +35,11 @@ describe("ranking status concurrency", () => {
   });
 
   afterEach(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
   });
 
   afterAll(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
     await closeTestDb();
   });
 
@@ -54,7 +60,7 @@ describe("ranking status concurrency", () => {
     return locked.length > 0 ? locked[0].id : null;
   }
 
-  it("concurrent ranking — only one acquires lock", async () => {
+  it("concurrent ranking — only one acquires lock", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rankingStatus: "unranked",
@@ -79,9 +85,9 @@ describe("ranking status concurrency", () => {
     // Verify campaign is in 'ranking' state
     const updated = await getCampaign(campaign.id);
     expect(updated.ranking_status).toBe("ranking");
-  });
+  }));
 
-  it("already-ranked campaign rejects new ranking", async () => {
+  it("already-ranked campaign rejects new ranking", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rankingStatus: "unranked",
@@ -97,9 +103,9 @@ describe("ranking status concurrency", () => {
     // Second attempt — fails (status is 'ranked', not 'unranked')
     const second = await tryAcquireRankingLock(campaign.id);
     expect(second).toBeNull();
-  });
+  }));
 
-  it("failed ranking can be reset and retried", async () => {
+  it("failed ranking can be reset and retried", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rankingStatus: "unranked",
@@ -114,5 +120,5 @@ describe("ranking status concurrency", () => {
     // Retry should succeed
     const retry = await tryAcquireRankingLock(campaign.id);
     expect(retry).not.toBeNull();
-  });
+  }));
 });

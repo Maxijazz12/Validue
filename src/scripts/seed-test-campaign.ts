@@ -28,7 +28,7 @@ if (!supabaseUrl || !serviceKey) {
 
 const supabase = createClient(supabaseUrl, serviceKey);
 
-type QuestionSeed = {
+type _QuestionSeed = {
   text: string;
   type: "open" | "multiple_choice";
   sort_order: number;
@@ -40,7 +40,7 @@ type QuestionSeed = {
 
 const CAMPAIGNS = [
   {
-    title: "Is There Demand for AI-Powered Meal Planning?",
+    title: "AI-Powered Meal Planning",
     description:
       "Testing whether busy professionals would pay for an AI tool that generates weekly meal plans based on dietary preferences, budget, and what's already in your fridge.",
     category: "Consumer / Health",
@@ -127,7 +127,7 @@ const CAMPAIGNS = [
     ],
   },
   {
-    title: "Would Student Founders Pay for Async Mentorship?",
+    title: "Async Mentorship for Student Founders",
     description:
       "Exploring whether student founders would pay a small monthly fee for async access to experienced founders — not live calls, but written Q&A with 24-hour turnaround.",
     category: "Education / Startups",

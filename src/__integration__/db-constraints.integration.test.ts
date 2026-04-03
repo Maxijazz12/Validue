@@ -16,10 +16,16 @@ describe("DB constraints & state machine", () => {
   const sql = getTestDb();
   const founderId = testId(1);
   const respondentId = testId(2);
+  let dbAvailable = false;
+
+  const runIfDb = (fn: () => Promise<void>) => async () => {
+    if (!dbAvailable) return;
+    await fn();
+  };
 
   beforeAll(async () => {
-    const connected = await canConnectToTestDb();
-    if (!connected) {
+    dbAvailable = await canConnectToTestDb();
+    if (!dbAvailable) {
       console.warn("Skipping integration tests — no test database available");
       return;
     }
@@ -29,17 +35,17 @@ describe("DB constraints & state machine", () => {
   });
 
   afterEach(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
   });
 
   afterAll(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
     await closeTestDb();
   });
 
   /* ─── Campaign State Machine ─── */
 
-  it("blocks completed → active transition", async () => {
+  it("blocks completed → active transition", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -51,9 +57,9 @@ describe("DB constraints & state machine", () => {
     await expect(
       sql`UPDATE campaigns SET status = 'active' WHERE id = ${campaign.id}`
     ).rejects.toThrow(/Cannot transition from completed/);
-  });
+  }));
 
-  it("blocks active → draft transition", async () => {
+  it("blocks active → draft transition", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -62,9 +68,9 @@ describe("DB constraints & state machine", () => {
     await expect(
       sql`UPDATE campaigns SET status = 'draft' WHERE id = ${campaign.id}`
     ).rejects.toThrow(/active can only transition to/);
-  });
+  }));
 
-  it("allows active → paused → active → completed", async () => {
+  it("allows active → paused → active → completed", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -81,9 +87,9 @@ describe("DB constraints & state machine", () => {
     await sql`UPDATE campaigns SET status = 'completed' WHERE id = ${campaign.id}`;
     const [completed] = await sql`SELECT status FROM campaigns WHERE id = ${campaign.id}`;
     expect(completed.status).toBe("completed");
-  });
+  }));
 
-  it("allows pending_funding → active only", async () => {
+  it("allows pending_funding → active only", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "pending_funding",
@@ -98,11 +104,11 @@ describe("DB constraints & state machine", () => {
     await sql`UPDATE campaigns SET status = 'active' WHERE id = ${campaign.id}`;
     const [result] = await sql`SELECT status FROM campaigns WHERE id = ${campaign.id}`;
     expect(result.status).toBe("active");
-  });
+  }));
 
   /* ─── Response State Machine ─── */
 
-  it("blocks ranked → submitted transition", async () => {
+  it("blocks ranked → submitted transition", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: founderId });
     const response = await seedResponse(
       campaign.id,
@@ -116,38 +122,38 @@ describe("DB constraints & state machine", () => {
     await expect(
       sql`UPDATE responses SET status = 'submitted' WHERE id = ${response.id}`
     ).rejects.toThrow(/Cannot revert from ranked/);
-  });
+  }));
 
-  it("blocks in_progress → ranked (must go through submitted)", async () => {
+  it("blocks in_progress → ranked (must go through submitted)", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: founderId });
     const response = await seedResponse(campaign.id, respondentId, "in_progress");
 
     await expect(
       sql`UPDATE responses SET status = 'ranked' WHERE id = ${response.id}`
     ).rejects.toThrow(/in_progress can only transition to submitted/);
-  });
+  }));
 
   /* ─── CHECK Constraints ─── */
 
-  it("rejects quality_score > 100", async () => {
+  it("rejects quality_score > 100", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: founderId });
     const response = await seedResponse(campaign.id, respondentId, "submitted");
 
     await expect(
       sql`UPDATE responses SET quality_score = 150, status = 'ranked' WHERE id = ${response.id}`
     ).rejects.toThrow(/chk_quality_score_range/);
-  });
+  }));
 
-  it("rejects quality_score < 0", async () => {
+  it("rejects quality_score < 0", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: founderId });
     const response = await seedResponse(campaign.id, respondentId, "submitted");
 
     await expect(
       sql`UPDATE responses SET quality_score = -5, status = 'ranked' WHERE id = ${response.id}`
     ).rejects.toThrow(/chk_quality_score_range/);
-  });
+  }));
 
-  it("rejects distributable_amount > reward_amount", async () => {
+  it("rejects distributable_amount > reward_amount", runIfDb(async () => {
     await expect(
       seedCampaign({
         creatorId: founderId,
@@ -155,9 +161,9 @@ describe("DB constraints & state machine", () => {
         distributableAmount: 100,
       })
     ).rejects.toThrow(/chk_distributable_lte_reward/);
-  });
+  }));
 
-  it("rejects negative reward_amount", async () => {
+  it("rejects negative reward_amount", runIfDb(async () => {
     await expect(
       seedCampaign({
         creatorId: founderId,
@@ -165,9 +171,9 @@ describe("DB constraints & state machine", () => {
         distributableAmount: -10,
       })
     ).rejects.toThrow(/violates check constraint/);
-  });
+  }));
 
-  it("rejects payout platform_fee != 0", async () => {
+  it("rejects payout platform_fee != 0", runIfDb(async () => {
     const campaign = await seedCampaign({ creatorId: founderId });
     const response = await seedResponse(
       campaign.id,
@@ -182,14 +188,14 @@ describe("DB constraints & state machine", () => {
       sql`INSERT INTO payouts (response_id, campaign_id, founder_id, respondent_id, amount, platform_fee, status)
           VALUES (${response.id}::uuid, ${campaign.id}::uuid, ${founderId}::uuid, ${respondentId}::uuid, 5.00, 0.75, 'pending')`
     ).rejects.toThrow(/chk_payout_fee_zero/);
-  });
+  }));
 
-  it("rejects campaign_strength outside [1, 10]", async () => {
+  it("rejects campaign_strength outside [1, 10]", runIfDb(async () => {
     await expect(
       seedCampaign({
         creatorId: founderId,
         campaignStrength: 15,
       })
     ).rejects.toThrow(/chk_campaign_strength_range/);
-  });
+  }));
 });

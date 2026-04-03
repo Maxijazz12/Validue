@@ -78,18 +78,29 @@ export async function rankCampaignResponses(campaignId: string) {
     const rankingStart = Date.now();
     logOps({ event: "ranking.started", campaignId, responseCount: responses.length });
 
-    // Score each response sequentially
+    // Batch-fetch all answers upfront to avoid N+1 queries
+    const responseIds = responses.map((r) => r.id);
+    const { data: allAnswers } = await supabase
+      .from("answers")
+      .select("response_id, question_id, text, metadata")
+      .in("response_id", responseIds);
+    const answersByResponse = new Map<string, typeof allAnswers>();
+    for (const a of allAnswers || []) {
+      const existing = answersByResponse.get(a.response_id) || [];
+      existing.push(a);
+      answersByResponse.set(a.response_id, existing);
+    }
+
+    // Score each response sequentially (AI calls must be sequential for rate limits)
+    const rankingNotifications: { user_id: string; type: string; title: string; body: string; campaign_id: string }[] = [];
     let aiCount = 0;
     let fallbackCount = 0;
     let lowConfCount = 0;
     let scoreSum = 0;
     for (const response of responses) {
-      const { data: answers } = await supabase
-        .from("answers")
-        .select("question_id, text, metadata")
-        .eq("response_id", response.id);
+      const answers = answersByResponse.get(response.id) || [];
 
-      const answersWithMeta: AnswerWithMeta[] = (answers || []).map((a) => {
+      const answersWithMeta: AnswerWithMeta[] = (answers).map((a) => {
         const q = questionMap.get(a.question_id);
         const meta = (a.metadata as Record<string, unknown>) || {};
         return {
@@ -131,7 +142,7 @@ export async function rankCampaignResponses(campaignId: string) {
         })
         .eq("id", response.id);
 
-      // Notify respondent about their quality score
+      // Collect notification for batch insert
       const dims = result.dimensions as { depth?: number; relevance?: number; authenticity?: number; consistency?: number } | null;
       const bestDim = dims
         ? Object.entries(dims).sort(([, a], [, b]) => (b as number) - (a as number))[0]
@@ -140,7 +151,7 @@ export async function rankCampaignResponses(campaignId: string) {
         ? bestDim ? `Strength: ${bestDim[0]}.` : "Great work!"
         : bestDim ? `Tip: Focus on improving ${Object.entries(dims || {}).sort(([, a], [, b]) => (a as number) - (b as number))[0]?.[0] || "depth"} for higher scores.` : "";
 
-      await supabase.from("notifications").insert({
+      rankingNotifications.push({
         user_id: response.respondent_id,
         type: "quality_feedback",
         title: `Your response scored ${clampedScore}/100`,
@@ -153,6 +164,11 @@ export async function rankCampaignResponses(campaignId: string) {
       if (result.source === "ai") aiCount++;
       else if (result.source === "fallback") fallbackCount++;
       else if (result.source === "ai_low_confidence") lowConfCount++;
+    }
+
+    // Batch insert all ranking notifications
+    if (rankingNotifications.length > 0) {
+      await supabase.from("notifications").insert(rankingNotifications);
     }
 
     logOps({
@@ -174,11 +190,11 @@ export async function rankCampaignResponses(campaignId: string) {
       .update({ ranking_status: "ranked" })
       .eq("id", campaignId);
 
-    // Update reputation for all ranked respondents
+    // Update reputation for all ranked respondents in parallel
     const respondentIds = new Set(responses.map((r) => r.respondent_id));
-    for (const rid of respondentIds) {
-      await updateRespondentReputation(rid);
-    }
+    await Promise.all(
+      Array.from(respondentIds).map((rid) => updateRespondentReputation(rid))
+    );
 
     // Notify founder that ranking is complete
     await supabase.from("notifications").insert({

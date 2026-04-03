@@ -27,7 +27,7 @@ export default function QualityFeature() {
       </div>
 
       {/* Right: Mock response cards */}
-      <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[32px] relative overflow-hidden">
+      <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-card rounded-[24px] p-[32px] relative overflow-hidden">
         {mockResponses.map((resp) => (
           <div
             key={resp.name}

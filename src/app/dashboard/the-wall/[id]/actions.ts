@@ -72,7 +72,7 @@ export async function startResponse(campaignId: string): Promise<{
   // Check for existing response to this campaign
   const { data: existing } = await supabase
     .from("responses")
-    .select("id, status, assigned_question_ids, is_partial")
+    .select("id, status, money_state, assigned_question_ids, is_partial")
     .eq("campaign_id", campaignId)
     .eq("respondent_id", user.id)
     .maybeSingle();
@@ -83,6 +83,13 @@ export async function startResponse(campaignId: string): Promise<{
     if (existing.status === "abandoned") {
       // Don't allow re-entry after abandonment — treat as used slot
       throw new Error("Your previous response to this campaign timed out.");
+    }
+    // Verify money_state is still valid for resume (null is OK for V1 responses)
+    if (
+      existing.money_state &&
+      existing.money_state !== "pending_qualification"
+    ) {
+      throw new Error("This response is no longer eligible for completion.");
     }
     // Resume in-progress response (preserve original assignment)
     return {
@@ -287,7 +294,7 @@ export async function saveAnswer(
   if (!ownerCheck) throw new Error("Response not found");
 
   // Rate limit: 120 saves per hour (rapid typing/navigation is normal)
-  const rl = rateLimit(`save:${user.id}`, 3600000, 120);
+  const rl = rateLimit(`save:${user.id}`, 3600000, 300);
   if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
 
   // Sanitize metadata + content moderation + length enforcement

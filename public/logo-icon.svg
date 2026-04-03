@@ -14,8 +14,9 @@
     </linearGradient>
   </defs>
 
-  <!-- Peach body — thin stroke with barely-there fill -->
+  <!-- Peach body — thin stroke with soft white interior -->
   <ellipse cx="32" cy="36" rx="24" ry="24" fill="url(#peach-fill)" stroke="url(#peach-stroke)" stroke-width="2"/>
+  <ellipse cx="32" cy="36" rx="22" ry="22" fill="white" opacity="0.12"/>
   <!-- Crease line -->
   <path d="M32 13 Q29 34 32 59" stroke="url(#peach-stroke)" stroke-width="1.2" fill="none" opacity="0.3"/>
   <!-- Leaf — outlined -->

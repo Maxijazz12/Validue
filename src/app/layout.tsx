@@ -23,9 +23,9 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Validue — Targeted Idea Validation Marketplace",
+  title: "Validue — Pressure-test assumptions. Get a Decision Brief.",
   description:
-    "Post startup ideas, get matched with your exact target audience, and receive quality-scored feedback. Real people. Real signal. Real validation.",
+    "Turn a raw startup idea into testable assumptions, collect behavioral evidence from matched respondents, and get a Decision Brief with verdicts, uncomfortable truths, and next steps.",
 };
 
 export default function RootLayout({

@@ -6,8 +6,8 @@ export const DEFAULTS = {
   /** Neutral quality score (produces 1.0x quality modifier) */
   QUALITY_SCORE: 50,
 
-  /** Match score for incomplete profiles (slightly pessimistic) */
-  MATCH_SCORE_INCOMPLETE: 40,
+  /** Match score for incomplete profiles — below unknown-dimension baseline (34) to incentivize completion */
+  MATCH_SCORE_INCOMPLETE: 30,
 
   /** Fraction of max points awarded when either side of a match dimension is empty */
   MATCH_SCORE_UNKNOWN_DIM: 0.4,
@@ -60,7 +60,7 @@ export const DEFAULTS = {
   PAYOUT_CONFIDENCE_THRESHOLD: 0.5,
 
   /** Free-tier campaign limit resets after this many days (rolling window) */
-  FREE_TIER_RESET_DAYS: 15,
+  FREE_TIER_RESET_DAYS: 30,
 
   /** Minimum campaign funding to unlock the full Decision Brief (free tier only) */
   BRIEF_FUNDING_GATE: 10,
@@ -82,11 +82,11 @@ export const DEFAULTS = {
   /** Hard floor: base pay per response must be >= this at publish time */
   MIN_BASE_PAYOUT: 0.10,
 
-  /** Target average payout per qualifying response — Quick format (3 min) */
+  /** Target average payout per qualifying response — Quick format (~2 min) */
   TARGET_AVG_PAYOUT_QUICK: 0.45,
 
-  /** Target average payout per qualifying response — Standard format (5 min) */
-  TARGET_AVG_PAYOUT_STANDARD: 0.60,
+  /** Target average payout per qualifying response — Standard format (~3 min) */
+  TARGET_AVG_PAYOUT_STANDARD: 0.75,
 
   /** Minimum total response time for Quick format (ms) */
   MIN_RESPONSE_TIME_QUICK_MS: 45_000,
@@ -112,6 +112,9 @@ export const DEFAULTS = {
   /** Minimum total time (ms) at submission — hard reject below this (Standard format) */
   SUBMIT_MIN_TIME_STANDARD_MS: 40_000,
 
+  /** Minimum time (ms) per assigned question for partial responses */
+  PARTIAL_MIN_TIME_PER_QUESTION_MS: 8_000,
+
   /** Maximum completed responses per respondent per rolling 24 hours (launch calibration) */
   MAX_DAILY_RESPONSES: 12,
 
@@ -130,19 +133,22 @@ export const DEFAULTS = {
   /** Fill ratio threshold to trigger auto-extension */
   CAMPAIGN_AUTO_EXTEND_FILL_RATIO: 0.5,
 
-  /** Minimum respondent available balance (cents) required to cash out */
-  MIN_CASHOUT_BALANCE_CENTS: 200,
+  /** Minimum respondent available balance (cents) required to cash out — low to prove platform pays fast */
+  MIN_CASHOUT_BALANCE_CENTS: 100,
 
   /* ─── Subsidy ─── */
 
   /** Platform budget per subsidized first campaign — the conversion funnel, not a cost center */
-  SUBSIDY_BUDGET_PER_CAMPAIGN: 1.50,
+  SUBSIDY_BUDGET_PER_CAMPAIGN: 2.25,
 
   /** Target qualifying responses for subsidized campaigns — enough for a meaningful Decision Brief */
   SUBSIDY_TARGET_RESPONSES: 5,
 
-  /** Flat payout per qualifying response on subsidized campaigns */
-  SUBSIDY_FLAT_PAYOUT: 0.30,
+  /** Flat payout per qualifying response on subsidized campaigns — matches quick format target for strong first impression */
+  SUBSIDY_FLAT_PAYOUT: 0.45,
+
+  /** Maximum account age (days) to remain eligible for subsidized first campaign */
+  SUBSIDY_ELIGIBILITY_DAYS: 30,
 
   /** Monthly platform-wide subsidy spend cap (dollars) */
   SUBSIDY_MONTHLY_CAP: 1500,

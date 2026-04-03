@@ -59,7 +59,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] shadow-card-sm relative overflow-hidden">
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
           <h1 className="text-[24px] font-bold text-[#111111] mb-[8px]">
             Welcome back

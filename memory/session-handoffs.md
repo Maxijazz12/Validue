@@ -4,9 +4,288 @@
 - 2026-03-30: Phase 2-4 marathon (audience segmentation, WTP probing, longitudinal validation)
 - 2026-03-31: Infrastructure + grounding check + evidence pipeline fixes
 - 2026-04-01: UX/UI consistency sweep (~40 files) + question generation rewrite (assumption-killing)
-- 2026-04-02 (morning): Partial response model + reciprocal gate backend (migration 034, question assignment, gate logic)
-- 2026-04-02 (afternoon): Economics rebalance, Scale tier removal, reciprocal gate during generation
-- 2026-04-02 (evening): System critique + fixes + e2e prep (scribble→generate→gate tested)
+- 2026-04-02: Partial response model, reciprocal gate, economics rebalance, Scale removal, cold-start fix, dead code cleanup
+- 2026-04-02 (night): E2e testing session — migrations applied, respond flow verified, brief fallback rendering
+- 2026-04-03 (afternoon): Full codebase security & math audit + 12 fixes (CAS locks, timing-safe cron, spam bypass, idempotency)
+- 2026-04-03: Cashout flow + launch blockers sweep (7 features)
+
+## 2026-04-03 (night) — Full 9-system audit + 12 critical/high fixes
+
+### What was done
+Ran 9 parallel audit agents covering auth, Stripe/payments, economics, AI, response/wall flows, campaign lifecycle, DB migrations/RLS, API routes, and UI components. Found ~30 issues across severity levels. Fixed the 12 most critical.
+
+#### Critical fixes
+1. **Auth recovery flow broken** — Reset password page had no session validation; callback didn't handle recovery codes; no signout after password change. Fixed all three + added "checking" UI gate.
+2. **Campaign state machine dual-condition bug** — Funded+gated campaigns could activate from either Stripe webhook OR gate clearing independently. Now webhook checks gate status before activating; gate clearing checks `funded_at` before activating.
+3. **Webhook credit clearing swallowed errors** — `.catch()` on welcome/platform credit SQL returned 200 to Stripe (no retry). Removed `.catch()` so errors propagate to outer try-catch → 500 → Stripe retries.
+4. **V1 fill-cap not atomic** — Two concurrent users could overshoot `target_responses`. Replaced Supabase `.insert()` with atomic `INSERT...WHERE (SELECT COUNT(*) < target)`.
+5. **Partial response bypass** — `is_partial=true` with empty `assigned_question_ids` skipped all questions. Added explicit guard.
+
+#### High fixes
+6. **Cashout transfer idempotency** — Added `idempotencyKey: cashout_${cashoutId}` to Stripe transfer call.
+7. **V2 allocatePayouts** — Missing `responses.length === responseIds.length` check allowed silent skipping.
+8. **Payout status check** — Only blocked `allocated`, not `completed`. Now blocks both.
+9. **Orphaned pending_funding campaigns** — Cron only cleaned `pending_gate`. Added 7-day TTL for unfunded `pending_funding`.
+10. **Notifications RLS** — Any authenticated user could INSERT. Tightened to service_role only (migration 043).
+11. **Cron error info disclosure** — Removed `details` from error response, added `captureError`.
+12. **UI promise rejections** — Added `.catch()` to NotificationPanel and CashoutPanel useEffect hooks.
+
+#### Clean systems (no bugs found)
+- AI/LLM (excellent fallbacks, prompt injection defense, grounding checks)
+- Economics/ranking (payout sums reconcile, wall weights sum to 1.0, anti-gaming solid)
+- UI components (all directives correct, hydration handled, types match schema)
+
+### Files modified (11)
+- `src/app/auth/reset-password/page.tsx`, `src/app/auth/callback/route.ts` — auth recovery
+- `src/app/api/webhooks/stripe/route.ts` — gate check + credit error propagation
+- `src/app/dashboard/ideas/new/reciprocal-actions.ts` — gate-only activation
+- `src/app/dashboard/earnings/cashout-actions.ts` — transfer idempotency
+- `src/app/dashboard/the-wall/[id]/actions.ts` — atomic V1 fill-cap + partial guard
+- `src/app/api/cron/expire-campaigns/route.ts` — pending_funding cleanup + error disclosure
+- `src/app/dashboard/ideas/[id]/responses/payout-actions.ts` — response count validation + status check
+- `src/components/dashboard/NotificationPanel.tsx`, `src/app/dashboard/earnings/CashoutPanel.tsx` — promise handlers
+- `supabase/migrations/043_rls_policy_hardening.sql` — notifications, disputes, cashouts policies
+
+### Pre-existing issues (not fixed this session)
+- `layout.tsx` type error (`planLimit` undefined) — likely from prior uncommitted work
+- 1 lint error + 7 warnings in integration tests — pre-existing
+
+## 2026-04-03 (evening) — Deep audit: math, targeting, race conditions, test coverage
+
+### What was done
+Full codebase audit across economics, targeting, API routes, and integration tests. Found 16+ issues, fixed all severity levels from critical through low. Wrote 25 new integration tests.
+
+#### Critical fixes (money + security)
+1. **Payout disqualification reasons inverted** (`payout-math.ts:232`) — Ternary logic scrambled: paid+qualified got failure reasons, unpaid+qualified got nothing, disqualified got empty. Fixed to: qualified+paid=[], qualified+unpaid=["budget exhausted"], disqualified=actual reasons.
+2. **Cron auth fail-open** (`expire-campaigns/route.ts:48`) — `if (cronSecret && ...)` let all requests through when env var missing. Changed to `if (!cronSecret || ...)` — fail closed.
+3. **NaN balance corruption** (`expire-campaigns/route.ts:294`) — `Number(lr.total)` on NULL → NaN propagated through `Math.round(NaN * 100)` into balance updates. Added `Number.isFinite()` guard + anomaly logging.
+4. **Double-submission race** (`actions.ts:441-453`) — Response status update and campaign counter were separate operations. Replaced with single CTE: `UPDATE responses WHERE status = 'in_progress' RETURNING` feeds conditional `UPDATE campaigns SET current_responses + 1`.
+
+#### Targeting + behavioral fixes
+5. **Incomplete profile ranked above non-matching complete** (`defaults.ts`) — `MATCH_SCORE_INCOMPLETE` was 40, but complete profile with unknown dimensions scored 34. Dropped to 30 — completing profile is now always better.
+6. **Partial response time floor too low** (`actions.ts:408`) — Flat 15s floor meant 1-of-100 questions could be answered in 15s. Now 8s per assigned question (`PARTIAL_MIN_TIME_PER_QUESTION_MS`).
+7. **Abandoned response duplicate exploit** (`reciprocal-actions.ts:63,105,283`) — `abandoned` status excluded from dedup queries let users start→abandon→re-respond to same campaign. Added `abandoned` to all exclusion queries + explicit rejection in `saveReciprocalAnswer`.
+
+#### Race condition fixes
+8. **Platform credit double-spend** (`payment-actions.ts:90-113`) — Credit read without lock let concurrent checkouts both apply same credit. Wrapped in `sql.begin()` + `SELECT ... FOR UPDATE` + eager deduction under lock.
+9. **Reciprocal gate counter race** (`reciprocal-actions.ts:416-445`) — Counter computed in app code (`+1`) then written back. Two concurrent completions both read same value. Moved increment to SQL: `SET reciprocal_responses_completed = COALESCE(..., 0) + 1 RETURNING`.
+
+#### Low severity fixes
+10. **Payout sum invariant assertion** (`payout-math.ts:207`) — Added post-reconciliation check: throws if qualified payout sum drifts >1¢ from distributable.
+11. **Reputation -1 sentinel → NaN** (`reputation.ts:65-77`) — Replaced fragile `-1` sentinel with `NaN` + `Number.isFinite()` checks throughout. NaN propagates obviously instead of silently comparing as "less than zero."
+12. **Variable naming** (`plan-guard.ts:224`) — `subsidizedThisMonth` → `subsidizedLast30Days` (was a rolling window, not calendar month).
+13. **Reach iteration convergence** (`reach.ts:186`) — Added comment documenting why 3 iterations suffices (monotonic contraction).
+14. **Null reach config fallback** (`load-wall-page-data.ts:117`) — Changed fallback from 75 to 0. Campaigns without reach config now hidden from wall instead of getting phantom 75-unit budget.
+
+#### New integration tests (25 cases across 2 files)
+- `subsidized-payout.integration.test.ts` (7 tests): flat payout under/at/over cap, budget exhaustion reasons, disqualified reasons, zero qualified, empty input, mixed ordering.
+- `reputation.integration.test.ts` (18 tests): tier assignment (new/bronze/silver/gold/platinum), confidence dampener, gaming penalty, reliability, hysteresis retention + demotion, volume bonus, exact manual calculations at 5 and 10 responses, DB-backed stats + flagging.
+
+#### Confirmed not bugs (audit false positives)
+- **Reach impression CTE** (#5) — `INSERT ON CONFLICT DO NOTHING RETURNING` is atomic at statement level in PostgreSQL. Only one concurrent insert gets a RETURNING row. Already correct.
+- **Stripe webhook dedup** (#6) — Same pattern, already correct.
+
+### Files modified (11)
+- `src/lib/payout-math.ts` — disqualification reasons fix + sum invariant assertion
+- `src/lib/reputation.ts` — NaN sentinel, `Number.isFinite()` guards
+- `src/lib/defaults.ts` — `MATCH_SCORE_INCOMPLETE: 30`, `PARTIAL_MIN_TIME_PER_QUESTION_MS: 8000`
+- `src/lib/plan-guard.ts` — variable rename
+- `src/lib/reach.ts` — convergence comment
+- `src/lib/wall-ranking.ts` — (via defaults change)
+- `src/app/api/cron/expire-campaigns/route.ts` — cron auth + NaN guard
+- `src/app/dashboard/the-wall/[id]/actions.ts` — atomic submission CTE + partial time floor
+- `src/app/dashboard/the-wall/load-wall-page-data.ts` — null reach fallback
+- `src/app/dashboard/ideas/new/payment-actions.ts` — credit lock + eager deduct
+- `src/app/dashboard/ideas/new/reciprocal-actions.ts` — abandoned dedup + atomic gate counter
+
+### Files created (2)
+- `src/__integration__/subsidized-payout.integration.test.ts`
+- `src/__integration__/reputation.integration.test.ts`
+
+### Files modified (tests)
+- `src/lib/__tests__/wall-ranking.test.ts` — updated MATCH_SCORE_INCOMPLETE assertion
+
+### Verification
+- TypeScript: 0 errors
+- Unit tests: 301/301 passing
+- Integration tests: 67/67 passing (10 files, includes 25 new)
+
+### Known gaps (carried forward)
+- matchSkew splits by quality not audience match
+- `Database` type not wired into Supabase clients
+- Dead V1 DB columns (`rewardsTopAnswers`, `bonusAvailable`, `top_only`)
+- Brief synthesis blocker from 04-02 may still exist
+- No geographic/behavioral targeting (basic interest/expertise matching only)
+- Completed campaigns can briefly appear on wall before cron marks them (caught at response start)
+- Campaign auto-extension has no creator existence check (zombie campaigns edge case)
+
+### CLAUDE.md update proposal
+- Add `payment-actions.ts` to high-coupling files list (Stripe + credit + subsidy interaction)
+- Add `reciprocal-actions.ts` to state-machine-sensitive areas (gate lifecycle)
+- Note: reach impression CTE and Stripe webhook dedup are confirmed atomic — don't re-audit
+
+## 2026-04-03 (afternoon) — Full codebase security & math audit + fixes
+
+### What was done
+Comprehensive audit of all economics, targeting, API routes, and DB layer. Found and fixed 12 issues across money, race conditions, and security.
+
+#### Critical fixes
+1. **Payout CAS NULL bypass** — `.neq("allocated")` matched NULL; changed to `.eq("pending")` in V1+V2
+2. **V2 response overfill race** — replaced separate COUNT+INSERT with atomic `INSERT...WHERE (SELECT COUNT(*)) < target`
+3. **Cron duplicate payouts** — added `RETURNING id` check on `status='completed'` CAS transition
+4. **Stripe webhook idempotency** — `processed_stripe_events` table + INSERT ON CONFLICT guard
+5. **Spam bypass in cron** — expiration path now computes `spamFlagged` from paste metadata (was missing)
+6. **Money state guard** — V2 payout UPDATE now requires `money_state = 'pending_qualification'` only
+
+#### High-risk fixes
+7. **Payout sum tolerance** — switched from float-based 0.01 tolerance to integer-cent comparison
+8. **Reputation error handling** — profile fetch/update now throw on failure instead of silent fallback
+9. **Cron secret timing-safe** — replaced string `!==` with `timingSafeEqual`
+10. **Reach impression race** — combined INSERT+UPDATE into single CTE
+11. **Balance mismatch logging** — cron balance update now checks RETURNING + logs anomalies
+12. **Subsidy eligibility constant** — extracted hardcoded 30d to `DEFAULTS.SUBSIDY_ELIGIBILITY_DAYS`
+
+#### Migration
+- `039_idempotency_and_dedup.sql`: Stripe event dedup table + unique partial index on responses(respondent_id, campaign_id) for active statuses
+
+### Files modified (7)
+- `src/app/dashboard/ideas/[id]/responses/payout-actions.ts` — CAS locks, sum validation, money_state guard
+- `src/app/api/cron/expire-campaigns/route.ts` — CAS, timing-safe secret, spam detection, balance logging
+- `src/app/api/webhooks/stripe/route.ts` — idempotency guard
+- `src/app/api/reach-impression/route.ts` — atomic CTE
+- `src/app/dashboard/the-wall/[id]/actions.ts` — atomic fill-cap INSERT
+- `src/lib/reputation.ts` — error handling on fetch/update
+- `src/lib/defaults.ts` — SUBSIDY_ELIGIBILITY_DAYS constant
+- `src/lib/plan-guard.ts` — use new constant
+- `src/lib/ops-logger.ts` — balance_mismatch anomaly type
+
+### Files created (1)
+- `supabase/migrations/039_idempotency_and_dedup.sql`
+
+### Verification
+- TypeScript: 0 errors
+- ESLint: clean
+- Unit tests: 301/301 passing
+- Build: successful
+
+### Known gaps (carried forward)
+- matchSkew splits by quality not audience match
+- `Database` type not wired into Supabase clients
+- Integration tests always skip
+- Dead V1 DB columns
+- Reputation updates not transactional with payouts (logged, not blocked)
+- Incomplete profiles get flat 40/100 match score (intentional but no profile completion incentive)
+
+## 2026-04-03 — Cashout flow + launch blockers sweep
+
+### What was done
+Built 7 features to close pre-launch gaps. All pass lint + tsc + build.
+
+1. **Cashout flow (Stripe Connect)** — The single biggest missing piece. Full money-out path:
+   - Migration `036`: `cashouts` table + `stripe_connect_account_id`/`stripe_connect_onboarding_complete` on profiles
+   - Server actions: `createConnectOnboardingLink`, `checkConnectStatus`, `requestCashout`, `retryCashout`
+   - Connect webhook handler at `/api/webhooks/stripe-connect`
+   - `CashoutPanel` client component on earnings page (3 states: setup bank, complete setup, cash out)
+   - `RetryCashoutButton` for failed cashouts
+   - Cashout history section on earnings page
+
+2. **Legal pages** — `/terms` (16 sections) + `/privacy` (13 sections), footer links wired
+
+3. **Email verification enforcement** — Dashboard layout checks `email_confirmed_at`, redirects to `/auth/verify-email` (resend + check buttons)
+
+4. **Account deletion** — `deleteAccount()` cascades all user data (answers → cashouts → payouts → responses → questions → campaigns → profile), blocks if pending balance. `DeleteAccountButton` with type-DELETE confirmation.
+
+5. **Admin UI** — `/admin` page with 4 tabs: System Health, Campaign Lookup, User Lookup (new `/api/admin/users` endpoint), Disputes. Session-stored admin key auth.
+
+6. **Dispute/appeal flow** — Migration `037`: `disputes` table (one per response). Respondents see "Appeal" on disqualified responses in earnings page. Admin can uphold or overturn (overturning re-qualifies + credits balance). `/api/admin/disputes` GET + PATCH.
+
+7. **Cashout failure recovery** — `retryCashout()` server action re-attempts failed transfers. Retry button shown inline on failed cashout history items.
+
+### Migrations to apply
+- `036_cashouts_and_connect.sql`
+- `037_disputes.sql`
+
+### Env vars to add
+- `STRIPE_CONNECT_WEBHOOK_SECRET` — create Connect webhook in Stripe Dashboard → `/api/webhooks/stripe-connect`
+
+### Files created (15)
+- `supabase/migrations/036_cashouts_and_connect.sql`
+- `supabase/migrations/037_disputes.sql`
+- `src/app/terms/page.tsx`
+- `src/app/privacy/page.tsx`
+- `src/app/auth/verify-email/page.tsx`
+- `src/app/admin/page.tsx`
+- `src/app/api/admin/users/route.ts`
+- `src/app/api/admin/disputes/route.ts`
+- `src/app/api/webhooks/stripe-connect/route.ts`
+- `src/app/dashboard/earnings/cashout-actions.ts`
+- `src/app/dashboard/earnings/CashoutPanel.tsx`
+- `src/app/dashboard/earnings/RetryCashoutButton.tsx`
+- `src/app/dashboard/earnings/dispute-actions.ts`
+- `src/app/dashboard/earnings/DisputeButton.tsx`
+- `src/app/dashboard/settings/account-actions.ts`
+- `src/app/dashboard/settings/DeleteAccountButton.tsx`
+
+### Files modified (7)
+- `src/app/dashboard/earnings/page.tsx` — CashoutPanel + DisputeButton + RetryCashout + cashout history
+- `src/app/dashboard/layout.tsx` — email verification gate
+- `src/app/dashboard/settings/page.tsx` — DeleteAccountButton
+- `src/components/landing/Footer.tsx` — legal page links
+- `src/lib/supabase/database.types.ts` — cashouts + disputes + Connect fields
+- `src/lib/ops-logger.ts` — connect.account_created + cashout.initiated events
+- `.env.example` — STRIPE_CONNECT_WEBHOOK_SECRET
+
+### Known gaps (carried forward)
+- matchSkew splits by quality not audience match
+- `Database` type not wired into Supabase clients
+- Integration tests always skip
+- Dead V1 DB columns (`rewardsTopAnswers`, `bonusAvailable`, `top_only` reward type)
+- Brief synthesis blocker from 04-02 session may still exist
+
+## 2026-04-02 (late night) — E2E testing + migration deployment + brief debugging
+
+### What was done
+1. **Committed big batch** (`1b7bcb2`): reciprocal gate in GeneratingStep, economics rebalance, UI polish, dead code removal. 85 files, 277 tests, build clean.
+2. **Dead code cleanup** (`0aaa6e4`): Removed ReciprocateStep.tsx, generate-action.ts, legacy ReciprocalQuestion type, stale PlanConfig fields (hasAbTesting, hasDedicatedSupport, campaignsPerMonth null branch), unused REWARD_TYPE_OPTIONS.
+3. **Fixed 25 lint errors** blocking commit: JSX `// text` comments → `{"// "}text`, `useRef(Date.now())` → `useMemo`, `setState` in effect → lazy `useState`.
+4. **Migrations applied to remote Supabase** (project `ooamtvochbfkpvwhvged`):
+   - Created `supabase/combined_002_035.sql` — idempotent mega-script covering all 34 migrations
+   - User initially ran on wrong project (`idmyqjdmjvupfbvgmxsw`), then re-ran on correct one
+   - Also ran `npx supabase db push` which applied 033, 034, 035 via CLI
+   - Fixed response status trigger to include `abandoned` transition (had to DROP + CREATE, not just CREATE OR REPLACE — user had to run manually in SQL Editor)
+5. **Seeded test data**: 2 active campaigns with 7 questions each (seed-test-campaign.ts), 5 fake responses with realistic answers on Max's freelancer campaign (seed-responses.ts)
+6. **E2E respond flow verified**: Partial assignment working (3 questions assigned from 7), responses submitted successfully to seeded campaigns
+
+### The blocker: Brief synthesis not working
+- **Page**: `/dashboard/ideas/8f97d26d-38fe-4ede-b627-791cbcd2df3f/brief`
+- **Campaign**: "A simple app for freelancers..." — 5 submitted responses, 6 answers each, all data present in DB
+- **Symptom**: Brief page renders the **fallback** ("AI synthesis unavailable. Manual review recommended.") instead of calling Claude for real synthesis. All assumption verdicts show "Insufficient Data" with fallback text.
+- **API key works**: `curl` test to Anthropic API returns 200 with `claude-sonnet-4-6`. Key is in `.env.local`.
+- **Subscription is pro**: `getSubscription()` returns pro tier, brief access gate passes.
+- **Console logs added but not appearing**: Added `console.log("[brief]")` and `console.error("[brief]")` in `synthesize-brief.ts` at evidence gathering catch, AI call start, AI response received, and synthesis attempt failure — but **nothing appears in the Next.js terminal**. This suggests the server component may be running in a way that doesn't output to the local terminal, OR the page is being served from a cache/edge that bypasses the server.
+- **Added 60s AbortController timeout** to the `callSynthesis` AI call (was unbounded before).
+- **Brief cache was cleared** via SQL (`UPDATE campaigns SET brief_cache = NULL...`) but fallback still renders instantly — suggests the fallback result itself may be cached by Next.js (not the DB cache).
+
+### How to debug
+1. **Try `next dev` restart** — the server component logs might not flush until restart. Kill the dev server and restart `npm run dev`.
+2. **Check if Next.js is caching the page** — server components in App Router can be cached. Try adding `export const dynamic = "force-dynamic"` to `src/app/dashboard/ideas/[id]/brief/page.tsx`.
+3. **Check the evidence pipeline** — the `catch` at line ~253 of `synthesize-brief.ts` catches evidence gathering failures (getEvidenceByAssumption, getBriefMethodology, extractPriceSignal, detectConsistencyGaps). If any of these fail, it returns the fallback. Add explicit try/catch around each one individually to find which fails.
+4. **Check `getEvidenceByAssumption`** — this queries responses + answers + questions joined. The seeded responses have `quality_score = NULL` (never ranked) — check if the evidence pipeline filters on quality_score being non-null.
+5. **The Anthropic API call itself works** — confirmed via curl. The issue is upstream of the AI call (evidence gathering) or the logs genuinely not appearing.
+
+### Known state
+- **DB is fully migrated** on `ooamtvochbfkpvwhvged` (MVP - VLDATA)
+- **Supabase MCP** is connected but **read-only** — DDL requires SQL Editor or CLI
+- **Tests**: 277 passing, lint clean, build clean
+- **Files modified this session** (not yet committed): `synthesize-brief.ts` (added error logging + 60s timeout)
+- **Seed scripts**: `src/scripts/seed-test-campaign.ts` (2 campaigns), `src/scripts/seed-responses.ts` (5 responses for freelancer campaign)
+- **combined_002_035.sql** in `supabase/` — can be deleted, it was a one-time apply tool
+
+### Known gaps (carried forward)
+- `bonusAvailable`, `rewardsTopAnswers`, `top_only` reward type — V1 DB columns, referenced in ~15 files, need migration to remove
+- matchSkew splits by quality not audience match
+- `Database` type not wired into clients
+- Integration tests always skip
 
 ## 2026-04-02 (night) — Reciprocal gate cold-start fix
 

@@ -129,10 +129,11 @@ export async function getEvidenceByAssumption(
       const negative = items.filter((e) => e.evidenceCategory === "negative");
       const nonNegative = items.filter((e) => e.evidenceCategory !== "negative");
 
-      if (negative.length > 0 && negative.length <= MIN_NEGATIVE_SLOTS) {
-        // Guarantee negative evidence survives the cap
-        const remaining = MAX_EVIDENCE_PER_ASSUMPTION - negative.length;
-        evidenceMap.set(key, [...nonNegative.slice(0, remaining), ...negative]);
+      if (negative.length > 0) {
+        // Guarantee at least MIN_NEGATIVE_SLOTS negative items survive the cap
+        const negativesToKeep = negative.slice(0, MIN_NEGATIVE_SLOTS);
+        const remaining = MAX_EVIDENCE_PER_ASSUMPTION - negativesToKeep.length;
+        evidenceMap.set(key, [...nonNegative.slice(0, remaining), ...negativesToKeep]);
       } else {
         evidenceMap.set(key, items.slice(0, MAX_EVIDENCE_PER_ASSUMPTION));
       }

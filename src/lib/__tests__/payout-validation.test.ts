@@ -21,18 +21,18 @@ function checkDistributableIntegrity(
 
 describe("distributable integrity check", () => {
   it("passes when stored matches calculated exactly", () => {
-    // $100 reward → $80.00 distributable (20% fee)
-    expect(checkDistributableIntegrity(80.0, 100)).toBe(true);
+    // $100 reward → $85.00 distributable (15% fee)
+    expect(checkDistributableIntegrity(85.0, 100)).toBe(true);
   });
 
   it("passes within $0.02 tolerance (rounding)", () => {
-    expect(checkDistributableIntegrity(80.01, 100)).toBe(true);
-    expect(checkDistributableIntegrity(79.99, 100)).toBe(true);
+    expect(checkDistributableIntegrity(85.01, 100)).toBe(true);
+    expect(checkDistributableIntegrity(84.99, 100)).toBe(true);
   });
 
   it("fails when stored exceeds tolerance", () => {
-    expect(checkDistributableIntegrity(80.03, 100)).toBe(false);
-    expect(checkDistributableIntegrity(79.97, 100)).toBe(false);
+    expect(checkDistributableIntegrity(85.03, 100)).toBe(false);
+    expect(checkDistributableIntegrity(84.97, 100)).toBe(false);
   });
 
   it("rejects corrupted distributable (stored way too high)", () => {
@@ -50,8 +50,8 @@ describe("distributable integrity check", () => {
 
   it("handles small reward ($5)", () => {
     const expected = Math.round(5 * (1 - PLATFORM_FEE_RATE) * 100) / 100;
-    expect(expected).toBe(4.0);
-    expect(checkDistributableIntegrity(4.0, 5)).toBe(true);
+    expect(expected).toBe(4.25);
+    expect(checkDistributableIntegrity(4.25, 5)).toBe(true);
   });
 });
 
@@ -140,12 +140,12 @@ describe("distributable amount calculation", () => {
       : 0;
   }
 
-  it("calculates 20% fee correctly for $100", () => {
-    expect(calculateDistributable(100)).toBe(80.0);
+  it("calculates 15% fee correctly for $100", () => {
+    expect(calculateDistributable(100)).toBe(85.0);
   });
 
-  it("calculates for $5 minimum", () => {
-    expect(calculateDistributable(5)).toBe(4.0);
+  it("calculates for $3 minimum", () => {
+    expect(calculateDistributable(3)).toBe(2.55);
   });
 
   it("returns 0 for $0 funding", () => {
@@ -153,11 +153,11 @@ describe("distributable amount calculation", () => {
   });
 
   it("handles floating-point precision", () => {
-    // $99.99 * 0.80 = 79.992 → rounds to 79.99
-    expect(calculateDistributable(99.99)).toBe(79.99);
+    // $99.99 * 0.85 = 84.9915 → rounds to 84.99
+    expect(calculateDistributable(99.99)).toBe(84.99);
   });
 
   it("handles $1 funding", () => {
-    expect(calculateDistributable(1)).toBe(0.80);
+    expect(calculateDistributable(1)).toBe(0.85);
   });
 });

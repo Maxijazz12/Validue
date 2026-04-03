@@ -14,6 +14,7 @@ export default function Footer() {
         <p className="font-mono text-[10px] text-[#78716C] mt-[16px] uppercase tracking-widest">
           {"// "}SYS.INTEGRITY.VERIFIED
         </p>
+
         <p className="font-mono text-[9px] text-white/20 mt-[12px] uppercase">
           &copy; 2026 VALIDUE_INC
         </p>
@@ -27,9 +28,9 @@ export default function Footer() {
           </div>
           <div className="flex flex-col gap-[12px]">
             {[
-              { label: "INDEX_NETWORK", href: "/dashboard/the-wall" },
-              { label: "ALLOCATION_MATRIX", href: "#pricing" },
-              { label: "EARN_YIELD", href: "#respond" },
+              { label: "FOR_FOUNDERS", href: "/for-founders" },
+              { label: "ALLOCATION_MATRIX", href: "/pricing" },
+              { label: "EARN_YIELD", href: "/earn" },
             ].map((link) => (
               <a
                 key={link.label}
@@ -47,8 +48,8 @@ export default function Footer() {
           </div>
           <div className="flex flex-col gap-[12px]">
             {[
-              { label: "PROTOCOL_TERMS", href: "#" },
-              { label: "DATA_PRIVACY", href: "#" },
+              { label: "PROTOCOL_TERMS", href: "/terms" },
+              { label: "DATA_PRIVACY", href: "/privacy" },
               { label: "X_STREAM", href: "#" },
               { label: "DISCORD_RELAY", href: "#" },
             ].map((link) => (

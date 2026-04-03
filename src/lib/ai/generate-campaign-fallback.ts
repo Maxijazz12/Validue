@@ -3,9 +3,32 @@ import { CATEGORY_OPTIONS, INDUSTRY_OPTIONS } from "@/lib/constants";
 import { recommendBaseline } from "@/lib/baseline-questions";
 
 function extractTitle(text: string): string {
-  // Try to extract a descriptive title, not just first sentence
+  // Try to extract a descriptive title from the scribble
   const firstSentence = text.match(/^[^.!?\n]+[.!?]?/);
-  const raw = firstSentence ? firstSentence[0].trim() : text.slice(0, 80).trim();
+  let raw = firstSentence ? firstSentence[0].trim() : text.slice(0, 80).trim();
+
+  // Convert question-format titles into statement-format idea titles
+  // e.g. "Would people pay for meal planning?" → "AI-Powered Meal Planning"
+  // e.g. "Is there demand for async mentorship?" → "Async Mentorship Platform"
+  const questionPrefixes = /^(would|could|can|do|does|is|are|has|have|will|should|might|how|what if)\s+/i;
+  if (questionPrefixes.test(raw)) {
+    // Strip the question prefix and trailing question mark
+    raw = raw.replace(questionPrefixes, "").replace(/\?+$/, "").trim();
+    // Strip filler phrases like "people pay for", "there demand for", "anyone want"
+    raw = raw
+      .replace(/^(people|users|anyone|someone|founders|students)\s+(would\s+)?(pay\s+for|want|need|use|like|buy)\s+/i, "")
+      .replace(/^there\s+(a\s+)?(demand|need|market)\s+(for\s+)?/i, "")
+      .replace(/^(it\s+)?(possible|feasible|viable)\s+(to\s+)?/i, "")
+      .trim();
+    // Capitalize first letter
+    if (raw.length > 0) {
+      raw = raw.charAt(0).toUpperCase() + raw.slice(1);
+    }
+  }
+
+  // Remove trailing question mark from any title
+  raw = raw.replace(/\?+$/, "").trim();
+
   // Cap at 80 chars
   return raw.length > 80 ? raw.slice(0, 77) + "…" : raw;
 }

@@ -1,4 +1,4 @@
-import type { CampaignDraft } from "./types";
+import type { GenerateCampaignResponse } from "./types";
 
 /**
  * Generate a campaign draft from freeform scribble text.
@@ -7,7 +7,7 @@ import type { CampaignDraft } from "./types";
  */
 export async function generateCampaignDraft(
   scribbleText: string
-): Promise<CampaignDraft> {
+): Promise<GenerateCampaignResponse> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 65_000);
   let response: Response;

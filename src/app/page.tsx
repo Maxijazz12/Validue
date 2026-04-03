@@ -1,14 +1,19 @@
+import dynamic from "next/dynamic";
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
-import WallPreview from "@/components/landing/WallPreview";
 import Ticker from "@/components/landing/Ticker";
-import HowItWorks from "@/components/landing/HowItWorks";
-import QualityFeature from "@/components/landing/QualityFeature";
-import Pricing from "@/components/landing/Pricing";
-import DidYouKnow from "@/components/landing/DidYouKnow";
-import CtaBanner from "@/components/landing/CtaBanner";
-import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+
+// Below-fold components: lazy-loaded to reduce initial JS bundle
+const WallPreview = dynamic(() => import("@/components/landing/WallPreview"));
+const HowItWorks = dynamic(() => import("@/components/landing/HowItWorks"));
+const Testimonials = dynamic(() => import("@/components/landing/Testimonials"));
+const QualityFeature = dynamic(() => import("@/components/landing/QualityFeature"));
+const ExampleValidations = dynamic(() => import("@/components/landing/ExampleValidations"));
+const Pricing = dynamic(() => import("@/components/landing/Pricing"));
+const DidYouKnow = dynamic(() => import("@/components/landing/DidYouKnow"));
+const CtaBanner = dynamic(() => import("@/components/landing/CtaBanner"));
+const Footer = dynamic(() => import("@/components/landing/Footer"));
 
 export default function Home() {
   return (
@@ -47,7 +52,19 @@ export default function Home() {
 
         <ScrollReveal>
           <div className="max-w-[1200px] mx-auto px-[64px] max-md:px-[24px] py-[100px] max-md:py-[72px]">
+            <Testimonials />
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal>
+          <div className="max-w-[1200px] mx-auto px-[64px] max-md:px-[24px] py-[100px] max-md:py-[72px]">
             <QualityFeature />
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal>
+          <div className="max-w-[1200px] mx-auto px-[64px] max-md:px-[24px] py-[100px] max-md:py-[72px]">
+            <ExampleValidations />
           </div>
         </ScrollReveal>
 
@@ -85,9 +102,9 @@ export default function Home() {
             <div className="flex items-center justify-center gap-[24px] max-md:flex-col max-md:gap-[8px] py-[24px] border-t border-white/5 text-[10px] uppercase font-bold tracking-widest text-white/40 mt-[32px] font-mono">
               <span>{"// "}FOUNDERS: YC, TECHSTARS, 40+ COUNTRIES</span>
               <span className="text-white/10 max-md:hidden">|</span>
-              <span>{"// "}AVG_Q_SCORE: 94%</span>
+              <span>{"// "}FIRST_SIGNAL: 18 MIN</span>
               <span className="text-white/10 max-md:hidden">|</span>
-              <span>{"// "}DEPLOYED: $48K+</span>
+              <span>{"// "}OUTPUT: DECISION BRIEF</span>
             </div>
           </div>
 

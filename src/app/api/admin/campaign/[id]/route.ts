@@ -8,6 +8,7 @@ import {
 import { getQualityModifier } from "@/lib/reach";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAdminAuthorized } from "@/lib/admin-auth";
+import { isValidUuid } from "@/lib/validate-uuid";
 
 /**
  * GET /api/admin/campaign/[id]
@@ -32,6 +33,10 @@ export async function GET(
   }
 
   const { id: campaignId } = await params;
+
+  if (!isValidUuid(campaignId)) {
+    return NextResponse.json({ error: "Invalid campaign ID" }, { status: 400 });
+  }
 
   try {
     // Campaign record

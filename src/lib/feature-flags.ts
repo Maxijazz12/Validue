@@ -13,7 +13,7 @@ export const FEATURES = {
   RESPONDENT_PAYOUTS: false,
 
   /** Earnings page and sidebar link */
-  EARNINGS_PAGE: false,
+  EARNINGS_PAGE: true,
 
   /** Reputation tiers and badges in respondent-facing UI */
   REPUTATION_TIERS: false,

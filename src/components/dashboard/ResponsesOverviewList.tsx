@@ -66,16 +66,6 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto">
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes cardEntranceV2 {
-          0% { opacity: 0; transform: translateY(24px) scale(0.96) rotateX(-4deg); }
-          100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
-        }
-        .glow-hover:hover {
-          box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.08);
-          transform: translateY(-2px);
-        }
-      `}} />
 
       {/* Search + filter pane */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-[20px] mb-[40px] p-[8px] bg-white rounded-full border border-border-light/50 shadow-card-sm">

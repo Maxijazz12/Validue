@@ -16,7 +16,7 @@ export { TIER_CONFIG, calculateReputation } from "./reputation-config";
  * one outlier response from causing large reputation swings.
  */
 function smoothedQualityAverage(previousAvg: number, newAvg: number): number {
-  if (previousAvg < 0) return newAvg; // first valid score — no history to smooth
+  if (!Number.isFinite(previousAvg) || previousAvg < 0) return newAvg; // first valid score — no history to smooth
   const ema = previousAvg + DEFAULTS.REPUTATION_ALPHA * (newAvg - previousAvg);
   const delta = ema - previousAvg;
   const clampedDelta = Math.max(
@@ -34,14 +34,18 @@ export async function updateRespondentReputation(
   const supabase = await createClient();
 
   // Fetch current profile for EMA baseline and tier hysteresis
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("average_quality_score, reputation_tier")
     .eq("id", respondentId)
     .single();
 
-  const previousAvg = safeNumber(profile?.average_quality_score, -1);
-  const currentTier = (profile?.reputation_tier as ReputationTier) ?? "new";
+  if (profileError || !profile) {
+    throw new Error(`Reputation update failed: profile ${respondentId} not found`);
+  }
+
+  const previousAvg = safeNumber(profile.average_quality_score, -1);
+  const currentTier = (profile.reputation_tier as ReputationTier) ?? "new";
 
   // Aggregate response stats
   const { data: responses } = await supabase
@@ -56,20 +60,21 @@ export async function updateRespondentReputation(
   const ranked = allResponses.filter((r) => r.status === "ranked");
 
   const totalCompleted = ranked.length;
-  const totalSubmitted = submitted.length + ranked.length;
-  // Track whether any quality scores are actually present (not just null/NaN)
-  const qualityScores = ranked.map((r) => safeNumber(r.quality_score, -1));
-  const validScores = qualityScores.filter((s) => s >= 0);
+  const totalSubmitted = submitted.length; // submitted already includes ranked
+  // Track whether any quality scores are actually present (not just null/NaN).
+  // Uses NaN as the "no valid data" sentinel instead of -1, since quality_score
+  // is always >= 0 when valid, and NaN propagates obviously through arithmetic.
+  const qualityScores = ranked.map((r) => safeNumber(r.quality_score, NaN));
+  const validScores = qualityScores.filter((s) => Number.isFinite(s));
   const rawAvgQualityScore =
     validScores.length > 0
       ? validScores.reduce((s, v) => s + v, 0) / validScores.length
-      : -1; // -1 signals "no valid scores" vs genuine 0
+      : NaN; // NaN signals "no valid scores" vs genuine 0
 
   // Apply EMA smoothing to quality score
-  const avgQualityScore =
-    rawAvgQualityScore >= 0
-      ? smoothedQualityAverage(previousAvg, rawAvgQualityScore)
-      : -1;
+  const avgQualityScore = Number.isFinite(rawAvgQualityScore)
+    ? smoothedQualityAverage(previousAvg, rawAvgQualityScore)
+    : NaN;
 
   // Count flagged responses (responses with paste detection)
   let flaggedCount = 0;
@@ -112,9 +117,10 @@ export async function updateRespondentReputation(
   );
 
   // If all quality scores are null/invalid, treat as insufficient data
+  const noValidScores = !Number.isFinite(avgQualityScore);
   const stats: ReputationStats = {
-    totalCompleted: avgQualityScore < 0 ? 0 : totalCompleted,
-    avgQualityScore: avgQualityScore < 0 ? 0 : avgQualityScore,
+    totalCompleted: noValidScores ? 0 : totalCompleted,
+    avgQualityScore: noValidScores ? 0 : avgQualityScore,
     totalEarned,
     totalSubmitted,
     flaggedResponseCount: flaggedCount,
@@ -136,8 +142,8 @@ export async function updateRespondentReputation(
     });
   }
 
-  // Update profile
-  await supabase
+  // Update profile — check for errors to prevent silent failures
+  const { error: updateError } = await supabase
     .from("profiles")
     .update({
       reputation_score: result.score,
@@ -148,6 +154,10 @@ export async function updateRespondentReputation(
       reputation_updated_at: new Date().toISOString(),
     })
     .eq("id", respondentId);
+
+  if (updateError) {
+    throw new Error(`Reputation update failed for ${respondentId}: ${updateError.message}`);
+  }
 
   return result;
 }

@@ -22,37 +22,35 @@ export default async function CampaignResponsesPage({
 
   if (!user) redirect("/auth/login");
 
-  const sub = await getSubscription(user.id);
+  // Fetch subscription, campaign, questions, and responses in parallel
+  const [sub, { data: campaign }, { data: questions }, { data: responses }] =
+    await Promise.all([
+      getSubscription(user.id),
+      supabase
+        .from("campaigns")
+        .select("id, title, description, status, current_responses, target_responses, ranking_status, creator_id, reward_amount, distributable_amount, payout_status")
+        .eq("id", id)
+        .eq("creator_id", user.id)
+        .single(),
+      supabase
+        .from("questions")
+        .select("id, text, type, sort_order")
+        .eq("campaign_id", id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("responses")
+        .select("id, status, quality_score, ai_feedback, scoring_source, scoring_confidence, scoring_dimensions, created_at, ranked_at, respondent:profiles!respondent_id(full_name, avatar_url, reputation_tier)")
+        .eq("campaign_id", id)
+        .in("status", ["submitted", "ranked"])
+        .order("quality_score", { ascending: false, nullsFirst: false }),
+    ]);
+
   const hasExport = !!PLAN_CONFIG[sub.tier].hasExport;
-
-  // Fetch campaign (creator only)
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("id, title, description, status, current_responses, target_responses, ranking_status, creator_id, reward_amount, distributable_amount, payout_status")
-    .eq("id", id)
-    .eq("creator_id", user.id)
-    .single();
-
   if (!campaign) notFound();
-
-  // Fetch questions
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("id, text, type, sort_order")
-    .eq("campaign_id", id)
-    .order("sort_order", { ascending: true });
 
   const questionMap = new Map(
     (questions || []).map((q) => [q.id, q])
   );
-
-  // Fetch responses with respondent profiles + scoring fields
-  const { data: responses } = await supabase
-    .from("responses")
-    .select("id, status, quality_score, ai_feedback, scoring_source, scoring_confidence, scoring_dimensions, created_at, ranked_at, respondent:profiles!respondent_id(full_name, avatar_url, reputation_tier)")
-    .eq("campaign_id", id)
-    .in("status", ["submitted", "ranked"])
-    .order("quality_score", { ascending: false, nullsFirst: false });
 
   // Fetch answers for all responses
   const responseIds = (responses || []).map((r) => r.id);

@@ -6,6 +6,7 @@ import PasswordChangeForm from "@/components/dashboard/settings/PasswordChangeFo
 import NotificationPreferences from "@/components/dashboard/settings/NotificationPreferences";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
+import DeleteAccountButton from "./DeleteAccountButton";
 
 async function updateProfile(formData: FormData) {
   "use server";
@@ -179,12 +180,7 @@ export default async function SettingsPage({
           Permanently delete your account and all associated data. This action
           cannot be undone.
         </p>
-        <button
-          className="inline-flex items-center justify-center px-[24px] py-[12px] rounded-full text-[13px] font-bold tracking-wide border border-transparent bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-300 cursor-not-allowed opacity-50"
-          disabled
-        >
-          Delete Account
-        </button>
+        <DeleteAccountButton />
       </div>
     </div>
   );

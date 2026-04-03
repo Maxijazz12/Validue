@@ -13,25 +13,24 @@ export default async function MyResponsesPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Fetch reputation stats
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("reputation_score, reputation_tier, total_responses_completed, average_quality_score, total_earned")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: responses }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("reputation_score, reputation_tier, total_responses_completed, average_quality_score, total_earned")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("responses")
+      .select("id, status, quality_score, payout_amount, ai_feedback, created_at, campaign:campaigns!campaign_id(id, title, category, reward_amount, reward_type)")
+      .eq("respondent_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const repScore = Number(profile?.reputation_score) || 0;
   const repTier = (profile?.reputation_tier || "new") as ReputationTier;
   const totalCompleted = profile?.total_responses_completed || 0;
   const avgQuality = Number(profile?.average_quality_score) || 0;
   const totalEarned = Number(profile?.total_earned) || 0;
-
-  // Fetch responses with campaign info
-  const { data: responses } = await supabase
-    .from("responses")
-    .select("id, status, quality_score, payout_amount, ai_feedback, created_at, campaign:campaigns!campaign_id(id, title, category, reward_amount, reward_type)")
-    .eq("respondent_id", user.id)
-    .order("created_at", { ascending: false });
 
   // Normalize response data for client component
   const items: ResponseItem[] = (responses || []).map((response) => {

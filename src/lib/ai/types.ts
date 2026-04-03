@@ -117,6 +117,23 @@ export interface GenerateCampaignRequest {
   scribbleText: string;
 }
 
+export type CampaignDraftSource = "ai" | "fallback";
+
+export type CampaignDraftFallbackReason =
+  | "no_api_key"
+  | "api_error"
+  | "validation_failed";
+
+export interface CampaignDraftGeneration {
+  source: CampaignDraftSource;
+  fallbackReason?: CampaignDraftFallbackReason;
+}
+
+export interface GenerateCampaignResponse extends CampaignDraftGeneration {
+  status: "done";
+  draft: CampaignDraft;
+}
+
 export interface RegenerateQuestionRequest {
   scribbleText: string;
   campaignSummary: string;

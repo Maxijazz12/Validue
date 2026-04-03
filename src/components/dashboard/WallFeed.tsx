@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useSyncExternalStore, useMemo, useCallback } from "react";
 import WallCardUnified, { type WallCardProps } from "@/components/dashboard/WallCardUnified";
 import WallCardTracker from "@/components/dashboard/WallCardTracker";
 
@@ -64,20 +64,19 @@ export default function WallFeed({
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("for-you");
 
-  // Bookmarks (localStorage)
-  const [savedIds, setSavedIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set<string>();
-    try { const raw = localStorage.getItem("wall-saved"); if (raw) return new Set<string>(JSON.parse(raw)); } catch { /* ignore */ }
-    return new Set<string>();
-  });
+  // Bookmarks (localStorage via useSyncExternalStore to avoid SSR mismatch)
+  const savedIdsRaw = useSyncExternalStore(
+    (cb) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); },
+    () => localStorage.getItem("wall-saved") ?? "[]",
+    () => "[]"
+  );
+  const savedIds = useMemo(() => { try { return new Set<string>(JSON.parse(savedIdsRaw)); } catch { return new Set<string>(); } }, [savedIdsRaw]);
 
   const toggleSave = useCallback((id: string) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      localStorage.setItem("wall-saved", JSON.stringify([...next]));
-      return next;
-    });
+    const current = (() => { try { return new Set<string>(JSON.parse(localStorage.getItem("wall-saved") ?? "[]")); } catch { return new Set<string>(); } })();
+    if (current.has(id)) current.delete(id); else current.add(id);
+    localStorage.setItem("wall-saved", JSON.stringify([...current]));
+    window.dispatchEvent(new StorageEvent("storage"));
   }, []);
 
   const results = useMemo(() => {

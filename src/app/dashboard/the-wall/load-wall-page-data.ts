@@ -117,8 +117,9 @@ function buildRespondentProfile(profile: ProfileRow | null): RespondentProfile {
 function hasRemainingReachBudget(campaign: CampaignRow): boolean {
   const totalReachUnits = safeNumber(
     campaign.effective_reach_units,
-    safeNumber(campaign.total_reach_units, 75)
+    safeNumber(campaign.total_reach_units, 0) // 0 fallback: campaigns without reach config don't appear
   );
+  if (totalReachUnits <= 0) return false; // No reach configured — hide from wall
   const served = campaign.reach_served ?? 0;
   return served < totalReachUnits;
 }
@@ -310,18 +311,20 @@ export async function loadWallPageData(
   supabase: SupabaseClient,
   userId: string
 ): Promise<WallPageData> {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(
-      "full_name, role, avatar_url, onboarding_completed, has_responded, has_posted, interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed, reputation_tier, average_quality_score, total_earned"
-    )
-    .eq("id", userId)
-    .single();
-
-  const { data: campaigns } = await supabase
-    .from("campaigns")
-    .select("*, creator:profiles!creator_id(full_name, avatar_url)")
-    .eq("status", "active");
+  const [{ data: profile }, { data: campaigns }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "full_name, role, avatar_url, onboarding_completed, has_responded, has_posted, interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed, reputation_tier, average_quality_score, total_earned"
+      )
+      .eq("id", userId)
+      .single(),
+    supabase
+      .from("campaigns")
+      .select("*, creator:profiles!creator_id(full_name, avatar_url)")
+      .eq("status", "active")
+      .neq("creator_id", userId),
+  ]);
 
   const respondentProfile = buildRespondentProfile(profile as ProfileRow | null);
   const isRespondent = profile?.role === "respondent";
@@ -329,40 +332,41 @@ export async function loadWallPageData(
   const activeCampaigns = ((campaigns as CampaignRow[] | null) ?? []).filter(hasRemainingReachBudget);
   const campaignIds = activeCampaigns.map((campaign) => campaign.id);
 
-  const { data: firstQuestions } =
+  const [
+    { data: firstQuestions },
+    { data: allReactions },
+    { data: recentResponders },
+    { data: recentResponseDates },
+  ] = await Promise.all([
     campaignIds.length > 0
-      ? await supabase
+      ? supabase
           .from("questions")
           .select("id, text, type, options, campaign_id, sort_order")
           .in("campaign_id", campaignIds)
           .order("sort_order", { ascending: true })
-      : { data: [] };
-
-  const { data: allReactions } =
+      : Promise.resolve({ data: [] as FirstQuestionRow[] }),
     campaignIds.length > 0
-      ? await supabase
+      ? supabase
           .from("campaign_reactions")
           .select("campaign_id, reaction_type, user_id")
           .in("campaign_id", campaignIds)
-      : { data: [] };
-
-  const { data: recentResponders } =
+      : Promise.resolve({ data: [] as ReactionRow[] }),
     campaignIds.length > 0
-      ? await supabase
+      ? supabase
           .from("responses")
           .select("campaign_id, created_at, respondent:profiles!respondent_id(full_name, avatar_url)")
           .in("campaign_id", campaignIds)
           .eq("status", "submitted")
           .order("created_at", { ascending: false })
-      : { data: [] };
-
-  const { data: recentResponseDates } = await supabase
-    .from("responses")
-    .select("created_at")
-    .eq("respondent_id", userId)
-    .in("status", ["submitted", "ranked"])
-    .order("created_at", { ascending: false })
-    .limit(30);
+      : Promise.resolve({ data: [] as RecentResponderRow[] }),
+    supabase
+      .from("responses")
+      .select("created_at")
+      .eq("respondent_id", userId)
+      .in("status", ["submitted", "ranked"])
+      .order("created_at", { ascending: false })
+      .limit(30),
+  ]);
 
   const firstQuestionMap = buildFirstQuestionMap((firstQuestions as FirstQuestionRow[] | null) ?? []);
   const { reactionCountsMap, userReactionsMap } = buildReactionMaps(

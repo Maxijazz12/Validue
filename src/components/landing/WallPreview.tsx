@@ -10,7 +10,7 @@ type PreviewIdea = (typeof mockWallIdeas)[number];
 function BadgeLabel({ badge }: { badge: PreviewIdea["badge"] }) {
   if (badge === "new") {
     return (
-      <span className="text-[11px] font-semibold px-[8px] py-[3px] rounded-full bg-[#34D399]/10 text-[#059669] flex items-center gap-[5px]">
+      <span className="text-[11px] font-semibold px-[8px] py-[3px] rounded-full bg-[#34D399]/10 text-[#22c55e] flex items-center gap-[5px]">
         <span className="w-[6px] h-[6px] rounded-full bg-[#34D399] live-pulse" />
         New
       </span>
@@ -40,7 +40,7 @@ function PreviewCard({ idea, showViewing }: { idea: PreviewIdea; showViewing?: b
       : 0;
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] p-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px] transition-all duration-500 group relative overflow-hidden">
+    <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] p-[20px] shadow-card border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px] transition-all duration-500 group relative overflow-hidden">
 
       {/* Top row: category, tags, time estimate */}
       <div className="flex items-center justify-between gap-[8px] mb-[16px]">

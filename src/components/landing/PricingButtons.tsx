@@ -21,13 +21,16 @@ export default function PricingButton({
       return;
     }
 
+    if (tierKey !== "pro") {
+      setError("Unsupported plan.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const result = await createSubscriptionSession(
-        tierKey as "starter" | "pro"
-      );
+      const result = await createSubscriptionSession("pro");
       if ("error" in result) {
         setError(result.error);
         setLoading(false);

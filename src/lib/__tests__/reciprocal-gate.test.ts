@@ -11,16 +11,14 @@ describe("initialGateStatus", () => {
     expect(initialGateStatus("free")).toBe("pending");
   });
 
-  it("returns 'exempt' for paid tiers", () => {
-    expect(initialGateStatus("starter")).toBe("exempt");
+  it("returns 'exempt' for the paid tier", () => {
     expect(initialGateStatus("pro")).toBe("exempt");
   });
 });
 
 describe("requiresGate", () => {
-  it("returns true only for free tier", () => {
+  it("returns true only for the free tier", () => {
     expect(requiresGate("free")).toBe(true);
-    expect(requiresGate("starter")).toBe(false);
     expect(requiresGate("pro")).toBe(false);
   });
 });

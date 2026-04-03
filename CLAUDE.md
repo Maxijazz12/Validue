@@ -48,4 +48,6 @@ Payout flow: `rank → AI score → qualification → payout distribution → pr
 ## High-Coupling Files
 
 Economics files: `.claude/rules/economics.md` — PreToolUse hook enforces.
-Also high-coupling: `ideas/new/actions.ts`, Stripe webhook paths.
+Also high-coupling: `ideas/new/actions.ts`, `ideas/new/payment-actions.ts` (Stripe + credit + subsidy), Stripe webhook paths.
+State-machine-sensitive: `ideas/new/reciprocal-actions.ts` (gate lifecycle), `the-wall/[id]/actions.ts` (response lifecycle).
+Confirmed atomic (don't re-audit): reach impression CTE, Stripe webhook dedup INSERT ON CONFLICT.

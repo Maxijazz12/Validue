@@ -141,7 +141,7 @@ describe("computeWallScore", () => {
   it("uses MATCH_SCORE_INCOMPLETE for incomplete profiles", () => {
     const incompleteProfile = { ...baseProfile, profile_completed: false };
     const { matchScore } = computeWallScore(baseCampaign, incompleteProfile);
-    expect(matchScore).toBe(40);
+    expect(matchScore).toBe(30);
   });
 });
 

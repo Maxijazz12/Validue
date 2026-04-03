@@ -94,8 +94,8 @@ describe("validateFunding", () => {
   });
 
   it("rejects below tier minimum", () => {
-    expect(validateFunding("free", 3).valid).toBe(false);
-    expect(validateFunding("free", 5).valid).toBe(true);
+    expect(validateFunding("free", 2).valid).toBe(false);
+    expect(validateFunding("free", 3).valid).toBe(true);
   });
 
   it("rejects above max ($10,000)", () => {
@@ -111,7 +111,7 @@ describe("validateFunding", () => {
 
 describe("calculateReach", () => {
   it("returns positive values for all tiers at $0", () => {
-    for (const tier of ["free", "starter", "pro"] as const) {
+    for (const tier of ["free", "pro"] as const) {
       const result = calculateReach(tier, 0);
       expect(result.baselineRU).toBeGreaterThan(0);
       expect(result.effectiveReach).toBeGreaterThan(0);
@@ -126,13 +126,14 @@ describe("calculateReach", () => {
     expect(funded.effectiveReach).toBeGreaterThan(noFund.effectiveReach);
   });
 
-  it("applies welcome bonus for free tier first campaign", () => {
+  it("welcome bonus reach multiplier is disabled (baseline 150 is the welcome experience)", () => {
     const normal = calculateReach("free", 0);
     const bonus = calculateReach("free", 0, {
       isFirstMonth: true,
       isFirstCampaign: true,
     });
-    expect(bonus.baselineRU).toBeGreaterThan(normal.baselineRU);
+    // With multiplier at 1.0, baseline stays the same — 150 RU is already generous
+    expect(bonus.baselineRU).toBe(normal.baselineRU);
   });
 
   it("uses neutral quality modifier when rankedResponseCount < 5", () => {

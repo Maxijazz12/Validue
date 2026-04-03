@@ -23,10 +23,16 @@ describe("rank → payout flow", () => {
   const resp1Id = testId(51);
   const resp2Id = testId(52);
   const resp3Id = testId(53);
+  let dbAvailable = false;
+
+  const runIfDb = (fn: () => Promise<void>) => async () => {
+    if (!dbAvailable) return;
+    await fn();
+  };
 
   beforeAll(async () => {
-    const connected = await canConnectToTestDb();
-    if (!connected) {
+    dbAvailable = await canConnectToTestDb();
+    if (!dbAvailable) {
       console.warn("Skipping — no test database");
       return;
     }
@@ -38,15 +44,15 @@ describe("rank → payout flow", () => {
   });
 
   afterEach(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
   });
 
   afterAll(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
     await closeTestDb();
   });
 
-  it("submitted responses can be ranked with valid scores", async () => {
+  it("submitted responses can be ranked with valid scores", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rankingStatus: "unranked",
@@ -91,9 +97,9 @@ describe("rank → payout flow", () => {
 
     const updatedCampaign = await getCampaign(campaign.id);
     expect(updatedCampaign.ranking_status).toBe("ranked");
-  });
+  }));
 
-  it("payout allocation creates correct records and sets status", async () => {
+  it("payout allocation creates correct records and sets status", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rewardAmount: 10,
@@ -133,9 +139,9 @@ describe("rank → payout flow", () => {
 
     const updatedCampaign = await getCampaign(campaign.id);
     expect(updatedCampaign.payout_status).toBe("allocated");
-  });
+  }));
 
-  it("rejects allocation exceeding distributable", async () => {
+  it("rejects allocation exceeding distributable", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rewardAmount: 10,
@@ -163,9 +169,9 @@ describe("rank → payout flow", () => {
     expect(Number(payouts[0].amount)).toBe(9.0);
     // NOTE: This test documents that over-allocation prevention is app-level, not DB-level.
     // The distributable assertion in suggestDistribution() is the guard.
-  });
+  }));
 
-  it("scoring_confidence and scoring_source are preserved through ranking", async () => {
+  it("scoring_confidence and scoring_source are preserved through ranking", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       rankingStatus: "unranked",
@@ -187,5 +193,5 @@ describe("rank → payout flow", () => {
     expect(result.scoring_source).toBe("ai_low_confidence");
     expect(Number(result.scoring_confidence)).toBeCloseTo(0.35);
     expect(Number(result.quality_score)).toBe(45);
-  });
+  }));
 });

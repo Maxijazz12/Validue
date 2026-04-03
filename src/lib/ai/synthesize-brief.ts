@@ -111,14 +111,26 @@ async function callSynthesis(
     priorRoundVerdicts
   );
 
-  const response = await client.messages.create({
-    model: MODELS.generation,
-    max_tokens: 4096,
-    system: cachedSystem(BRIEF_SYSTEM_PROMPT),
-    tools: cachedTools([SYNTHESIZE_BRIEF_TOOL]),
-    tool_choice: { type: "tool", name: "create_decision_brief" },
-    messages: [{ role: "user", content: userMessage }],
-  });
+  console.log("[brief] Calling AI synthesis...");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
+  let response;
+  try {
+    response = await client.messages.create(
+      {
+        model: MODELS.generation,
+        max_tokens: 4096,
+        system: cachedSystem(BRIEF_SYSTEM_PROMPT),
+        tools: cachedTools([SYNTHESIZE_BRIEF_TOOL]),
+        tool_choice: { type: "tool", name: "create_decision_brief" },
+        messages: [{ role: "user", content: userMessage }],
+      },
+      { signal: controller.signal }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+  console.log("[brief] AI response received, stop_reason:", response.stop_reason);
 
   const toolBlock = response.content.find((b) => b.type === "tool_use");
   if (!toolBlock || toolBlock.type !== "tool_use") {
@@ -200,7 +212,9 @@ export async function synthesizeBrief(
 
       if (currentCount === cached.brief_response_count) {
         // Cache hit — return without calling AI
-        const result = cached.brief_cache as BriefResult;
+        // Handle double-serialized cache (string instead of object) from earlier bug
+        const raw = cached.brief_cache;
+        const result = (typeof raw === "string" ? JSON.parse(raw) : raw) as BriefResult;
         logGeneration({
           event: "response.ranked",
           campaignId,
@@ -250,7 +264,8 @@ async function synthesizeFresh(
       extractPriceSignal(campaignId),
       detectConsistencyGaps(campaignId),
     ]);
-  } catch {
+  } catch (err) {
+    console.error("[brief] Evidence gathering failed:", err instanceof Error ? err.message : err);
     logGeneration({
       event: "response.ranked",
       campaignId,
@@ -326,7 +341,8 @@ async function synthesizeFresh(
         cacheBrief(campaignId, result, methodology.responseCount);
 
         return result;
-      } catch {
+      } catch (err) {
+        console.error(`[brief] Synthesis attempt ${attempt + 1} failed:`, err instanceof Error ? err.message : err);
         if (attempt === 1) break; // Retry exhausted, fall through to fallback
       }
     }
@@ -356,7 +372,7 @@ async function synthesizeFresh(
 function cacheBrief(campaignId: string, result: BriefResult, responseCount: number): void {
   sql`
     UPDATE campaigns
-    SET brief_cache = ${JSON.stringify(result)}::jsonb,
+    SET brief_cache = ${JSON.stringify(result)},
         brief_cached_at = NOW(),
         brief_response_count = ${responseCount}
     WHERE id = ${campaignId}
@@ -383,7 +399,7 @@ function persistVerdicts(campaignId: string, brief: DecisionBrief): void {
   };
 
   sql`
-    UPDATE campaigns SET brief_verdicts = ${JSON.stringify(summary)}::jsonb
+    UPDATE campaigns SET brief_verdicts = ${JSON.stringify(summary)}
     WHERE id = ${campaignId} AND brief_verdicts IS NULL
   `.catch(() => {
     // Non-critical — verdict caching failure should never break brief rendering

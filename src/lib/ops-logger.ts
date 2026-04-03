@@ -80,10 +80,12 @@ type PayoutAllocated = {
 type PayoutAnomaly = {
   event: "payout.anomaly";
   campaignId: string;
-  anomalyType: "sum_mismatch" | "distributable_mismatch" | "zero_allocation";
-  distributable: number;
-  totalAllocated: number;
-  delta: number;
+  anomalyType: "sum_mismatch" | "distributable_mismatch" | "zero_allocation" | "balance_mismatch";
+  distributable?: number;
+  totalAllocated?: number;
+  delta?: number;
+  respondentId?: string;
+  expectedCents?: number;
   detail?: string;
 };
 
@@ -175,6 +177,20 @@ type ReciprocalGateColdStartExempt = {
   reason: string;
 };
 
+type ConnectAccountCreated = {
+  event: "connect.account_created";
+  userId: string;
+  stripeConnectAccountId: string;
+};
+
+type CashoutInitiated = {
+  event: "cashout.initiated";
+  userId: string;
+  cashoutId: string;
+  amountCents: number;
+  stripeTransferId: string;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
@@ -195,7 +211,9 @@ type OpsEvent =
   | WebhookProcessed
   | ContentFlagged
   | ReciprocalGateCleared
-  | ReciprocalGateColdStartExempt;
+  | ReciprocalGateColdStartExempt
+  | ConnectAccountCreated
+  | CashoutInitiated;
 
 /* ─── Logger ─── */
 

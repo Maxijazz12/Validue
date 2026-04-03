@@ -98,6 +98,7 @@ export type Database = {
           audience_industry: string | null
           audience_niche_qualifier: string | null
           audience_occupation: string | null
+          auto_extended: boolean
           baseline_reach_units: number
           bonus_available: boolean | null
           brief_cache: Json | null
@@ -131,6 +132,8 @@ export type Database = {
           quality_scores: Json | null
           ranking_status: string | null
           reach_served: number
+          reciprocal_gate_status: string | null
+          reciprocal_responses_completed: number
           reward_amount: number | null
           reward_type: string | null
           rewards_top_answers: boolean | null
@@ -153,6 +156,7 @@ export type Database = {
           audience_industry?: string | null
           audience_niche_qualifier?: string | null
           audience_occupation?: string | null
+          auto_extended?: boolean
           baseline_reach_units?: number
           bonus_available?: boolean | null
           brief_cache?: Json | null
@@ -186,6 +190,8 @@ export type Database = {
           quality_scores?: Json | null
           ranking_status?: string | null
           reach_served?: number
+          reciprocal_gate_status?: string | null
+          reciprocal_responses_completed?: number
           reward_amount?: number | null
           reward_type?: string | null
           rewards_top_answers?: boolean | null
@@ -208,6 +214,7 @@ export type Database = {
           audience_industry?: string | null
           audience_niche_qualifier?: string | null
           audience_occupation?: string | null
+          auto_extended?: boolean
           baseline_reach_units?: number
           bonus_available?: boolean | null
           brief_cache?: Json | null
@@ -241,6 +248,8 @@ export type Database = {
           quality_scores?: Json | null
           ranking_status?: string | null
           reach_served?: number
+          reciprocal_gate_status?: string | null
+          reciprocal_responses_completed?: number
           reward_amount?: number | null
           reward_type?: string | null
           rewards_top_answers?: boolean | null
@@ -572,6 +581,7 @@ export type Database = {
       responses: {
         Row: {
           ai_feedback: string | null
+          assigned_question_ids: string[] | null
           available_at: string | null
           base_payout: number | null
           bonus_payout: number | null
@@ -579,6 +589,7 @@ export type Database = {
           created_at: string | null
           disqualification_reasons: string[] | null
           id: string
+          is_partial: boolean
           is_qualified: boolean | null
           locked_at: string | null
           money_state: string | null
@@ -594,6 +605,7 @@ export type Database = {
         }
         Insert: {
           ai_feedback?: string | null
+          assigned_question_ids?: string[] | null
           available_at?: string | null
           base_payout?: number | null
           bonus_payout?: number | null
@@ -601,6 +613,7 @@ export type Database = {
           created_at?: string | null
           disqualification_reasons?: string[] | null
           id?: string
+          is_partial?: boolean
           is_qualified?: boolean | null
           locked_at?: string | null
           money_state?: string | null
@@ -616,6 +629,7 @@ export type Database = {
         }
         Update: {
           ai_feedback?: string | null
+          assigned_question_ids?: string[] | null
           available_at?: string | null
           base_payout?: number | null
           bonus_payout?: number | null
@@ -623,6 +637,7 @@ export type Database = {
           created_at?: string | null
           disqualification_reasons?: string[] | null
           id?: string
+          is_partial?: boolean
           is_qualified?: boolean | null
           locked_at?: string | null
           money_state?: string | null
@@ -655,6 +670,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          campaign_limit_override: number | null
           campaigns_used_this_period: number
           created_at: string | null
           current_period_end: string | null
@@ -669,6 +685,7 @@ export type Database = {
           welcome_credit_used: boolean
         }
         Insert: {
+          campaign_limit_override?: number | null
           campaigns_used_this_period?: number
           created_at?: string | null
           current_period_end?: string | null
@@ -683,6 +700,7 @@ export type Database = {
           welcome_credit_used?: boolean
         }
         Update: {
+          campaign_limit_override?: number | null
           campaigns_used_this_period?: number
           created_at?: string | null
           current_period_end?: string | null

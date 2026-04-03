@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import WallReactionBar from "@/components/dashboard/WallReactionBar";
 
 /* ─── Types ─── */
@@ -32,7 +32,7 @@ export type WallCardProps = {
   format?: string | null;
 };
 
-export default function WallCardUnified({
+export default memo(function WallCardUnified({
   idea,
   isSaved = false,
   onToggleSave,
@@ -188,4 +188,4 @@ export default function WallCardUnified({
         </div>
       </div>
   );
-}
+});

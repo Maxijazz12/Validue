@@ -13,8 +13,9 @@ export async function GET(request: Request) {
   const db = await checkDbConnection();
 
   if (!db.ok) {
+    console.error("[health] DB check failed:", db.error);
     return NextResponse.json(
-      { status: "error", db: { ok: false, error: db.error } },
+      { status: "error", db: { ok: false } },
       { status: 503 }
     );
   }

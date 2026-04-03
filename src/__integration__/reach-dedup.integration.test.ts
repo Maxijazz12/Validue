@@ -19,10 +19,16 @@ describe("reach impression deduplication", () => {
   const user1Id = testId(11);
   const user2Id = testId(12);
   let _campaignId: string;
+  let dbAvailable = false;
+
+  const runIfDb = (fn: () => Promise<void>) => async () => {
+    if (!dbAvailable) return;
+    await fn();
+  };
 
   beforeAll(async () => {
-    const connected = await canConnectToTestDb();
-    if (!connected) {
+    dbAvailable = await canConnectToTestDb();
+    if (!dbAvailable) {
       console.warn("Skipping — no test database");
       return;
     }
@@ -33,15 +39,15 @@ describe("reach impression deduplication", () => {
   });
 
   afterEach(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
   });
 
   afterAll(async () => {
-    await cleanupCampaignData();
+    if (dbAvailable) await cleanupCampaignData();
     await closeTestDb();
   });
 
-  it("first impression increments reach_served", async () => {
+  it("first impression increments reach_served", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -69,9 +75,9 @@ describe("reach impression deduplication", () => {
 
     const updated = await getCampaign(campaign.id);
     expect(updated.reach_served).toBe(1);
-  });
+  }));
 
-  it("duplicate impression from same user is no-op", async () => {
+  it("duplicate impression from same user is no-op", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -105,9 +111,9 @@ describe("reach impression deduplication", () => {
     // reach_served should still be 1
     const updated = await getCampaign(campaign.id);
     expect(updated.reach_served).toBe(1);
-  });
+  }));
 
-  it("different users both count as separate impressions", async () => {
+  it("different users both count as separate impressions", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -136,9 +142,9 @@ describe("reach impression deduplication", () => {
 
     const impressions = await getReachImpressions(campaign.id);
     expect(impressions.length).toBe(2);
-  });
+  }));
 
-  it("reach cap is respected", async () => {
+  it("reach cap is respected", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "active",
@@ -175,5 +181,5 @@ describe("reach impression deduplication", () => {
 
     const updated = await getCampaign(campaign.id);
     expect(updated.reach_served).toBe(100);
-  });
+  }));
 });

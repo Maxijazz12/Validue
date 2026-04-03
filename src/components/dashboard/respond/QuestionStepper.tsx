@@ -70,19 +70,24 @@ export default function QuestionStepper({
   // Review-before-submit mode
   const [showReview, setShowReview] = useState(false);
 
-  // Total elapsed time tracking
+  const question = questions[currentIndex];
+  const isLast = currentIndex === questions.length - 1;
+
+  // Total elapsed time tracking — starts when first question renders, not on component mount
   const totalStartRef = useRef(0);
+  const timerStartedRef = useRef(false);
   const [totalElapsedMs, setTotalElapsedMs] = useState(0);
 
   useEffect(() => {
+    if (timerStartedRef.current) return;
+    if (!question) return;
+    timerStartedRef.current = true;
+    totalStartRef.current = Date.now();
     const interval = setInterval(() => {
       setTotalElapsedMs(Date.now() - totalStartRef.current);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
-
-  const question = questions[currentIndex];
-  const isLast = currentIndex === questions.length - 1;
+  }, [question]);
 
   const isValid =
     question?.type === "open"

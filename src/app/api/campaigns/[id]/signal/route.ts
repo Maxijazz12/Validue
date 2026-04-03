@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getEvidenceByAssumption, computeAllCoverage } from "@/lib/ai/assumption-evidence";
 import { rateLimit } from "@/lib/rate-limit";
+import { isValidUuid } from "@/lib/validate-uuid";
 
 /**
  * GET /api/campaigns/[id]/signal
@@ -13,6 +14,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  if (!isValidUuid(id)) {
+    return NextResponse.json({ error: "Invalid campaign ID" }, { status: 400 });
+  }
 
   const supabase = await createClient();
   const {

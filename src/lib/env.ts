@@ -44,6 +44,17 @@ export function env(): z.infer<typeof serverSchema> & z.infer<typeof clientSchem
   }
 
   _env = result.data;
+
+  // Warn about missing security-critical optional vars in production
+  if (process.env.NODE_ENV === "production") {
+    if (!_env.CRON_SECRET) {
+      console.warn("[env] CRON_SECRET is not set — cron endpoints will reject all requests");
+    }
+    if (!_env.ADMIN_API_KEY) {
+      console.warn("[env] ADMIN_API_KEY is not set — admin endpoints will reject all requests");
+    }
+  }
+
   return _env;
 }
 

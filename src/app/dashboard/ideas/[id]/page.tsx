@@ -11,6 +11,7 @@ import { getStrengthColors } from "@/lib/strength-colors";
 import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
 import { WELCOME_BONUS } from "@/lib/plans";
 import { FEATURES } from "@/lib/feature-flags";
+import { RECIPROCAL_REQUIRED } from "@/lib/reciprocal-gate";
 
 import sql from "@/lib/db";
 import { completeCampaign } from "./campaign-actions";
@@ -295,16 +296,17 @@ export default async function CampaignDetailPage({
 
       {campaign.status === "pending_gate" && (() => {
         const completed = campaign.reciprocal_responses_completed ?? 0;
+        const remaining = Math.max(0, RECIPROCAL_REQUIRED - completed);
         return (
           <div className="mb-[16px] bg-white border border-brand/30 rounded-xl p-[20px]">
             <p className="text-[15px] font-semibold text-text-primary">
               Answer questions to go live
             </p>
             <p className="text-[13px] text-text-secondary mt-[2px]">
-              Help test assumptions from {3 - completed} more campaign{3 - completed !== 1 ? "s" : ""} to publish yours.
+              Help test assumptions from {remaining} more campaign{remaining !== 1 ? "s" : ""} to publish yours.
             </p>
             <div className="flex items-center gap-[8px] mt-[12px]">
-              {[0, 1, 2].map((i) => (
+              {Array.from({ length: RECIPROCAL_REQUIRED }, (_, i) => (
                 <div
                   key={i}
                   className={`h-[4px] flex-1 rounded-full ${i < completed ? "bg-success" : "bg-border-light"}`}
@@ -312,7 +314,7 @@ export default async function CampaignDetailPage({
               ))}
             </div>
             <Link
-              href="/dashboard/ideas/new"
+              href="/dashboard/the-wall"
               className="inline-block mt-[12px] px-[16px] py-[8px] rounded-xl bg-accent text-white text-[13px] font-medium no-underline hover:bg-accent transition-colors"
             >
               Continue

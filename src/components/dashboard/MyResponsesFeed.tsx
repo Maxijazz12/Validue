@@ -82,33 +82,6 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
 
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto">
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes cardEntranceV2 {
-          0% { opacity: 0; transform: translateY(24px) scale(0.96) rotateX(-4deg); }
-          100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
-        }
-        
-        .bento-card {
-          position: relative;
-        }
-        .bento-card::before {
-          content: "";
-          position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          background: conic-gradient(from 180deg at 50% 50%, #22c55e 0deg, #A853BA 180deg, #E92A67 360deg);
-          opacity: 0;
-          z-index: -1;
-          transition: opacity 0.5s ease;
-        }
-        .bento-card:hover::before {
-          opacity: 0;
-        }
-        .glow-hover:hover {
-          box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.08);
-          transform: translateY(-2px);
-        }
-      `}} />
 
       {/* Pane Controller */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-[20px] mb-[40px] p-[8px] bg-white rounded-full border border-border-light/50 shadow-card-sm">

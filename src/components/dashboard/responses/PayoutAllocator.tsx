@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback, useMemo } from "react";
 import Button from "@/components/ui/Button";
+import { PLATFORM_FEE_RATE } from "@/lib/plans";
 import {
   suggestDistribution,
   allocatePayouts,
@@ -93,7 +94,8 @@ export default function PayoutAllocator({
     });
   }, [mode, suggestions, manualAmounts, topN, distributableAmount]);
 
-  const totalAllocated = getAllocations().reduce(
+  const currentAllocations = useMemo(() => getAllocations(), [getAllocations]);
+  const totalAllocated = currentAllocations.reduce(
     (sum, a) => sum + a.amount,
     0
   );
@@ -159,7 +161,7 @@ export default function PayoutAllocator({
   if (rewardAmount <= 0) return null;
   if (rankedCount === 0) return null;
 
-  const recipientCount = getAllocations().filter((a) => a.amount >= 0.5).length;
+  const recipientCount = currentAllocations.filter((a) => a.amount >= 0.5).length;
 
   return (
     <div className="bg-white border border-brand/30 rounded-2xl p-[24px] relative">
@@ -170,7 +172,7 @@ export default function PayoutAllocator({
         Distribute ${distributableAmount.toFixed(2)} among your best
         respondents.
         <span className="text-slate">
-          {" "}(${rewardAmount.toFixed(2)} pool minus 20% platform fee)
+          {" "}(${rewardAmount.toFixed(2)} pool minus {Math.round(PLATFORM_FEE_RATE * 100)}% platform fee)
         </span>
       </p>
 
@@ -229,7 +231,7 @@ export default function PayoutAllocator({
           {/* Allocation list */}
           <div className="flex flex-col gap-[8px] mb-[16px] max-h-[320px] overflow-y-auto">
             {suggestions.map((s, i) => {
-              const currentAllocation = getAllocations().find(
+              const currentAllocation = currentAllocations.find(
                 (a) => a.responseId === s.responseId
               );
               const amount = currentAllocation?.amount ?? 0;
@@ -370,7 +372,7 @@ export default function PayoutAllocator({
                 </p>
                 {/* Top 3 preview */}
                 <div className="text-[12px] text-slate pl-[8px] border-l-2 border-border-light">
-                  {getAllocations()
+                  {currentAllocations
                     .filter((a) => a.amount >= 0.5)
                     .slice(0, 3)
                     .map((a) => {

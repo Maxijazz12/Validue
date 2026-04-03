@@ -1,5 +1,5 @@
 import sql from "./db";
-import { PLAN_CONFIG, WELCOME_BONUS, type PlanTier, isValidTier } from "./plans";
+import { PLAN_CONFIG, WELCOME_BONUS, type PlanTier, normalizeTier } from "./plans";
 import { DEFAULTS } from "./defaults";
 
 /* ─── Types ─── */
@@ -49,7 +49,7 @@ export async function getSubscription(
 
   const row = rows[0];
   return {
-    tier: isValidTier(row.tier) ? row.tier : "free",
+    tier: normalizeTier(row.tier) ?? "free",
     status: row.status,
     currentPeriodStart: new Date(row.current_period_start),
     currentPeriodEnd: row.current_period_end
@@ -208,9 +208,9 @@ export async function checkSubsidyEligibility(
     return { eligible: false, reason: "Free campaign already used." };
   }
 
-  // Account age check (< 30 days)
+  // Account age check
   const accountAge = Date.now() - new Date(profile.created_at).getTime();
-  if (accountAge > 30 * 24 * 60 * 60 * 1000) {
+  if (accountAge > DEFAULTS.SUBSIDY_ELIGIBILITY_DAYS * 24 * 60 * 60 * 1000) {
     return { eligible: false, reason: "Free campaign offer has expired." };
   }
 
@@ -221,13 +221,13 @@ export async function checkSubsidyEligibility(
   }
 
   // Platform-wide monthly cap check
-  const [{ count: subsidizedThisMonth }] = await sql`
+  const [{ count: subsidizedLast30Days }] = await sql`
     SELECT COUNT(*)::int AS count
     FROM campaigns
     WHERE is_subsidized = true
       AND created_at > NOW() - INTERVAL '30 days'
   `;
-  const monthlyCostEstimate = subsidizedThisMonth * DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN;
+  const monthlyCostEstimate = subsidizedLast30Days * DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN;
   if (monthlyCostEstimate >= DEFAULTS.SUBSIDY_MONTHLY_CAP) {
     return { eligible: false }; // Silently hide — don't show "temporarily unavailable"
   }

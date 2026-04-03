@@ -147,8 +147,7 @@ export async function publishCampaign(
       SELECT COUNT(*)::int AS completed
       FROM responses
       WHERE respondent_id = ${user.id}
-        AND is_partial = true
-        AND status = 'submitted'
+        AND status IN ('submitted', 'ranked')
     `;
     gateAlreadyCleared = (reciprocalCheck?.completed ?? 0) >= 1;
   }
@@ -193,7 +192,7 @@ export async function publishCampaign(
 
       // Set expires_at when campaign goes active at publish (subsidized or gate pre-cleared)
       const needsExpiry = isSubsidized || (gateAlreadyCleared && fundingAmount <= 0);
-      const expiresAt = needsExpiry ? sql`NOW() + INTERVAL '${sql.unsafe(String(DEFAULTS.CAMPAIGN_EXPIRY_DAYS))} days'` : null;
+      const expiresAt = needsExpiry ? sql`NOW() + (${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} * INTERVAL '1 day')` : null;
 
       const [campaign] = await tx`
         INSERT INTO campaigns (
@@ -215,7 +214,7 @@ export async function publishCampaign(
           ${draft.category}, ${draft.tags}, ${estimatedMinutes},
           ${effectiveRewardAmount}, ${draft.rewardType || "pool"}, ${!!draft.bonusAvailable}, ${!!draft.rewardsTopAnswers},
           ${distributableAmount}, ${targetResponses || null},
-          ${format}, ${2}, ${isSubsidized}, ${isSubsidized ? expiresAt : null},
+          ${format}, ${2}, ${isSubsidized}, ${needsExpiry ? expiresAt : null},
           ${draft.audience.interests}, ${draft.audience.expertise}, ${draft.audience.ageRanges}, ${draft.audience.location || null},
           ${keyAssumptions},
           ${draft.audience.occupation || null}, ${draft.audience.industry || null}, ${draft.audience.experienceLevel || null}, ${draft.audience.nicheQualifier || null},
@@ -264,6 +263,15 @@ export async function publishCampaign(
         `;
       }
 
+      // Mark subsidy as used inside the transaction to prevent double-spend
+      if (isSubsidized) {
+        await tx`
+          UPDATE profiles
+          SET subsidized_campaign_used = true
+          WHERE id = ${user.id}
+        `;
+      }
+
       return campaign;
     });
 
@@ -288,15 +296,6 @@ export async function publishCampaign(
       .from("profiles")
       .update({ has_posted: true })
       .eq("id", user.id);
-
-    // V2: Mark subsidy as used (atomically, outside transaction — idempotent)
-    if (isSubsidized) {
-      await sql`
-        UPDATE profiles
-        SET subsidized_campaign_used = true
-        WHERE id = ${user.id}
-      `;
-    }
 
     return { id: result.id, gatePending: gateRequired && !gateAlreadyCleared };
   } catch (err) {

@@ -5,6 +5,7 @@ import sql from "@/lib/db";
 import { getSubscription } from "@/lib/plan-guard";
 import { calculateReach, validateFunding } from "@/lib/reach";
 import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
+import { defaultTargetResponses, type CampaignFormat } from "@/lib/payout-math";
 import { DEFAULTS } from "@/lib/defaults";
 import { revalidatePath } from "next/cache";
 import { logOps } from "@/lib/ops-logger";
@@ -45,14 +46,15 @@ export async function updateCampaignFunding(
     return { error: fundingCheck.reason ?? "Invalid funding amount." };
   }
 
-  // Fetch quality score from campaign for reach calculation
+  // Fetch quality score and format from campaign for reach + target calculation
   const { data: campaignData } = await supabase
     .from("campaigns")
-    .select("quality_score")
+    .select("quality_score, format")
     .eq("id", campaignId)
     .single();
 
   const qualityScore = campaignData?.quality_score ?? DEFAULTS.QUALITY_SCORE;
+  const format: CampaignFormat = (campaignData?.format as CampaignFormat) || "quick";
 
   // Calculate reach and distributable amount (with quality modifier)
   const reach = calculateReach(sub.tier, rewardAmount, { qualityScore });
@@ -60,12 +62,16 @@ export async function updateCampaignFunding(
   const distributableAmount = rewardAmount > 0
     ? Math.round(rewardAmount * (1 - PLATFORM_FEE_RATE) * 100) / 100
     : 0;
+  const targetResponses = distributableAmount > 0
+    ? defaultTargetResponses(distributableAmount, format)
+    : 0;
 
   try {
     await sql`
       UPDATE campaigns
       SET reward_amount = ${rewardAmount},
           distributable_amount = ${distributableAmount},
+          target_responses = ${targetResponses || null},
           baseline_reach_units = ${reach.baselineRU},
           funded_reach_units = ${reach.fundedRU},
           total_reach_units = ${reach.totalRU},

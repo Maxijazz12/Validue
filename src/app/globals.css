@@ -375,8 +375,8 @@ body {
   from { transform: translateX(20px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
-.question-exit { animation: slideOutLeft 0.25s ease forwards; }
-.question-enter { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.question-exit { animation: slideOutLeft 0.25s ease forwards; will-change: transform, opacity; }
+.question-enter { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; will-change: transform, opacity; }
 
 /* ─── Response flow: checkmark flash between questions ─── */
 @keyframes checkFlash {
@@ -393,6 +393,7 @@ body {
 .scroll-reveal {
   opacity: 0;
   transform: translateY(24px);
+  will-change: transform, opacity;
   transition: opacity var(--duration-slow) var(--ease-spring),
               transform var(--duration-slow) var(--ease-spring);
 }
@@ -403,6 +404,7 @@ body {
 .scroll-reveal-slide {
   opacity: 0;
   transform: translateY(12px);
+  will-change: transform, opacity;
   transition: opacity var(--duration-enter) var(--ease-spring),
               transform var(--duration-enter) var(--ease-spring);
 }
@@ -413,6 +415,7 @@ body {
 .scroll-reveal-scale {
   opacity: 0;
   transform: scale(0.97) translateY(12px);
+  will-change: transform, opacity;
   transition: opacity var(--duration-enter) var(--ease-spring),
               transform var(--duration-enter) var(--ease-spring);
 }
@@ -502,4 +505,32 @@ body {
     opacity: 0.85;
     transition-duration: 0.1s;
   }
+}
+
+/* Shared card entrance animation (used by MyResponsesFeed, ResponsesOverviewList) */
+@keyframes cardEntranceV2 {
+  0% { opacity: 0; transform: translateY(24px) scale(0.96) rotateX(-4deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
+}
+
+.glow-hover:hover {
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.bento-card {
+  position: relative;
+}
+.bento-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(from 180deg at 50% 50%, #22c55e 0deg, #A853BA 180deg, #E92A67 360deg);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.5s ease;
+}
+.bento-card:hover::before {
+  opacity: 0;
 }

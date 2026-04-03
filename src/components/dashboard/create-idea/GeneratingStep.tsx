@@ -71,15 +71,17 @@ export default function GeneratingStep({ assignments, onReciprocalComplete }: Pr
  * ═══════════════════════════════════════════════════════════════════════ */
 
 function PaidGeneratingView() {
-  const [factIndex, setFactIndex] = useState(() =>
-    Math.floor(Math.random() * startupQuotes.length)
-  );
+  const [factIndex, setFactIndex] = useState(0);
   const [fading, setFading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [stageIndex, setStageIndex] = useState(0);
 
   useEffect(() => {
-    requestAnimationFrame(() => setMounted(true));
+    const frame = requestAnimationFrame(() => {
+      setFactIndex(Math.floor(Math.random() * startupQuotes.length));
+      setMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {

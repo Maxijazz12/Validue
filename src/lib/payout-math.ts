@@ -204,6 +204,17 @@ export function distributePayoutsV2(
     top.suggestedAmount = top.basePayout;
   }
 
+  // Post-reconciliation invariant: sum must match distributable within 1 cent
+  if (qualifiedAllocations.length > 0) {
+    const finalSum = qualifiedAllocations.reduce((s, a) => s + a.suggestedAmount, 0);
+    const drift = Math.abs(Math.round((finalSum - distributable) * 100));
+    if (drift > 1) {
+      throw new Error(
+        `Payout sum invariant violated: sum=${finalSum.toFixed(2)}, distributable=${distributable.toFixed(2)}, drift=${drift}¢`
+      );
+    }
+  }
+
   return allocations;
 }
 
@@ -216,19 +227,32 @@ export function distributeSubsidizedPayouts(
 ): PayoutAllocationV2[] {
   const qualMap = new Map(qualificationResults.map((q) => [q.responseId, q]));
 
+  // Cap paid slots at SUBSIDY_TARGET_RESPONSES to stay within budget
+  let paidSlots = 0;
   return responses.map((r) => {
     const qual = qualMap.get(r.responseId);
     const isQualified = qual?.qualified === true;
+    const isPaid = isQualified && paidSlots < DEFAULTS.SUBSIDY_TARGET_RESPONSES;
+    if (isPaid) paidSlots++;
+    // Qualified-but-unpaid responses are marked not-qualified with a clear reason
+    // so downstream code doesn't see contradictory state (qualified + reasons).
+    const effectiveQualified = isPaid;
+    const reasons = !isQualified
+      ? (qual?.reasons ?? [])
+      : isPaid
+        ? []
+        : ["Subsidy budget exhausted"];
+
     return {
       responseId: r.responseId,
       respondentId: r.respondentId,
       respondentName: r.respondentName,
       qualityScore: r.qualityScore,
-      qualified: isQualified,
-      disqualificationReasons: qual?.reasons ?? [],
-      basePayout: isQualified ? DEFAULTS.SUBSIDY_FLAT_PAYOUT : 0,
+      qualified: effectiveQualified,
+      disqualificationReasons: reasons,
+      basePayout: isPaid ? DEFAULTS.SUBSIDY_FLAT_PAYOUT : 0,
       bonusPayout: 0,
-      suggestedAmount: isQualified ? DEFAULTS.SUBSIDY_FLAT_PAYOUT : 0,
+      suggestedAmount: isPaid ? DEFAULTS.SUBSIDY_FLAT_PAYOUT : 0,
       weight: 0,
     };
   });

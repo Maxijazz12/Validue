@@ -2,7 +2,7 @@
 CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'starter', 'pro', 'scale')),
+  tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'pro')),
   stripe_subscription_id TEXT,
   stripe_price_id TEXT,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'canceled', 'past_due', 'trialing')),

@@ -10,13 +10,14 @@ const TEST_DB_URL =
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
 let _sql: ReturnType<typeof postgres> | null = null;
+let _testDbAvailability: Promise<boolean> | null = null;
 
 export function getTestDb() {
   if (!_sql) {
     _sql = postgres(TEST_DB_URL, {
       max: 5,
       idle_timeout: 10,
-      connect_timeout: 5,
+      connect_timeout: 2,
       prepare: false,
     });
   }
@@ -28,17 +29,23 @@ export async function closeTestDb() {
     await _sql.end();
     _sql = null;
   }
+  _testDbAvailability = null;
 }
 
 /** Check if test DB is reachable. Call in beforeAll to skip tests if no DB. */
 export async function canConnectToTestDb(): Promise<boolean> {
-  try {
-    const sql = getTestDb();
-    await sql`SELECT 1`;
-    return true;
-  } catch {
-    return false;
+  if (!_testDbAvailability) {
+    _testDbAvailability = (async () => {
+      try {
+        const sql = getTestDb();
+        await sql`SELECT 1`;
+        return true;
+      } catch {
+        return false;
+      }
+    })();
   }
+  return _testDbAvailability;
 }
 
 /* ─── Seed Helpers ─── */
@@ -225,6 +232,7 @@ export async function getReachImpressions(campaignId: string) {
 /* ─── Cleanup ─── */
 
 export async function cleanupAll() {
+  if (!(await canConnectToTestDb())) return;
   const sql = getTestDb();
   // DELETE in FK order: children before parents
   await sql`DELETE FROM reach_impressions`;
@@ -239,6 +247,7 @@ export async function cleanupAll() {
 
 /** Lighter cleanup — just campaign-level data, preserving users/profiles/subscriptions */
 export async function cleanupCampaignData() {
+  if (!(await canConnectToTestDb())) return;
   const sql = getTestDb();
   await sql`DELETE FROM reach_impressions`;
   await sql`DELETE FROM payouts`;

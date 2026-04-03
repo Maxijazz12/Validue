@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import Button from "@/components/ui/Button";
 import ReputationBadge from "@/components/ui/ReputationBadge";
 import StatCard from "@/components/dashboard/StatCard";
+import CashoutPanel from "./CashoutPanel";
+import DisputeButton from "./DisputeButton";
+import RetryCashoutButton from "./RetryCashoutButton";
 import type { ReputationTier } from "@/lib/reputation-config";
 import { DEFAULTS } from "@/lib/defaults";
 
@@ -14,7 +17,11 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export default async function EarningsPage() {
+export default async function EarningsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connect?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,24 +29,50 @@ export default async function EarningsPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Fetch reputation tier + V2 balance fields
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("reputation_score, reputation_tier, available_balance_cents, pending_balance_cents")
-    .eq("id", user.id)
-    .single();
+  const { connect: connectParam } = await searchParams;
+
+  const [
+    { data: profile },
+    { data: payouts },
+    { data: recentResponses },
+    { data: cashouts },
+    { data: disputes },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("reputation_score, reputation_tier, available_balance_cents, pending_balance_cents, stripe_connect_account_id, stripe_connect_onboarding_complete")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("payouts")
+      .select("id, amount, base_amount, bonus_amount, platform_fee, status, created_at, campaign:campaigns!campaign_id(id, title)")
+      .eq("respondent_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("responses")
+      .select("id, payout_amount, base_payout, bonus_payout, money_state, created_at, campaign:campaigns!campaign_id(id, title)")
+      .eq("respondent_id", user.id)
+      .in("status", ["submitted", "ranked"])
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("cashouts")
+      .select("id, amount_cents, status, created_at, completed_at")
+      .eq("respondent_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("disputes")
+      .select("response_id")
+      .eq("respondent_id", user.id),
+  ]);
 
   const repTier = (profile?.reputation_tier || "new") as ReputationTier;
   const repScore = Number(profile?.reputation_score) || 0;
   const availableBalanceCents = Number(profile?.available_balance_cents) || 0;
   const pendingBalanceCents = Number(profile?.pending_balance_cents) || 0;
-
-  // Fetch all payouts for this respondent (include V2 base/bonus)
-  const { data: payouts } = await supabase
-    .from("payouts")
-    .select("id, amount, base_amount, bonus_amount, platform_fee, status, created_at, campaign:campaigns!campaign_id(id, title)")
-    .eq("respondent_id", user.id)
-    .order("created_at", { ascending: false });
+  const hasConnectAccount = !!profile?.stripe_connect_account_id;
+  const onboardingComplete = !!profile?.stripe_connect_onboarding_complete;
 
   const allPayouts = (payouts || []).map((p) => {
     const campaignRaw = p.campaign as unknown;
@@ -56,20 +89,13 @@ export default async function EarningsPage() {
   const totalPayouts = allPayouts.length;
   const hasEarnings = totalPayouts > 0;
 
-  // V2: Fetch recent responses with money_state for the status list
-  const { data: recentResponses } = await supabase
-    .from("responses")
-    .select("id, payout_amount, base_payout, bonus_payout, money_state, created_at, campaign:campaigns!campaign_id(id, title)")
-    .eq("respondent_id", user.id)
-    .in("status", ["submitted", "ranked"])
-    .order("created_at", { ascending: false })
-    .limit(20);
-
   const responseList = (recentResponses || []).map((r) => {
     const campaignRaw = r.campaign as unknown;
     const campaign = (Array.isArray(campaignRaw) ? campaignRaw[0] : campaignRaw) as { id: string; title: string } | null;
     return { ...r, campaign };
   });
+
+  const disputedResponseIds = new Set((disputes || []).map((d) => d.response_id));
 
   return (
     <>
@@ -90,16 +116,14 @@ export default async function EarningsPage() {
         </StatCard>
       </div>
 
-      {/* Cash-out threshold notice */}
-      {availableBalanceCents > 0 && availableBalanceCents < DEFAULTS.MIN_CASHOUT_BALANCE_CENTS && (
-        <div className="bg-white border border-warning/20 rounded-[24px] p-[20px] mb-[24px] shadow-card">
-          <span className="font-mono text-[11px] font-medium tracking-wide text-warning uppercase block mb-[6px]">Threshold</span>
-          <p className="text-[14px] text-text-secondary font-medium">
-            You need <span className="font-bold font-mono text-text-primary">${((DEFAULTS.MIN_CASHOUT_BALANCE_CENTS - availableBalanceCents) / 100).toFixed(2)}</span> more
-            in available balance to cash out. Minimum cash-out is ${(DEFAULTS.MIN_CASHOUT_BALANCE_CENTS / 100).toFixed(2)}.
-          </p>
-        </div>
-      )}
+      {/* Cashout panel — bank setup + cash out button */}
+      <CashoutPanel
+        availableBalanceCents={availableBalanceCents}
+        minCashoutCents={DEFAULTS.MIN_CASHOUT_BALANCE_CENTS}
+        hasConnectAccount={hasConnectAccount}
+        onboardingComplete={onboardingComplete}
+        connectReturnParam={connectParam ?? null}
+      />
 
       {/* Locked balance explainer */}
       {pendingBalanceCents > 0 && (
@@ -196,22 +220,72 @@ export default async function EarningsPage() {
                 const amount = Number(r.payout_amount) || 0;
 
                 return (
-                  <div key={r.id} className="bg-white border border-border-light rounded-[20px] p-[16px] flex items-center justify-between gap-[12px] shadow-card-interactive transition-all duration-400">
-                    <span className="text-[14px] font-medium tracking-tight text-text-primary truncate min-w-0">
-                      {r.campaign?.title || "Unknown Campaign"}
-                    </span>
-                    <div className="flex items-center gap-[8px] shrink-0">
-                      {amount > 0 && (
-                        <span className="font-mono text-[13px] font-bold text-text-primary">
-                          ${amount.toFixed(2)}
+                  <div key={r.id} className="bg-white border border-border-light rounded-[20px] p-[16px] shadow-card-interactive transition-all duration-400">
+                    <div className="flex items-center justify-between gap-[12px]">
+                      <span className="text-[14px] font-medium tracking-tight text-text-primary truncate min-w-0">
+                        {r.campaign?.title || "Unknown Campaign"}
+                      </span>
+                      <div className="flex items-center gap-[8px] shrink-0">
+                        {amount > 0 && (
+                          <span className="font-mono text-[13px] font-bold text-text-primary">
+                            ${amount.toFixed(2)}
+                          </span>
+                        )}
+                        {state === "not_qualified" && (
+                          <span className="font-mono text-[13px] text-text-muted">$0.00</span>
+                        )}
+                        <span className={`px-[8px] py-[3px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}>
+                          {config.label}
                         </span>
-                      )}
-                      {state === "not_qualified" && (
-                        <span className="font-mono text-[13px] text-text-muted">$0.00</span>
-                      )}
+                      </div>
+                    </div>
+                    {state === "not_qualified" && (
+                      <DisputeButton
+                        responseId={r.id}
+                        alreadyDisputed={disputedResponseIds.has(r.id)}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {/* Cashout history */}
+        {cashouts && cashouts.length > 0 && (
+          <div className="mt-[32px]">
+            <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">Withdrawals</span>
+            <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">Cashout History</h2>
+            <div className="flex flex-col gap-[8px]">
+              {cashouts.map((c) => {
+                const cashoutStatusConfig: Record<string, { label: string; bg: string; text: string }> = {
+                  pending: { label: "PENDING", bg: "bg-brand/10", text: "text-brand-dark" },
+                  processing: { label: "PROCESSING", bg: "bg-info/10", text: "text-info" },
+                  completed: { label: "COMPLETED", bg: "bg-success/10", text: "text-success" },
+                  failed: { label: "FAILED", bg: "bg-error/10", text: "text-error" },
+                };
+                const config = cashoutStatusConfig[c.status] || cashoutStatusConfig.pending;
+
+                return (
+                  <div key={c.id} className="bg-white border border-border-light rounded-[20px] p-[16px] flex items-center justify-between gap-[12px] shadow-card-interactive transition-all duration-400">
+                    <div className="min-w-0">
+                      <span className="text-[14px] font-medium tracking-tight text-text-primary block">
+                        Cashout to bank
+                      </span>
+                      <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide mt-[2px] block">
+                        {formatDate(c.created_at)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-[8px] shrink-0">
+                      <span className="font-mono text-[14px] font-bold text-text-primary">
+                        ${(c.amount_cents / 100).toFixed(2)}
+                      </span>
                       <span className={`px-[8px] py-[3px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}>
                         {config.label}
                       </span>
+                      {c.status === "failed" && (
+                        <RetryCashoutButton cashoutId={c.id} />
+                      )}
                     </div>
                   </div>
                 );

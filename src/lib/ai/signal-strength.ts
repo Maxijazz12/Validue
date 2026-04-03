@@ -50,10 +50,16 @@ export function computeSignalStrength(draft: CampaignDraft): SignalStrengthResul
   // Targeting tips
   const hasInterests = draft.audience.interests.length > 0;
   const hasExpertise = draft.audience.expertise.length > 0;
-  if (!hasInterests && !hasExpertise) {
+  const hasSpecificAudienceContext =
+    hasExpertise ||
+    draft.audience.occupation.trim().length > 0 ||
+    draft.audience.nicheQualifier.trim().length > 0;
+  if (!hasInterests && !hasSpecificAudienceContext) {
     tips.push({ type: "warning", message: "Add audience targeting (interests or expertise) to improve match quality." });
-  } else if (hasInterests && hasExpertise) {
+  } else if (hasInterests && hasSpecificAudienceContext) {
     tips.push({ type: "success", message: "Strong targeting — you'll reach the right respondents." });
+  } else if (hasInterests) {
+    tips.push({ type: "info", message: "Interests are set, but adding a niche qualifier or occupation could sharpen respondent matching." });
   }
 
   // Question count (exclude baselines — founder didn't choose those)

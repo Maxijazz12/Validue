@@ -742,7 +742,7 @@ const repairPromptSuite = [
       format: "standard",
     } satisfies CampaignDraft,
   },
-] as const;
+];
 
 describe("repairCampaignDraft", () => {
   it("repairs quick drafts into a consistent 2-assumption, 6-custom-question shape", () => {

@@ -6,7 +6,6 @@ import type { PlanTier } from "@/lib/plans";
 
 const tiers: { label: string; tier: PlanTier; featured: boolean }[] = [
   { label: "Free", tier: "free", featured: false },
-  { label: "Starter", tier: "starter", featured: false },
   { label: "Pro", tier: "pro", featured: true },
 ];
 
@@ -32,14 +31,14 @@ export default function PricingCalculator() {
 
   return (
     <div className="mt-[48px]">
-      <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] p-[40px] max-md:p-[28px_20px]">
+      <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] border border-white/80 shadow-card p-[40px] max-md:p-[28px_20px]">
         {/* Header */}
         <div className="text-center mb-[32px]">
           <h3 className="font-mono text-[14px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
-            [ NODE_SCALE: ${selectedAmount} ]
+            [ TEST_BUDGET: ${selectedAmount} ]
           </h3>
           <p className="text-[13px] text-[#A8A29E] tracking-tight">
-            Advanced allocation yields exponential throughput at equal cost. 
+            See how each plan turns the same budget into more validated signal.
           </p>
         </div>
 
@@ -94,7 +93,7 @@ export default function PricingCalculator() {
                 <span className={`font-mono text-[10px] uppercase tracking-widest shrink-0 w-[110px] text-right ${
                   result.featured ? "font-bold text-[#1C1917]" : "text-[#A8A29E]"
                 }`}>
-                  {result.responses} NODES
+                  {result.responses} RESPONSES
                 </span>
               </div>
             );

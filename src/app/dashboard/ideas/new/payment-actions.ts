@@ -5,8 +5,9 @@ import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
 import { validateFunding } from "@/lib/reach";
-import { WELCOME_BONUS } from "@/lib/plans";
+import { WELCOME_BONUS, getPlanConfig } from "@/lib/plans";
 import { env } from "@/lib/env";
+import { captureError } from "@/lib/sentry";
 
 export async function createFundingSession(
   campaignId: string
@@ -88,18 +89,31 @@ export async function createFundingSession(
   }
 
   // V2: Check for platform credit (zero-qualifier auto-credit)
+  // Eagerly deduct inside a transaction so concurrent checkouts can't double-spend.
+  // If the user abandons checkout, the webhook won't fire and credit stays deducted —
+  // but the expire-campaigns cron will re-credit on campaign expiry with zero responses.
   let platformCreditCents = 0;
   {
-    const [creditRow] = await sql`
-      SELECT platform_credit_cents, platform_credit_expires_at
-      FROM profiles WHERE id = ${user.id}
-    `;
-    if (creditRow && creditRow.platform_credit_cents > 0) {
-      const expires = creditRow.platform_credit_expires_at ? new Date(creditRow.platform_credit_expires_at) : null;
-      if (!expires || expires > new Date()) {
-        platformCreditCents = creditRow.platform_credit_cents;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+    await sql.begin(async (tx: any) => {
+      const [creditRow] = await tx`
+        SELECT platform_credit_cents, platform_credit_expires_at
+        FROM profiles WHERE id = ${user.id}
+        FOR UPDATE
+      `;
+      if (creditRow && creditRow.platform_credit_cents > 0) {
+        const expires = creditRow.platform_credit_expires_at ? new Date(creditRow.platform_credit_expires_at) : null;
+        if (!expires || expires > new Date()) {
+          platformCreditCents = creditRow.platform_credit_cents;
+          await tx`
+            UPDATE profiles
+            SET platform_credit_cents = 0,
+                platform_credit_expires_at = NULL
+            WHERE id = ${user.id}
+          `;
+        }
       }
-    }
+    });
   }
 
   const fullAmountCents = Math.round(campaign.reward_amount * 100);
@@ -107,35 +121,63 @@ export async function createFundingSession(
   const totalCreditCents = welcomeCreditCents + platformCreditCents;
   const chargeAmountCents = Math.max(50, fullAmountCents - totalCreditCents); // Stripe min $0.50
 
-  // Create Checkout Session
-  const session = await stripe.checkout.sessions.create({
-    customer: stripeCustomerId,
-    mode: "payment",
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          unit_amount: chargeAmountCents,
-          product_data: {
-            name: `Campaign: ${campaign.title}`,
-            description: totalCreditCents > 0
-              ? `Reward pool funding ($${(totalCreditCents / 100).toFixed(2)} credit applied)`
-              : "Reward pool funding for Validue campaign",
+  // Create Checkout Session — restore platform credit if Stripe call fails
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: chargeAmountCents,
+            product_data: {
+              name: `Campaign: ${campaign.title}`,
+              description: totalCreditCents > 0
+                ? `Reward pool funding ($${(totalCreditCents / 100).toFixed(2)} credit applied)`
+                : "Reward pool funding for Validue campaign",
+            },
           },
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      metadata: {
+        campaignId: campaign.id,
+        userId: user.id,
+        type: "campaign_funding",
+        welcomeCredit: useWelcomeCredit ? "true" : "false",
+        platformCreditCents: platformCreditCents > 0 ? String(platformCreditCents) : "0",
       },
-    ],
-    metadata: {
-      campaignId: campaign.id,
-      userId: user.id,
-      type: "campaign_funding",
-      welcomeCredit: useWelcomeCredit ? "true" : "false",
-      platformCreditCents: platformCreditCents > 0 ? String(platformCreditCents) : "0",
-    },
-    success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
-    cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
-  });
+      success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
+      cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
+    });
+  } catch (err) {
+    // Restore platform credit that was eagerly deducted
+    if (platformCreditCents > 0) {
+      try {
+        await sql`
+          UPDATE profiles
+          SET platform_credit_cents = platform_credit_cents + ${platformCreditCents},
+              platform_credit_expires_at = NOW() + INTERVAL '90 days'
+          WHERE id = ${user.id}
+        `;
+      } catch (refundErr) {
+        // Critical: credit deducted but neither checkout nor refund succeeded.
+        // Log as fatal so ops can reconcile manually.
+        console.error("[createFundingSession] CRITICAL — platform credit refund failed:", refundErr);
+        captureError(refundErr, {
+          userId: user.id,
+          campaignId,
+          platformCreditCents,
+          operation: "platform_credit.restore",
+        }, "fatal");
+        return { error: "A billing error occurred. Our team has been notified and will resolve it shortly." };
+      }
+    }
+    console.error("[createFundingSession] Stripe error:", err);
+    return { error: "Failed to create checkout session. Please try again." };
+  }
 
   if (!session.url) return { error: "Failed to create checkout session." };
 
@@ -146,7 +188,7 @@ export async function createFundingSession(
  * Creates a Stripe Checkout session for a subscription upgrade.
  */
 export async function createSubscriptionSession(
-  tier: "starter" | "pro"
+  tier: "pro"
 ): Promise<{ url: string } | { error: string }> {
   const supabase = await createClient();
   const {
@@ -155,12 +197,7 @@ export async function createSubscriptionSession(
 
   if (!user) return { error: "Not authenticated." };
 
-  const priceIds: Record<string, string | undefined> = {
-    starter: process.env.STRIPE_STARTER_PRICE_ID,
-    pro: process.env.STRIPE_PRO_PRICE_ID,
-  };
-
-  const priceId = priceIds[tier];
+  const priceId = getPlanConfig(tier).stripePriceId;
   if (!priceId) {
     return { error: `No Stripe price configured for ${tier} plan.` };
   }

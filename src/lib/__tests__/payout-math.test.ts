@@ -128,8 +128,8 @@ describe("defaultTargetResponses", () => {
   });
 
   it("computes Standard target from distributable", () => {
-    // $21.25 / $0.60 = 35.4 → 35
-    expect(defaultTargetResponses(21.25, "standard")).toBe(35);
+    // $21.25 / $0.75 = 28.3 → 28
+    expect(defaultTargetResponses(21.25, "standard")).toBe(28);
   });
 
   it("enforces minimum of 5", () => {
@@ -331,7 +331,7 @@ describe("distributePayoutsV2", () => {
 });
 
 describe("distributeSubsidizedPayouts", () => {
-  it("pays flat $0.30 per qualifier, $0 for disqualified", () => {
+  it("pays flat $0.45 per qualifier, $0 for disqualified", () => {
     const responses = [
       makeResponse("a", 60),
       makeResponse("b", 50),
@@ -345,8 +345,8 @@ describe("distributeSubsidizedPayouts", () => {
     const allocations = distributeSubsidizedPayouts(responses, quals);
 
     const allocA = allocations.find((a) => a.responseId === "a")!;
-    expect(allocA.suggestedAmount).toBe(0.30);
-    expect(allocA.basePayout).toBe(0.30);
+    expect(allocA.suggestedAmount).toBe(0.45);
+    expect(allocA.basePayout).toBe(0.45);
     expect(allocA.bonusPayout).toBe(0);
     expect(allocA.qualified).toBe(true);
 

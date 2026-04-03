@@ -17,9 +17,18 @@ type ToastData = {
  * Short, clean, recognizable — like Shopify's earnings notification.
  * Replace with custom MP3 later: new Audio("/sounds/ka-ching.mp3").play()
  */
+let cachedAudioCtx: AudioContext | null = null;
+function getAudioContext(): AudioContext {
+  if (!cachedAudioCtx || cachedAudioCtx.state === "closed") {
+    cachedAudioCtx = new AudioContext();
+  }
+  return cachedAudioCtx;
+}
+
 function playKaChing() {
   try {
-    const ctx = new AudioContext();
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") ctx.resume();
 
     // High metallic "ching" — two quick sine tones
     const osc1 = ctx.createOscillator();
@@ -45,9 +54,6 @@ function playKaChing() {
     osc2.connect(gain2).connect(ctx.destination);
     osc2.start(ctx.currentTime + 0.1);
     osc2.stop(ctx.currentTime + 0.5);
-
-    // Clean up
-    setTimeout(() => ctx.close(), 600);
   } catch {
     // Silently fail if audio not available
   }

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { requestPasswordReset } from "./actions";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -13,22 +13,30 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const [lastSentAt, setLastSentAt] = useState(0);
+
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Client-side cooldown (UX debounce — real enforcement is server-side)
+    const now = Date.now();
+    if (now - lastSentAt < 60_000) {
+      setError("Please wait a minute before requesting another reset link.");
+      return;
+    }
+
     setLoading(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
-    });
+    const result = await requestPasswordReset(email);
 
-    if (error) {
-      setError(error.message);
+    if (result.error) {
+      setError(result.error);
       setLoading(false);
       return;
     }
 
+    setLastSentAt(now);
     setSent(true);
     setLoading(false);
   }
@@ -51,7 +59,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] shadow-card-sm relative overflow-hidden">
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
 
           {sent ? (

@@ -16,6 +16,7 @@ import {
 import { logOps } from "@/lib/ops-logger";
 import { captureError, captureWarning } from "@/lib/sentry";
 import { rateLimit } from "@/lib/rate-limit";
+import { isValidUuid } from "@/lib/validate-uuid";
 import sql from "@/lib/db";
 
 export type PayoutSuggestion = {
@@ -252,8 +253,9 @@ export async function allocatePayouts(
       `Total ($${totalAllocated.toFixed(2)}) exceeds distributable amount ($${distributable.toFixed(2)})`
     );
 
-  // Validate all responses belong to this campaign
+  // Validate all response IDs are valid UUIDs
   const responseIds = allocations.map((a) => a.responseId);
+  if (responseIds.some((id) => !isValidUuid(id))) throw new Error("Invalid response ID in allocations");
   const { data: responses } = await supabase
     .from("responses")
     .select("id, respondent_id")
@@ -544,8 +546,9 @@ export async function allocatePayoutsV2(
       `Total ($${totalAllocated.toFixed(2)}) exceeds distributable ($${distributable.toFixed(2)})`
     );
 
-  // Validate all responses belong to this campaign
+  // Validate all response IDs are valid UUIDs
   const responseIds = allocations.map((a) => a.responseId);
+  if (responseIds.some((id) => !isValidUuid(id))) throw new Error("Invalid response ID in allocations");
   const { data: responses } = await supabase
     .from("responses")
     .select("id, respondent_id")

@@ -3,18 +3,25 @@ import { createClient } from "@/lib/supabase/server";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG } from "@/lib/plans";
 import { rateLimit } from "@/lib/rate-limit";
+import { isValidUuid } from "@/lib/validate-uuid";
 
 function escapeCsv(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Neutralise formula injection: prefix formula-starting chars so spreadsheets
+  // treat the cell as text rather than executing it.
+  let safe = value;
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = `'${safe}`;
   }
-  return value;
+  if (safe.includes(",") || safe.includes('"') || safe.includes("\n")) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
 }
 
 export async function GET(request: NextRequest) {
   const campaignId = request.nextUrl.searchParams.get("campaignId");
-  if (!campaignId) {
-    return NextResponse.json({ error: "Missing campaignId" }, { status: 400 });
+  if (!campaignId || !isValidUuid(campaignId)) {
+    return NextResponse.json({ error: "Missing or invalid campaignId" }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -37,7 +44,7 @@ export async function GET(request: NextRequest) {
   const planConfig = PLAN_CONFIG[sub.tier];
   if (!planConfig.hasExport) {
     return NextResponse.json(
-      { error: "CSV export requires Pro plan or higher" },
+      { error: "CSV export requires Pro plan" },
       { status: 403 }
     );
   }
@@ -54,25 +61,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  // Fetch questions
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("id, text, type, sort_order")
-    .eq("campaign_id", campaignId)
-    .order("sort_order", { ascending: true });
+  // Fetch questions and responses in parallel
+  const [{ data: questions }, { data: responses }] = await Promise.all([
+    supabase
+      .from("questions")
+      .select("id, text, type, sort_order")
+      .eq("campaign_id", campaignId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("responses")
+      .select(
+        "id, status, quality_score, ai_feedback, scoring_source, scoring_confidence, payout_amount, created_at, ranked_at, respondent:profiles!respondent_id(full_name, reputation_tier)"
+      )
+      .eq("campaign_id", campaignId)
+      .in("status", ["submitted", "ranked"])
+      .order("quality_score", { ascending: false, nullsFirst: false }),
+  ]);
 
   const questionList = questions || [];
   const _questionMap = new Map(questionList.map((q) => [q.id, q]));
-
-  // Fetch ranked responses with respondent info
-  const { data: responses } = await supabase
-    .from("responses")
-    .select(
-      "id, status, quality_score, ai_feedback, scoring_source, scoring_confidence, payout_amount, created_at, ranked_at, respondent:profiles!respondent_id(full_name, reputation_tier)"
-    )
-    .eq("campaign_id", campaignId)
-    .in("status", ["submitted", "ranked"])
-    .order("quality_score", { ascending: false, nullsFirst: false });
 
   if (!responses || responses.length === 0) {
     return NextResponse.json({ error: "No responses to export" }, { status: 404 });

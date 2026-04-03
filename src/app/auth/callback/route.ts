@@ -7,11 +7,16 @@ export async function GET(request: Request) {
   const type = searchParams.get("type");
   const rawNext = searchParams.get("next") ?? "/dashboard/the-wall";
 
-  // Prevent open-redirect: only allow relative paths starting with /
+  // Prevent open-redirect: only allow whitelisted path prefixes
+  const ALLOWED_PREFIXES = ["/dashboard", "/auth/reset-password"];
+  const DEFAULT_REDIRECT = "/dashboard/the-wall";
+
   const next =
-    rawNext.startsWith("/") && !rawNext.startsWith("//")
+    rawNext.startsWith("/") &&
+    !rawNext.startsWith("//") &&
+    ALLOWED_PREFIXES.some((prefix) => rawNext.startsWith(prefix))
       ? rawNext
-      : "/dashboard/the-wall";
+      : DEFAULT_REDIRECT;
 
   if (code) {
     const supabase = await createClient();

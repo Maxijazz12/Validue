@@ -6,10 +6,21 @@ import Image from "next/image";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 50);
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        setProgress(docHeight > 0 ? Math.min(window.scrollY / docHeight, 1) : 0);
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -37,8 +48,8 @@ export default function Navbar() {
 
             <div className="hidden md:flex gap-[28px] items-center">
               <a href="#how" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">HOW IT WORKS</a>
-              <a href="#pricing" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">PRICING</a>
-              <a href="#respond" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">EARN MONEY</a>
+              <a href="/pricing" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">PRICING</a>
+              <a href="/for-founders" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">FOR FOUNDERS</a>
             </div>
           </div>
 
@@ -48,10 +59,19 @@ export default function Navbar() {
               [ LOG IN ]
             </a>
             <a href="/auth/signup" className="px-[24px] py-[10px] rounded-full font-mono font-bold tracking-widest uppercase text-[10px] text-white bg-[#1C1917] hover:bg-white hover:text-[#1C1917] border border-transparent hover:border-[#1C1917] transition-all no-underline shadow-[0_2px_8px_rgba(229,101,78,0.2)] hover:shadow-[0_8px_24px_rgba(229,101,78,0.3)]">
-              [ GET STARTED ]
+              [ GET YOUR BRIEF ]
             </a>
           </div>
         </div>
+        {/* Scroll progress bar */}
+        {progress > 0 && (
+          <div className="absolute bottom-0 left-[24px] right-[24px] h-[2px] bg-black/5 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#E5654E]/40 rounded-full transition-[width] duration-100"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        )}
       </nav>
     </div>
   );
