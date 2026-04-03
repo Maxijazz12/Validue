@@ -4,6 +4,7 @@ import {
   distributePayoutsV2,
   distributeSubsidizedPayouts,
   defaultTargetResponses,
+  defaultUnpaidTargetResponses,
   type ScoredResponse,
   type ResponseMetadata,
   type QualificationResult,
@@ -134,6 +135,16 @@ describe("defaultTargetResponses", () => {
 
   it("enforces minimum of 5", () => {
     expect(defaultTargetResponses(1.0, "standard")).toBe(5);
+  });
+});
+
+describe("defaultUnpaidTargetResponses", () => {
+  it("uses a conservative lower-bound target for unpaid campaigns", () => {
+    expect(defaultUnpaidTargetResponses(9)).toBe(9);
+  });
+
+  it("still enforces the minimum unpaid campaign target", () => {
+    expect(defaultUnpaidTargetResponses(2)).toBe(5);
   });
 });
 

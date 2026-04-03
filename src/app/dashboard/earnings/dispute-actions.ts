@@ -33,7 +33,7 @@ export async function fileDispute(
 
   // Verify the response belongs to this user and is eligible for dispute
   const [response] = await sql`
-    SELECT id, campaign_id, money_state, is_qualified, quality_score
+    SELECT id, campaign_id, money_state, is_qualified, quality_score, disqualification_reasons
     FROM responses
     WHERE id = ${responseId} AND respondent_id = ${user.id}
   `;
@@ -43,6 +43,9 @@ export async function fileDispute(
   // Only allow disputes on disqualified or low-scored responses
   if (response.money_state !== "not_qualified" && response.is_qualified !== false) {
     return { error: "Only disqualified responses can be disputed." };
+  }
+  if (Array.isArray(response.disqualification_reasons) && response.disqualification_reasons.includes("unpaid_campaign")) {
+    return { error: "Unpaid campaigns are not eligible for payout disputes." };
   }
 
   // Check if already disputed

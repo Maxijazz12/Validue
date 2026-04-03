@@ -261,6 +261,19 @@ export async function GET(request: Request) {
 
         const allocations = campaign.is_subsidized
           ? distributeSubsidizedPayouts(scoredResponses, qualResults)
+          : distributable <= 0
+            ? scoredResponses.map((sr) => ({
+                responseId: sr.responseId,
+                respondentId: sr.respondentId,
+                respondentName: sr.respondentName,
+                qualityScore: sr.qualityScore,
+                qualified: false,
+                disqualificationReasons: ["unpaid_campaign"],
+                basePayout: 0,
+                bonusPayout: 0,
+                suggestedAmount: 0,
+                weight: 0,
+              }))
           : distributePayoutsV2(scoredResponses, distributable, qualResults);
 
         // Apply allocations: create payouts, update responses, update balances

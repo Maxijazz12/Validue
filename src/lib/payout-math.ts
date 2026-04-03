@@ -109,6 +109,18 @@ export function defaultTargetResponses(
 }
 
 /**
+ * Conservative response target for unpaid campaigns.
+ * Uses the lower bound of estimated fill so free campaigns remain answerable
+ * without over-promising respondent demand.
+ */
+export function defaultUnpaidTargetResponses(estimatedResponsesLow: number): number {
+  return Math.min(
+    DEFAULTS.MAX_TARGET_RESPONSES,
+    Math.max(DEFAULTS.MIN_TARGET_RESPONSES_V2, Math.floor(estimatedResponsesLow))
+  );
+}
+
+/**
  * V2 payout distribution — flat qualified model.
  *
  * 1. Separate qualified vs disqualified responses

@@ -52,7 +52,7 @@ export default async function EarningsPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("responses")
-      .select("id, payout_amount, base_payout, bonus_payout, money_state, created_at, campaign:campaigns!campaign_id(id, title)")
+      .select("id, payout_amount, base_payout, bonus_payout, money_state, disqualification_reasons, created_at, campaign:campaigns!campaign_id(id, title, reward_amount)")
       .eq("respondent_id", user.id)
       .in("status", ["submitted", "ranked"])
       .order("created_at", { ascending: false })
@@ -93,7 +93,9 @@ export default async function EarningsPage({
 
   const responseList = (recentResponses || []).map((r) => {
     const campaignRaw = r.campaign as unknown;
-    const campaign = (Array.isArray(campaignRaw) ? campaignRaw[0] : campaignRaw) as { id: string; title: string } | null;
+    const campaign = (
+      Array.isArray(campaignRaw) ? campaignRaw[0] : campaignRaw
+    ) as { id: string; title: string; reward_amount: number | null } | null;
     return { ...r, campaign };
   });
 
@@ -218,7 +220,13 @@ export default async function EarningsPage({
                   not_qualified: { label: "NOT QUALIFIED", bg: "bg-error/10", text: "text-error" },
                 };
                 const state = r.money_state || "pending_qualification";
-                const config = moneyStateConfig[state] || moneyStateConfig.pending_qualification;
+                const reasons = Array.isArray(r.disqualification_reasons)
+                  ? r.disqualification_reasons.filter((value): value is string => typeof value === "string")
+                  : [];
+                const isUnpaidResponse = reasons.includes("unpaid_campaign");
+                const config = isUnpaidResponse
+                  ? { label: "UNPAID", bg: "bg-bg-muted", text: "text-text-secondary" }
+                  : (moneyStateConfig[state] || moneyStateConfig.pending_qualification);
                 const amount = Number(r.payout_amount) || 0;
 
                 return (
@@ -233,7 +241,7 @@ export default async function EarningsPage({
                             ${amount.toFixed(2)}
                           </span>
                         )}
-                        {state === "not_qualified" && (
+                        {(state === "not_qualified" || isUnpaidResponse) && (
                           <span className="font-mono text-[13px] text-text-muted">$0.00</span>
                         )}
                         <span className={`px-[8px] py-[3px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}>
@@ -241,11 +249,16 @@ export default async function EarningsPage({
                         </span>
                       </div>
                     </div>
-                    {state === "not_qualified" && (
+                    {state === "not_qualified" && !isUnpaidResponse && (
                       <DisputeButton
                         responseId={r.id}
                         alreadyDisputed={disputedResponseIds.has(r.id)}
                       />
+                    )}
+                    {isUnpaidResponse && (
+                      <p className="text-[12px] text-text-secondary mt-[8px]">
+                        This campaign did not offer monetary rewards.
+                      </p>
                     )}
                   </div>
                 );

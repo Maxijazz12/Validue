@@ -197,6 +197,17 @@ export default function CampaignDetail({
         </div>
       )}
 
+      {!hasReward && (
+        <div className="bg-bg-muted border border-border-light rounded-[20px] p-[20px] mb-[32px] relative overflow-hidden shadow-card-sm">
+          <span className="font-mono font-bold text-[14px] text-text-primary">
+            UNPAID FEEDBACK REQUEST
+          </span>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted leading-[1.6] mt-[12px]">
+            THIS CAMPAIGN IS FOR FEEDBACK ONLY. RESPONSES HELP THE FOUNDER, BUT DO NOT EARN CASH.
+          </p>
+        </div>
+      )}
+
       {/* Blocker or CTA */}
       {blockerMessage ? (
         <div className="text-center p-[20px] rounded-[16px] bg-black/5 border border-black/5">

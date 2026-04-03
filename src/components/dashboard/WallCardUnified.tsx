@@ -102,9 +102,13 @@ export default memo(function WallCardUnified({
                 </span>
               )}
             </div>
-            {rewardAmount > 0 && (
+            {rewardAmount > 0 ? (
               <span className="text-[13px] font-semibold tracking-tight text-success">
                 +${rewardAmount.toFixed(2)}
+              </span>
+            ) : (
+              <span className="px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight bg-bg-muted text-text-secondary">
+                UNPAID
               </span>
             )}
           </div>

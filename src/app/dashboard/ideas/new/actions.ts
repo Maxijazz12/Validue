@@ -7,7 +7,11 @@ import { canCreateCampaign, isFirstCampaign, checkSubsidyEligibility } from "@/l
 import { calculateReach, validateFunding } from "@/lib/reach";
 import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
 import { DEFAULTS } from "@/lib/defaults";
-import { defaultTargetResponses, type CampaignFormat } from "@/lib/payout-math";
+import {
+  defaultTargetResponses,
+  defaultUnpaidTargetResponses,
+  type CampaignFormat,
+} from "@/lib/payout-math";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
@@ -119,7 +123,9 @@ export async function publishCampaign(
     : (fundingAmount ? Math.round(fundingAmount * (1 - PLATFORM_FEE_RATE) * 100) / 100 : 0);
   const targetResponses = isSubsidized
     ? DEFAULTS.SUBSIDY_TARGET_RESPONSES
-    : (distributableAmount > 0 ? defaultTargetResponses(distributableAmount, format) : 0);
+    : distributableAmount > 0
+      ? defaultTargetResponses(distributableAmount, format)
+      : defaultUnpaidTargetResponses(reach.estimatedResponsesLow);
 
   // V2 publish-time constraint: payout per response >= MIN_BASE_PAYOUT
   // V2 uses flat equal split of full distributable pool (no base/bonus split)
@@ -135,7 +141,8 @@ export async function publishCampaign(
     .map((a) => enforceLength(a, 500).text);
   // Determine initial status:
   // - Subsidized → active immediately
-  // - All other campaigns → pending_funding until a budget is set and funding clears
+  // - Paid campaigns → pending_funding until Stripe funding clears
+  // - Unpaid campaigns → active immediately unless reciprocal gate is pending
   const gateRequired = requiresGate(allowance.tier) && !isSubsidized;
 
   // Verify gate clearance server-side — don't trust the client flag alone
@@ -169,7 +176,11 @@ export async function publishCampaign(
       : initialGateStatus(allowance.tier);
   const initialStatus = isSubsidized
     ? "active"
-    : "pending_funding";
+    : fundingAmount > 0
+      ? "pending_funding"
+      : gateRequired && !gateAlreadyCleared
+        ? "pending_gate"
+        : "active";
   // Subsidized: use subsidy budget as reward_amount for display; funded: use actual amount
   const effectiveRewardAmount = isSubsidized ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN : fundingAmount;
 
@@ -184,8 +195,8 @@ export async function publishCampaign(
         ON CONFLICT (id) DO NOTHING
       `;
 
-      // Set expires_at only when campaign goes active at publish.
-      const needsExpiry = isSubsidized;
+      // Set expires_at when campaign goes active at publish.
+      const needsExpiry = isSubsidized || (fundingAmount <= 0 && (!gateRequired || gateAlreadyCleared));
       const expiresAt = needsExpiry ? sql`NOW() + (${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} * INTERVAL '1 day')` : null;
 
       const [campaign] = await tx`

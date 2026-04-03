@@ -13,11 +13,11 @@ function getRewardLabel(
   bonusAvailable: boolean,
 ): string {
   if (economicsVersion !== 2) {
-    if (!rewardAmount) return "Free";
+    if (!rewardAmount) return "Unpaid";
     return `$${rewardAmount}${bonusAvailable ? "+" : ""}`;
   }
   if (isSubsidized) return `$${DEFAULTS.SUBSIDY_FLAT_PAYOUT.toFixed(2)}+`;
-  if (!rewardAmount) return "Free";
+  if (!rewardAmount) return "Unpaid";
   const basePay = (rewardAmount * (1 - PLATFORM_FEE_RATE)) / Math.max(targetResponses, 1);
   return `$${basePay.toFixed(2)}+`;
 }
@@ -51,11 +51,9 @@ export default function BirdseyePill({
         {title}
       </span>
 
-      {reward !== "Free" && (
-        <span className="text-[11px] font-mono font-semibold text-text-primary bg-[#F5F0EB] px-[8px] py-[2px] rounded-full shrink-0">
-          {reward}
-        </span>
-      )}
+      <span className="text-[11px] font-mono font-semibold text-text-primary bg-[#F5F0EB] px-[8px] py-[2px] rounded-full shrink-0">
+        {reward}
+      </span>
 
       {/* Save button */}
       <button
