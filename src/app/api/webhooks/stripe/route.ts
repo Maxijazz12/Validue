@@ -1,6 +1,6 @@
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
-import { isValidTier } from "@/lib/plans";
+import { normalizeTier } from "@/lib/plans";
 import { DEFAULTS } from "@/lib/defaults";
 import type Stripe from "stripe";
 import { logOps } from "@/lib/ops-logger";
@@ -29,6 +29,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // Idempotency guard: skip events we've already processed.
+  // Uses INSERT ON CONFLICT DO NOTHING — if the event_id already exists, skip it.
+  const [inserted] = await sql`
+    INSERT INTO processed_stripe_events (event_id, event_type)
+    VALUES (${event.id}, ${event.type})
+    ON CONFLICT (event_id) DO NOTHING
+    RETURNING event_id
+  `;
+  if (!inserted) {
+    // Already processed this event — return 200 so Stripe stops retrying
+    return Response.json({ received: true, deduplicated: true });
+  }
+
   switch (event.type) {
     /* ─── Campaign Funding ─── */
     case "checkout.session.completed": {
@@ -45,16 +58,24 @@ export async function POST(request: Request) {
 
       try {
         // Set expires_at for V2 campaigns (CAMPAIGN_EXPIRY_DAYS after activation)
+        // Only activate if reciprocal gate is already cleared (or not required).
+        // If gate is still pending, mark as funded but leave status for gate to activate later.
         const expiryInterval = `${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} days`;
         await sql`
           UPDATE campaigns
-          SET status = 'active',
-              funded_at = NOW(),
-              expires_at = CASE
-                WHEN economics_version = 2 THEN NOW() + ${expiryInterval}::interval
-                ELSE expires_at
+          SET funded_at = NOW(),
+              stripe_payment_intent_id = ${(session.payment_intent as string) || null},
+              status = CASE
+                WHEN reciprocal_gate_status IS NULL OR reciprocal_gate_status IN ('cleared', 'exempt')
+                  THEN 'active'
+                ELSE status
               END,
-              stripe_payment_intent_id = ${(session.payment_intent as string) || null}
+              expires_at = CASE
+                WHEN economics_version = 2
+                  AND (reciprocal_gate_status IS NULL OR reciprocal_gate_status IN ('cleared', 'exempt'))
+                  THEN NOW() + ${expiryInterval}::interval
+                ELSE expires_at
+              END
           WHERE id = ${campaignId}
             AND status = 'pending_funding'
         `;
@@ -67,9 +88,7 @@ export async function POST(request: Request) {
             UPDATE subscriptions
             SET welcome_credit_used = true, updated_at = NOW()
             WHERE user_id = ${userId}
-          `.catch((err) => {
-            console.error("[stripe-webhook] Failed to mark welcome credit used:", err);
-          });
+          `;
         }
 
         // V2: Clear platform credit if it was applied
@@ -83,9 +102,7 @@ export async function POST(request: Request) {
                   ELSE platform_credit_expires_at
                 END
             WHERE id = ${userId}
-          `.catch((err) => {
-            console.error("[stripe-webhook] Failed to clear platform credit:", err);
-          });
+          `;
         }
 
         logOps({
@@ -122,9 +139,10 @@ export async function POST(request: Request) {
     case "customer.subscription.created": {
       const subscription = event.data.object as Stripe.Subscription;
       const userId = subscription.metadata?.userId;
-      const tier = subscription.metadata?.tier;
+      const rawTier = subscription.metadata?.tier;
+      const tier = normalizeTier(rawTier);
 
-      if (!userId || !tier || !isValidTier(tier)) {
+      if (!userId || !rawTier || !tier) {
         console.error("[stripe-webhook] Missing userId or invalid tier in subscription metadata");
         break;
       }
@@ -171,7 +189,8 @@ export async function POST(request: Request) {
       const subscription = event.data.object as Stripe.Subscription;
       const stripeSubId = subscription.id;
 
-      const tier = subscription.metadata?.tier;
+      const rawTier = subscription.metadata?.tier;
+      const tier = normalizeTier(rawTier);
       const status = subscription.status === "active" ? "active"
         : subscription.status === "past_due" ? "past_due"
         : subscription.status === "trialing" ? "trialing"
@@ -182,7 +201,7 @@ export async function POST(request: Request) {
       const periodEnd = new Date(item.current_period_end * 1000);
 
       try {
-        if (tier && isValidTier(tier)) {
+        if (rawTier && tier) {
           // Tier change + period update
           await sql`
             UPDATE subscriptions

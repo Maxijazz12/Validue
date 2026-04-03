@@ -78,10 +78,14 @@ export default function NotificationPanel() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    getNotifications().then((data) => {
-      setNotifications(data);
-      setLoading(false);
-    });
+    getNotifications()
+      .then((data) => {
+        setNotifications(data);
+      })
+      .catch((err) => {
+        console.error("Failed to load notifications:", err);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleClick = useCallback((notif: Notification) => {

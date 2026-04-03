@@ -60,7 +60,7 @@ export async function hasReciprocalCampaigns(): Promise<boolean> {
     .from("responses")
     .select("campaign_id")
     .eq("respondent_id", user.id)
-    .in("status", ["in_progress", "submitted", "ranked"]);
+    .in("status", ["in_progress", "submitted", "ranked", "abandoned"]);
 
   const respondedCampaignIds = new Set(
     (userResponses || []).map((r) => r.campaign_id)
@@ -102,7 +102,7 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
     .from("responses")
     .select("campaign_id")
     .eq("respondent_id", user.id)
-    .in("status", ["in_progress", "submitted", "ranked"]);
+    .in("status", ["in_progress", "submitted", "ranked", "abandoned"]);
 
   const respondedCampaignIds = new Set(
     (userResponses || []).map((r) => r.campaign_id)
@@ -281,6 +281,9 @@ export async function saveReciprocalAnswer(
     if (existing.status === "submitted" || existing.status === "ranked") {
       return { success: true };
     }
+    if (existing.status === "abandoned") {
+      return { success: false, error: "Your previous response to this campaign timed out." };
+    }
     responseId = existing.id;
     assignedIds = existing.assigned_question_ids;
   } else {
@@ -337,13 +340,52 @@ export async function saveReciprocalAnswer(
   if (assignedIds && assignedIds.length > 0) {
     const { data: allAnswers } = await supabase
       .from("answers")
-      .select("question_id")
+      .select("question_id, metadata")
       .eq("response_id", responseId);
 
     const answeredSet = new Set((allAnswers || []).map((a) => a.question_id));
     const allAnswered = assignedIds.every((id) => answeredSet.has(id));
 
     if (allAnswered) {
+      // Behavioral screening — same checks as regular submitResponse
+      let totalTimeMs = 0;
+      let pasteHeavyCount = 0;
+      for (const a of allAnswers || []) {
+        const meta = (a.metadata || {}) as Record<string, unknown>;
+        totalTimeMs += Math.max(0, Number(meta.timeSpentMs) || 0);
+        const pasteCount = Math.max(0, Number(meta.pasteCount) || 0);
+        if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
+      }
+
+      // Minimum time: per-question floor for partial responses
+      const minTime = assignedIds.length * DEFAULTS.PARTIAL_MIN_TIME_PER_QUESTION_MS;
+      if (totalTimeMs < minTime) {
+        return {
+          success: false,
+          error: "Please take more time to provide thoughtful answers before submitting.",
+        };
+      }
+
+      // Paste-heavy screening
+      if (
+        allAnswers &&
+        allAnswers.length > 0 &&
+        pasteHeavyCount / allAnswers.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO
+      ) {
+        logOps({
+          event: "content.flagged",
+          userId: user.id,
+          fieldName: "reciprocal_response",
+          action: "blocked",
+          reason: `paste_rejected: pasteHeavy=${pasteHeavyCount}/${allAnswers.length}`,
+          entryPoint: "saveReciprocalAnswer",
+        });
+        return {
+          success: false,
+          error: "Your response was flagged for excessive pasted content. Please provide original answers.",
+        };
+      }
+
       // Atomic: only increment campaign count if this response wasn't already submitted
       // (prevents double-count from concurrent saves)
       const submitResult = await sql`
@@ -410,18 +452,36 @@ export async function incrementReciprocalGate(campaignId: string): Promise<{
     };
   }
 
-  // Increment counter
-  const newCount = (campaign.reciprocal_responses_completed ?? 0) + 1;
+  // Atomically increment counter in DB and read back the authoritative value.
+  // Prevents concurrent increments from computing the same newCount in app code.
+  const [updated] = await sql`
+    UPDATE campaigns
+    SET reciprocal_responses_completed = COALESCE(reciprocal_responses_completed, 0) + 1
+    WHERE id = ${campaignId}
+      AND reciprocal_gate_status = 'pending'
+    RETURNING reciprocal_responses_completed
+  `;
+
+  const newCount = updated?.reciprocal_responses_completed ?? (campaign.reciprocal_responses_completed ?? 0) + 1;
   const gate = checkGate("pending", newCount);
 
   if (gate.canPublish) {
-    // Gate cleared — activate the campaign
+    // Gate cleared — activate if no funding is pending (i.e. pending_gate only).
+    // For pending_funding campaigns, clear the gate but leave status for webhook to activate after payment.
     await sql`
       UPDATE campaigns
       SET reciprocal_gate_status = 'cleared',
-          reciprocal_responses_completed = ${newCount},
-          status = 'active',
-          expires_at = NOW() + INTERVAL '${sql.unsafe(String(DEFAULTS.CAMPAIGN_EXPIRY_DAYS))} days'
+          status = CASE
+            WHEN status = 'pending_gate' THEN 'active'
+            WHEN status = 'pending_funding' AND funded_at IS NOT NULL THEN 'active'
+            ELSE status
+          END,
+          expires_at = CASE
+            WHEN status = 'pending_gate'
+              OR (status = 'pending_funding' AND funded_at IS NOT NULL)
+              THEN NOW() + (${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} * INTERVAL '1 day')
+            ELSE expires_at
+          END
       WHERE id = ${campaignId}
         AND reciprocal_gate_status = 'pending'
         AND status IN ('pending_gate', 'pending_funding')
@@ -433,12 +493,6 @@ export async function incrementReciprocalGate(campaignId: string): Promise<{
       userId: user.id,
       completedCount: newCount,
     });
-  } else {
-    await sql`
-      UPDATE campaigns
-      SET reciprocal_responses_completed = ${newCount}
-      WHERE id = ${campaignId}
-    `;
   }
 
   return {

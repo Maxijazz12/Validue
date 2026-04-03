@@ -226,8 +226,8 @@ export async function allocatePayouts(
     .single();
 
   if (!campaign) throw new Error("Campaign not found");
-  if (campaign.payout_status === "allocated")
-    throw new Error("Payouts already allocated");
+  if (campaign.payout_status && campaign.payout_status !== "none" && campaign.payout_status !== "pending")
+    throw new Error("Payouts already allocated or completed");
 
   // Rate limit: 5 allocation attempts per hour
   const rl = rateLimit(`payout:${user.id}`, 3600000, 5);
@@ -242,9 +242,12 @@ export async function allocatePayouts(
     }
   }
 
-  const totalAllocated = allocations.reduce((s, a) => s + a.amount, 0);
+  // Use integer cents to avoid float accumulation errors
+  const totalAllocatedCents = allocations.reduce((s, a) => s + Math.round(a.amount * 100), 0);
+  const distributableCents = Math.round(distributable * 100);
+  const totalAllocated = totalAllocatedCents / 100; // Dollar value for logging
 
-  if (totalAllocated > distributable + 0.01)
+  if (totalAllocatedCents > distributableCents + 1)
     throw new Error(
       `Total ($${totalAllocated.toFixed(2)}) exceeds distributable amount ($${distributable.toFixed(2)})`
     );
@@ -265,13 +268,13 @@ export async function allocatePayouts(
   );
 
   // Atomic compare-and-swap: claim payout_status to prevent concurrent allocation.
-  // Only succeeds if payout_status is NOT already 'allocated'.
+  // Uses .eq("pending") instead of .neq("allocated") to avoid matching NULL values.
   const { data: locked, error: lockError } = await supabase
     .from("campaigns")
     .update({ payout_status: "allocated" })
     .eq("id", campaignId)
     .eq("creator_id", user.id)
-    .neq("payout_status", "allocated")
+    .eq("payout_status", "pending")
     .select("id");
 
   if (lockError || !locked || locked.length === 0) {
@@ -321,20 +324,19 @@ export async function allocatePayouts(
     .eq("id", campaignId)
     .single();
 
-  for (const allocation of allocations) {
-    if (allocation.amount < DEFAULTS.MIN_PAYOUT) continue;
-    const respondentId = respondentMap.get(allocation.responseId);
-    if (!respondentId) continue;
-
-    await supabase.from("notifications").insert({
-      user_id: respondentId,
+  const payoutNotifications = allocations
+    .filter((a) => a.amount >= DEFAULTS.MIN_PAYOUT && respondentMap.get(a.responseId))
+    .map((a) => ({
+      user_id: respondentMap.get(a.responseId)!,
       type: "payout_earned",
       title: "You earned money!",
-      body: `$${allocation.amount} from "${campaignForNotif?.title || "a campaign"}"`,
+      body: `$${a.amount} from "${campaignForNotif?.title || "a campaign"}"`,
       campaign_id: campaignId,
-      amount: allocation.amount,
+      amount: a.amount,
       link: "/dashboard/earnings",
-    });
+    }));
+  if (payoutNotifications.length > 0) {
+    await supabase.from("notifications").insert(payoutNotifications);
   }
 
   // Update reputation for all paid respondents
@@ -344,9 +346,9 @@ export async function allocatePayouts(
       .map((a) => respondentMap.get(a.responseId))
       .filter(Boolean) as string[]
   );
-  for (const rid of paidRespondentIds) {
-    await updateRespondentReputation(rid);
-  }
+  await Promise.all(
+    Array.from(paidRespondentIds).map((rid) => updateRespondentReputation(rid))
+  );
 
   const paidAllocations = allocations.filter((a) => a.amount >= DEFAULTS.MIN_PAYOUT);
   const amounts = paidAllocations.map((a) => a.amount);
@@ -532,9 +534,12 @@ export async function allocatePayoutsV2(
   }
 
   const qualifiedAllocations = allocations.filter((a) => a.qualified && a.amount > 0);
-  const totalAllocated = qualifiedAllocations.reduce((s, a) => s + a.amount, 0);
+  // Use integer cents to avoid float accumulation errors
+  const totalAllocatedCents = qualifiedAllocations.reduce((s, a) => s + Math.round(a.amount * 100), 0);
+  const distributableCents = Math.round(distributable * 100);
+  const totalAllocated = totalAllocatedCents / 100; // Dollar value for logging
 
-  if (totalAllocated > distributable + 0.01)
+  if (totalAllocatedCents > distributableCents + 1)
     throw new Error(
       `Total ($${totalAllocated.toFixed(2)}) exceeds distributable ($${distributable.toFixed(2)})`
     );
@@ -547,16 +552,18 @@ export async function allocatePayoutsV2(
     .eq("campaign_id", campaignId)
     .in("id", responseIds);
 
-  if (!responses) throw new Error("Responses not found");
+  if (!responses || responses.length !== responseIds.length) {
+    throw new Error("Some responses not found or don't belong to this campaign");
+  }
   const respondentMap = new Map(responses.map((r: { id: string; respondent_id: string }) => [r.id, r.respondent_id]));
 
-  // Atomic CAS lock
+  // Atomic CAS lock — uses .eq("pending") to avoid matching NULL payout_status
   const { data: locked, error: lockError } = await supabase
     .from("campaigns")
     .update({ payout_status: "allocated" })
     .eq("id", campaignId)
     .eq("creator_id", user.id)
-    .neq("payout_status", "allocated")
+    .eq("payout_status", "pending")
     .select("id");
 
   if (lockError || !locked || locked.length === 0) {
@@ -577,7 +584,8 @@ export async function allocatePayoutsV2(
             VALUES (${allocation.responseId}, ${campaignId}, ${user.id}, ${respondentId}, ${allocation.amount}, ${allocation.basePayout}, ${allocation.bonusPayout}, 0, 'pending')
           `;
           // Update response with V2 payout fields + money state
-          await tx`
+          // Guard: only transition from pending_qualification (CAS lock prevents re-entry)
+          const [updatedResp] = await tx`
             UPDATE responses
             SET payout_amount = ${allocation.amount},
                 base_payout = ${allocation.basePayout},
@@ -586,7 +594,12 @@ export async function allocatePayoutsV2(
                 money_state = 'locked',
                 locked_at = NOW()
             WHERE id = ${allocation.responseId}
+              AND money_state = 'pending_qualification'
+            RETURNING id
           `;
+          if (!updatedResp) {
+            throw new Error(`Response ${allocation.responseId} already in unexpected money_state`);
+          }
           // Update respondent pending balance
           const amountCents = Math.round(allocation.amount * 100);
           await tx`
@@ -628,21 +641,19 @@ export async function allocatePayoutsV2(
     .eq("id", campaignId)
     .single();
 
-  for (const allocation of allocations) {
-    const respondentId = respondentMap.get(allocation.responseId);
-    if (!respondentId) continue;
-
-    if (allocation.qualified && allocation.amount > 0) {
-      await supabase.from("notifications").insert({
-        user_id: respondentId,
-        type: "payout_earned",
-        title: "You earned money!",
-        body: `$${allocation.amount.toFixed(2)} from "${campaignForNotif?.title || "a campaign"}"`,
-        campaign_id: campaignId,
-        amount: allocation.amount,
-        link: "/dashboard/earnings",
-      });
-    }
+  const v2Notifications = allocations
+    .filter((a) => a.qualified && a.amount > 0 && respondentMap.get(a.responseId))
+    .map((a) => ({
+      user_id: respondentMap.get(a.responseId)!,
+      type: "payout_earned",
+      title: "You earned money!",
+      body: `$${a.amount.toFixed(2)} from "${campaignForNotif?.title || "a campaign"}"`,
+      campaign_id: campaignId,
+      amount: a.amount,
+      link: "/dashboard/earnings",
+    }));
+  if (v2Notifications.length > 0) {
+    await supabase.from("notifications").insert(v2Notifications);
   }
 
   // Update reputation for qualified respondents
@@ -651,9 +662,9 @@ export async function allocatePayoutsV2(
       .map((a) => respondentMap.get(a.responseId))
       .filter(Boolean) as string[]
   );
-  for (const rid of qualifiedRespondentIds) {
-    await updateRespondentReputation(rid);
-  }
+  await Promise.all(
+    Array.from(qualifiedRespondentIds).map((rid) => updateRespondentReputation(rid))
+  );
 
   // Logging
   const amounts = qualifiedAllocations.map((a) => a.amount);

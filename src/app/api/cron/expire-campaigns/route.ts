@@ -14,6 +14,7 @@
  *    d. Notify founder
  */
 
+import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { DEFAULTS } from "@/lib/defaults";
@@ -27,12 +28,25 @@ import {
   type CampaignFormat,
 } from "@/lib/payout-math";
 import { logOps } from "@/lib/ops-logger";
+import { captureError } from "@/lib/sentry";
+
+function verifyCronSecret(request: Request, secret: string): boolean {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader) return false;
+  try {
+    return timingSafeEqual(
+      Buffer.from(authHeader),
+      Buffer.from(`Bearer ${secret}`)
+    );
+  } catch {
+    return false; // Length mismatch
+  }
+}
 
 export async function GET(request: Request) {
-  // Verify cron secret
-  const authHeader = request.headers.get("authorization");
+  // Verify cron secret (timing-safe to prevent brute-force)
   const cronSecret = env().CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !verifyCronSecret(request, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -55,6 +69,43 @@ export async function GET(request: Request) {
       RETURNING id
     `;
     results.staleCleanedUp = staleResult.length;
+
+    // 1b. Clean up orphaned pending_gate campaigns (no expiry set, stale > 30 days)
+    const orphanedGates = await sql`
+      UPDATE campaigns
+      SET status = 'completed', updated_at = NOW()
+      WHERE status = 'pending_gate'
+        AND created_at < NOW() - INTERVAL '30 days'
+      RETURNING id
+    `;
+    for (const og of orphanedGates) {
+      logOps({
+        event: "campaign.status_changed",
+        campaignId: og.id,
+        fromStatus: "pending_gate",
+        toStatus: "completed",
+        triggeredBy: "expiration_cron",
+      });
+    }
+
+    // 1c. Clean up orphaned pending_funding campaigns (abandoned checkouts, stale > 7 days)
+    const orphanedFunding = await sql`
+      UPDATE campaigns
+      SET status = 'completed', updated_at = NOW()
+      WHERE status = 'pending_funding'
+        AND funded_at IS NULL
+        AND created_at < NOW() - INTERVAL '7 days'
+      RETURNING id
+    `;
+    for (const of2 of orphanedFunding) {
+      logOps({
+        event: "campaign.status_changed",
+        campaignId: of2.id,
+        fromStatus: "pending_funding",
+        toStatus: "completed",
+        triggeredBy: "expiration_cron",
+      });
+    }
 
     // 2. Find expired active V2 campaigns
     const expiredCampaigns = await sql`
@@ -94,12 +145,16 @@ export async function GET(request: Request) {
           continue; // skip expiration — campaign got more time
         }
 
-        // Mark campaign as completed
-        await sql`
+        // Atomic CAS: mark campaign as completed, skip if another cron run already did
+        const [locked] = await sql`
           UPDATE campaigns
           SET status = 'completed', updated_at = NOW()
           WHERE id = ${campaign.id} AND status = 'active'
+          RETURNING id
         `;
+        if (!locked) {
+          continue; // Another cron run already transitioned this campaign
+        }
 
         // Fetch ranked responses with answer metadata
         const responses = await sql`
@@ -183,13 +238,19 @@ export async function GET(request: Request) {
         const qualResults = scoredResponses.map((sr) => {
           const answers = answersByResponse.get(sr.responseId) || [];
           let totalTimeMs = 0;
+          let pasteHeavyCount = 0;
           const openAnswers: { charCount: number }[] = [];
           for (const a of answers) {
             totalTimeMs += Math.max(0, Number(a.metadata.timeSpentMs) || 0);
             const charCount = Math.max(0, Number(a.metadata.charCount) || 0);
             if (charCount > 0) openAnswers.push({ charCount });
+            const pasteCount = Math.max(0, Number(a.metadata.pasteCount) || 0);
+            if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
           }
-          const meta: ResponseMetadata = { totalTimeMs, openAnswers };
+          const spamFlagged =
+            answers.length > 0 &&
+            pasteHeavyCount / answers.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO;
+          const meta: ResponseMetadata = { totalTimeMs, openAnswers, spamFlagged };
           return qualifyResponse(sr, format, meta);
         });
 
@@ -252,32 +313,54 @@ export async function GET(request: Request) {
           }
         }
 
-        // Also move any still-locked payouts from earlier scoring to available
+        // Move any still-locked payouts from earlier scoring to available
+        // First collect who has locked payouts BEFORE updating state
+        const lockedRespondents = await sql`
+          SELECT DISTINCT respondent_id, SUM(payout_amount) AS total
+          FROM responses
+          WHERE campaign_id = ${campaign.id}
+            AND money_state = 'locked'
+          GROUP BY respondent_id
+        `;
         await sql`
           UPDATE responses
           SET money_state = 'available', available_at = NOW()
           WHERE campaign_id = ${campaign.id}
             AND money_state = 'locked'
         `;
-        // Move pending_balance to available_balance for respondents with locked payouts on this campaign
-        const lockedRespondents = await sql`
-          SELECT DISTINCT respondent_id, SUM(payout_amount) AS total
-          FROM responses
-          WHERE campaign_id = ${campaign.id}
-            AND money_state = 'available'
-            AND available_at >= NOW() - INTERVAL '1 minute'
-          GROUP BY respondent_id
-        `;
+        // Move pending_balance to available_balance for respondents who had locked payouts
         for (const lr of lockedRespondents) {
-          const cents = Math.round(Number(lr.total) * 100);
+          const raw = Number(lr.total);
+          if (!Number.isFinite(raw)) {
+            logOps({
+              event: "payout.anomaly",
+              campaignId: campaign.id,
+              respondentId: lr.respondent_id,
+              expectedCents: 0,
+              anomalyType: "balance_mismatch", // NaN/null total from DB
+            });
+            continue;
+          }
+          const cents = Math.round(raw * 100);
           if (cents > 0) {
-            await sql`
+            const [updated] = await sql`
               UPDATE profiles
               SET pending_balance_cents = GREATEST(0, pending_balance_cents - ${cents}),
                   available_balance_cents = available_balance_cents + ${cents}
               WHERE id = ${lr.respondent_id}
                 AND pending_balance_cents >= ${cents}
+              RETURNING id
             `;
+            if (!updated) {
+              // Balance mismatch — log for reconciliation but don't block expiration
+              logOps({
+                event: "payout.anomaly",
+                campaignId: campaign.id,
+                respondentId: lr.respondent_id,
+                expectedCents: cents,
+                anomalyType: "balance_mismatch",
+              });
+            }
           }
         }
 
@@ -316,8 +399,9 @@ export async function GET(request: Request) {
     }
   } catch (err) {
     console.error("[expire-campaigns] Fatal error:", err);
+    captureError(err, { operation: "cron.expire_campaigns" });
     return NextResponse.json(
-      { error: "Cron job failed", details: err instanceof Error ? err.message : "Unknown" },
+      { error: "Cron job failed" },
       { status: 500 }
     );
   }

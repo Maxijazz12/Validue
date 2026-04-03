@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,10 +15,31 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Verify the user has a valid recovery session before allowing password reset
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // User must have arrived via a recovery link (Supabase sets the session automatically)
+      if (session?.user) {
+        setAuthorized(true);
+      } else {
+        setError("Invalid or expired password reset link. Please request a new one.");
+      }
+      setChecking(false);
+    });
+  }, []);
 
   async function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!authorized) {
+      setError("Invalid or expired password reset link. Please request a new one.");
+      return;
+    }
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
@@ -41,13 +62,15 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    // Sign out all sessions after password reset for security
+    await supabase.auth.signOut();
+
     setSuccess(true);
     setLoading(false);
 
-    // Redirect to dashboard after a short delay
+    // Redirect to login after a short delay
     setTimeout(() => {
-      router.push("/dashboard/the-wall");
-      router.refresh();
+      router.push("/auth/login");
     }, 2000);
   }
 
@@ -69,10 +92,12 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[40px] shadow-card-sm relative overflow-hidden">
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
 
-          {success ? (
+          {checking ? (
+            <p className="text-[14px] text-[#94A3B8] text-center py-[20px]">Verifying reset link...</p>
+          ) : success ? (
             <>
               <div className="w-[48px] h-[48px] rounded-2xl bg-[#22c55e]/10 flex items-center justify-center mx-auto mb-[16px]">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -83,8 +108,19 @@ export default function ResetPasswordPage() {
                 Password updated
               </h1>
               <p className="text-[14px] text-[#64748B] text-center">
-                Your password has been reset. Redirecting you to the dashboard...
+                Your password has been reset. Redirecting you to sign in...
               </p>
+            </>
+          ) : !authorized ? (
+            <>
+              <h1 className="text-[24px] font-bold text-[#111111] mb-[8px]">
+                Invalid reset link
+              </h1>
+              {error && (
+                <div className="mb-[20px] px-[14px] py-[10px] bg-red-50 border border-red-200 rounded-xl text-[13px] text-red-600">
+                  {error}
+                </div>
+              )}
             </>
           ) : (
             <>
