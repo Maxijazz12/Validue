@@ -101,7 +101,10 @@ export async function startResponse(campaignId: string): Promise<{
   // V2: Fill cap — checked atomically at INSERT time below (see guardedInsertV2).
   // V1: pre-check (atomic insert below enforces the hard cap)
   if (campaign.economics_version !== 2) {
-    if (campaign.current_responses >= campaign.target_responses)
+    if (
+      (campaign.target_responses ?? 0) > 0 &&
+      (campaign.current_responses ?? 0) >= (campaign.target_responses ?? 0)
+    )
       throw new Error("Campaign has reached its response target");
   }
 

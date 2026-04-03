@@ -6,7 +6,7 @@ function getAudienceLabel(idea: {
   target_interests: string[] | null;
   target_expertise: string[] | null;
   matched_responses: number;
-  current_responses: number;
+  current_responses: number | null;
 }): { text: string; color: string } {
   const hasTargeting =
     (idea.target_interests && idea.target_interests.length > 0) ||
@@ -16,7 +16,7 @@ function getAudienceLabel(idea: {
     return { text: "Open audience", color: "text-slate" };
   }
 
-  const total = idea.current_responses || 0;
+  const total = idea.current_responses ?? 0;
   if (total === 0) {
     return { text: "Awaiting responses", color: "text-slate" };
   }
@@ -65,8 +65,8 @@ export default async function IdeasPage() {
       status: idea.status,
       reward_amount: Number(idea.reward_amount) || 0,
       reward_type: idea.reward_type,
-      current_responses: idea.current_responses,
-      target_responses: idea.target_responses,
+      current_responses: idea.current_responses ?? 0,
+      target_responses: idea.target_responses ?? 0,
       target_interests: idea.target_interests,
       target_expertise: idea.target_expertise,
       matched_responses: idea.matched_responses,

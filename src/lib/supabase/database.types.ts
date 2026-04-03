@@ -92,6 +92,47 @@ export type Database = {
           },
         ]
       }
+      cashouts: {
+        Row: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          respondent_id: string
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          respondent_id: string
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          respondent_id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashouts_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           audience_experience_level: string | null
@@ -338,6 +379,64 @@ export type Database = {
           },
         ]
       }
+      disputes: {
+        Row: {
+          admin_notes: string | null
+          campaign_id: string
+          created_at: string
+          id: string
+          reason: string
+          resolved_at: string | null
+          respondent_id: string
+          response_id: string
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          resolved_at?: string | null
+          respondent_id: string
+          response_id: string
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          resolved_at?: string | null
+          respondent_id?: string
+          response_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payouts: {
         Row: {
           amount: number
@@ -435,6 +534,8 @@ export type Database = {
           reputation_tier: string | null
           reputation_updated_at: string | null
           role: string
+          stripe_connect_account_id: string | null
+          stripe_connect_onboarding_complete: boolean
           stripe_customer_id: string | null
           subsidized_campaign_used: boolean | null
           total_earned: number | null
@@ -465,6 +566,8 @@ export type Database = {
           reputation_tier?: string | null
           reputation_updated_at?: string | null
           role?: string
+          stripe_connect_account_id?: string | null
+          stripe_connect_onboarding_complete?: boolean
           stripe_customer_id?: string | null
           subsidized_campaign_used?: boolean | null
           total_earned?: number | null
@@ -495,6 +598,8 @@ export type Database = {
           reputation_tier?: string | null
           reputation_updated_at?: string | null
           role?: string
+          stripe_connect_account_id?: string | null
+          stripe_connect_onboarding_complete?: boolean
           stripe_customer_id?: string | null
           subsidized_campaign_used?: boolean | null
           total_earned?: number | null

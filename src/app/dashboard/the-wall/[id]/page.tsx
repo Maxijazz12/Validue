@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import ResponseFlow from "@/components/dashboard/respond/ResponseFlow";
+import {
+  hasReachedResponseTarget,
+  isCampaignOpenForResponses,
+} from "@/lib/campaign-availability";
+import { jsonToRecord, jsonToStringArray } from "@/lib/json-utils";
 
 export default async function RespondPage({
   params,
@@ -51,13 +56,17 @@ export default async function RespondPage({
       .from("answers")
       .select("question_id, text, metadata")
       .eq("response_id", existingResponse.id);
-    existingAnswers = answers;
+    existingAnswers = (answers || []).map((answer) => ({
+      question_id: answer.question_id,
+      text: answer.text ?? "",
+      metadata: jsonToRecord(answer.metadata),
+    }));
   }
 
   // Fetch suggested next campaigns (for post-response suggestion cards)
   const { data: suggestedRaw } = await supabase
     .from("campaigns")
-    .select("id, title, reward_amount, category, estimated_minutes, current_responses, target_responses, creator:profiles!creator_id(full_name)")
+    .select("id, title, reward_amount, category, estimated_minutes, current_responses, target_responses, expires_at, creator:profiles!creator_id(full_name)")
     .eq("status", "active")
     .neq("id", id)
     .neq("creator_id", user.id)
@@ -74,8 +83,26 @@ export default async function RespondPage({
         .in("campaign_id", suggestedIds)
     : { data: [] };
   const respondedIds = new Set((userResponses || []).map((r) => r.campaign_id));
+  const isCampaignCurrentlyActive = isCampaignOpenForResponses({
+    status: campaign.status,
+    current_responses: campaign.current_responses,
+    target_responses: campaign.target_responses,
+    expires_at: campaign.expires_at,
+  });
+  const isCampaignFull = hasReachedResponseTarget(
+    campaign.current_responses,
+    campaign.target_responses
+  );
   const suggestedCampaigns = (suggestedRaw || [])
     .filter((c) => !respondedIds.has(c.id))
+    .filter((c) =>
+      isCampaignOpenForResponses({
+        status: "active",
+        current_responses: c.current_responses,
+        target_responses: c.target_responses,
+        expires_at: c.expires_at,
+      })
+    )
     .slice(0, 3)
     .map((c) => ({
       id: c.id,
@@ -115,17 +142,17 @@ export default async function RespondPage({
         text: q.text,
         type: q.type as "open" | "multiple_choice",
         sortOrder: q.sort_order,
-        options: q.options as string[] | null,
-        isBaseline: q.is_baseline,
+        options: jsonToStringArray(q.options),
+        isBaseline: q.is_baseline ?? false,
         category: q.category,
-        anchors: q.anchors as string[] | null,
+        anchors: jsonToStringArray(q.anchors),
       }))}
       existingResponse={existingResponse}
       existingAnswers={existingAnswers}
       assignedQuestionIds={existingResponse?.assigned_question_ids ?? null}
       isOwnCampaign={campaign.creator_id === user.id}
-      isFull={(campaign.current_responses || 0) >= (campaign.target_responses || 50)}
-      isActive={campaign.status === "active"}
+      isFull={isCampaignFull}
+      isActive={isCampaignCurrentlyActive}
       prefill={prefill && qid ? { questionId: qid, text: prefill } : undefined}
     />
   );

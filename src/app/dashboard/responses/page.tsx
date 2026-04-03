@@ -44,8 +44,8 @@ export default async function ResponsesPage() {
     return {
       id: c.id,
       title: c.title,
-      current_responses: c.current_responses,
-      target_responses: c.target_responses,
+      current_responses: c.current_responses ?? 0,
+      target_responses: c.target_responses ?? 0,
       ranking_status: c.ranking_status || "unranked",
       totalResponses: stats.total,
       rankedCount: stats.ranked,

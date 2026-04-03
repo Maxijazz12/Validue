@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
-import { checkGate, RECIPROCAL_REQUIRED, RECIPROCAL_QUESTIONS_PER_RESPONSE } from "@/lib/reciprocal-gate";
+import { checkGate, RECIPROCAL_REQUIRED, RECIPROCAL_QUESTIONS_PER_RESPONSE, type GateStatus } from "@/lib/reciprocal-gate";
 import {
   assignQuestions,
   type CampaignQuestion,
@@ -440,8 +440,13 @@ export async function incrementReciprocalGate(campaignId: string): Promise<{
   if (!campaign) throw new Error("Campaign not found");
 
   if (campaign.reciprocal_gate_status !== "pending") {
+    const gateStatus: GateStatus | null =
+      campaign.reciprocal_gate_status === "cleared" ||
+      campaign.reciprocal_gate_status === "exempt"
+        ? campaign.reciprocal_gate_status
+        : null;
     const gate = checkGate(
-      campaign.reciprocal_gate_status,
+      gateStatus,
       campaign.reciprocal_responses_completed ?? 0
     );
     return {

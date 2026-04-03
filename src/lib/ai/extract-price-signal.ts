@@ -1,4 +1,6 @@
 import sql from "@/lib/db";
+import { computeMatchScore } from "@/lib/wall-ranking";
+import { getAudienceMatchSkew } from "./price-signal-match-skew";
 
 /* ─── Types ─── */
 
@@ -66,10 +68,21 @@ export async function extractPriceSignal(
       q.text AS question_text,
       r.quality_score,
       r.respondent_id,
-      q.category
+      q.category,
+      p.interests AS respondent_interests,
+      p.expertise AS respondent_expertise,
+      p.age_range AS respondent_age_range,
+      p.reputation_score AS respondent_reputation,
+      p.total_responses_completed AS respondent_total_responses,
+      c.target_interests,
+      c.target_expertise,
+      c.target_age_ranges,
+      c.tags AS campaign_tags
     FROM answers a
     JOIN questions q ON q.id = a.question_id
     JOIN responses r ON r.id = a.response_id
+    JOIN campaigns c ON c.id = r.campaign_id
+    LEFT JOIN profiles p ON p.id = r.respondent_id
     WHERE r.campaign_id = ${campaignId}
       AND r.status IN ('submitted', 'ranked')
       AND q.is_baseline = true
@@ -88,17 +101,36 @@ export async function extractPriceSignal(
     forwardWtp: string | null;
     preferredModel: string | null;
     qualityScore: number;
+    audienceMatch: number;
   }>();
 
   for (const row of rows) {
     const rid = row.respondent_id as string;
     if (!respondentMap.has(rid)) {
+      const audienceMatch = computeMatchScore(
+        {
+          target_interests: (row.target_interests as string[]) ?? [],
+          target_expertise: (row.target_expertise as string[]) ?? [],
+          target_age_ranges: (row.target_age_ranges as string[]) ?? [],
+          tags: (row.campaign_tags as string[]) ?? [],
+        },
+        {
+          interests: (row.respondent_interests as string[]) ?? [],
+          expertise: (row.respondent_expertise as string[]) ?? [],
+          age_range: (row.respondent_age_range as string | null) ?? null,
+          profile_completed: true,
+          reputation_score: Number(row.respondent_reputation ?? 0),
+          total_responses_completed: Number(row.respondent_total_responses ?? 0),
+        }
+      );
+
       respondentMap.set(rid, {
         pastSpending: null,
         priceCeiling: null,
         forwardWtp: null,
         preferredModel: null,
         qualityScore: Number(row.quality_score ?? 0),
+        audienceMatch: Math.round(audienceMatch),
       });
     }
     const entry = respondentMap.get(rid)!;
@@ -150,27 +182,13 @@ export async function extractPriceSignal(
     }
   }
 
-  // Check for match skew — compare high-quality (top half) vs low-quality respondents
-  const respondents = Array.from(respondentMap.entries());
-  respondents.sort((a, b) => b[1].qualityScore - a[1].qualityScore);
-  const midpoint = Math.ceil(respondents.length / 2);
-  const topHalf = respondents.slice(0, midpoint);
-  const bottomHalf = respondents.slice(midpoint);
-
-  let matchSkew: string | null = null;
-  if (topHalf.length >= 2 && bottomHalf.length >= 2) {
-    const topCeilings = topHalf.map(([, d]) => d.priceCeiling).filter(Boolean);
-    const bottomCeilings = bottomHalf.map(([, d]) => d.priceCeiling).filter(Boolean);
-
-    const topFreeRatio = topCeilings.filter((c) => c === "Only free tools").length / (topCeilings.length || 1);
-    const bottomFreeRatio = bottomCeilings.filter((c) => c === "Only free tools").length / (bottomCeilings.length || 1);
-
-    if (topFreeRatio > 0.5 && bottomFreeRatio < 0.3) {
-      matchSkew = "Higher-quality respondents lean toward free — price resistance may be stronger than it appears.";
-    } else if (topFreeRatio < 0.3 && bottomFreeRatio > 0.5) {
-      matchSkew = "Higher-quality respondents show willingness to pay — price signal may be stronger than raw distribution suggests.";
-    }
-  }
+  const matchSkew = getAudienceMatchSkew(
+    Array.from(respondentMap.values()).map((respondent) => ({
+      priceCeiling: respondent.priceCeiling,
+      qualityScore: respondent.qualityScore,
+      audienceMatch: respondent.audienceMatch,
+    }))
+  );
 
   // Find dominant forward WTP
   let dominantForwardWtp: string | null = null;

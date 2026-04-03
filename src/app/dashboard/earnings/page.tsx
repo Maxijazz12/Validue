@@ -9,7 +9,9 @@ import RetryCashoutButton from "./RetryCashoutButton";
 import type { ReputationTier } from "@/lib/reputation-config";
 import { DEFAULTS } from "@/lib/defaults";
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "Unknown date";
+
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",

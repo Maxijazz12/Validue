@@ -12,6 +12,7 @@ import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard
 import { WELCOME_BONUS } from "@/lib/plans";
 import { FEATURES } from "@/lib/feature-flags";
 import { RECIPROCAL_REQUIRED } from "@/lib/reciprocal-gate";
+import { jsonToStringArray } from "@/lib/json-utils";
 
 import sql from "@/lib/db";
 import { completeCampaign } from "./campaign-actions";
@@ -28,12 +29,25 @@ const statusColors: Record<string, string> = {
   paused: "bg-brand/10 text-brand",
 };
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "Unknown date";
+
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+}
+
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return "Unknown";
+
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 function DimensionBar({ label, score, tooltip }: { label: string; score: number; tooltip?: string }) {
@@ -111,8 +125,8 @@ export default async function CampaignDetailPage({
   // Auto-complete: if active and current_responses >= target_responses, complete the campaign
   if (
     campaign.status === "active" &&
-    campaign.target_responses > 0 &&
-    campaign.current_responses >= campaign.target_responses
+    (campaign.target_responses ?? 0) > 0 &&
+    (campaign.current_responses ?? 0) >= (campaign.target_responses ?? 0)
   ) {
     await completeCampaign(campaign.id);
     // Re-fetch to get updated status
@@ -124,6 +138,9 @@ export default async function CampaignDetailPage({
       .single();
     if (refreshed) Object.assign(campaign, refreshed);
   }
+
+  const currentResponses = campaign.current_responses ?? 0;
+  const targetResponses = campaign.target_responses ?? 0;
 
   // Fetch recent activity (last 5 responses with timestamps)
   const { data: recentResponses } = await supabase
@@ -144,7 +161,7 @@ export default async function CampaignDetailPage({
   const assumptions: string[] = campaign.key_assumptions || [];
 
   let assumptionCoverage: import("@/lib/ai/assumption-evidence").AssumptionCoverage[] = [];
-  if (assumptions.length > 0 && campaign.current_responses > 0) {
+  if (assumptions.length > 0 && currentResponses > 0) {
     const { getEvidenceByAssumption, computeAllCoverage } = await import("@/lib/ai/assumption-evidence");
     const evidenceMap = await getEvidenceByAssumption(id);
     assumptionCoverage = computeAllCoverage(evidenceMap, assumptions.length);
@@ -163,9 +180,9 @@ export default async function CampaignDetailPage({
   );
 
   const progress =
-    campaign.target_responses > 0
+    targetResponses > 0
       ? Math.min(
-          (campaign.current_responses / campaign.target_responses) * 100,
+          (currentResponses / targetResponses) * 100,
           100
         )
       : 0;
@@ -477,10 +494,10 @@ export default async function CampaignDetailPage({
           </span>
           <div className="mt-[4px]">
             <span className="font-mono text-[22px] font-bold text-text-primary">
-              {campaign.current_responses}
+              {currentResponses}
             </span>
             <span className="text-[13px] text-slate">
-              /{campaign.target_responses}
+              /{targetResponses}
             </span>
           </div>
           <div className="h-[4px] rounded-full bg-bg-muted overflow-hidden mt-[8px]">
@@ -523,7 +540,7 @@ export default async function CampaignDetailPage({
       </div>
 
       {/* ─── Decision Brief CTA ─── */}
-      {campaign.current_responses >= 3 && (
+      {currentResponses >= 3 && (
         <Link
           href={`/dashboard/ideas/${campaign.id}/brief`}
           className="block bg-accent rounded-2xl p-[20px] mb-[16px] hover:bg-accent hover:-translate-y-[1px] transition-all duration-200 no-underline group"
@@ -534,7 +551,7 @@ export default async function CampaignDetailPage({
                 View Decision Brief
               </span>
               <span className="text-[13px] text-slate ml-[8px]">
-                AI synthesis of {campaign.current_responses} responses into assumption verdicts
+                AI synthesis of {currentResponses} responses into assumption verdicts
               </span>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -545,7 +562,7 @@ export default async function CampaignDetailPage({
       )}
 
       {/* ─── View Responses CTA ─── */}
-      {campaign.current_responses > 0 && (
+      {currentResponses > 0 && (
         <Link
           href={`/dashboard/ideas/${campaign.id}/responses`}
           className="block bg-white border border-border-light rounded-2xl p-[16px] mb-[24px] hover:border-border-muted hover:shadow-[0_4px_16px_rgba(232,193,176,0.06)] hover:-translate-y-[1px] transition-all duration-300 no-underline group"
@@ -553,12 +570,12 @@ export default async function CampaignDetailPage({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[15px] font-semibold text-text-primary group-hover:text-[#000000] transition-colors">
-                View {campaign.current_responses} Response{campaign.current_responses !== 1 ? "s" : ""}
+                View {currentResponses} Response{currentResponses !== 1 ? "s" : ""}
               </span>
               <span className="text-[13px] text-slate ml-[8px]">
                 {campaign.ranking_status === "ranked"
                   ? "Ranked"
-                  : `${campaign.current_responses} new — review & rank them`}
+                  : `${currentResponses} new — review & rank them`}
               </span>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -574,15 +591,6 @@ export default async function CampaignDetailPage({
           <h2 className="text-[14px] font-semibold text-text-primary mb-[12px]">Recent Activity</h2>
           <div className="flex flex-col gap-[8px]">
             {recentResponses.map((r) => {
-              const timeAgo = (date: string) => {
-                const diff = Date.now() - new Date(date).getTime();
-                const mins = Math.floor(diff / 60000);
-                if (mins < 60) return `${mins}m ago`;
-                const hrs = Math.floor(mins / 60);
-                if (hrs < 24) return `${hrs}h ago`;
-                return `${Math.floor(hrs / 24)}d ago`;
-              };
-
               return (
                 <div key={r.id} className="flex items-center justify-between text-[12px]">
                   <div className="flex items-center gap-[8px]">
@@ -606,7 +614,7 @@ export default async function CampaignDetailPage({
       )}
 
       {/* ─── Analytics ─── */}
-      {campaign.current_responses > 0 && (
+      {currentResponses > 0 && (
         <div className="mb-[24px]">
           <CampaignAnalytics campaignId={campaign.id} />
         </div>
@@ -673,7 +681,7 @@ export default async function CampaignDetailPage({
                       index={i + 1}
                       text={q.text}
                       type="open"
-                      options={q.options}
+                      options={jsonToStringArray(q.options)}
                     />
                   ))}
                 </div>
@@ -693,7 +701,7 @@ export default async function CampaignDetailPage({
                       index={openQs.length + i + 1}
                       text={q.text}
                       type={q.type}
-                      options={q.options}
+                      options={jsonToStringArray(q.options)}
                     />
                   ))}
                 </div>
@@ -713,7 +721,7 @@ export default async function CampaignDetailPage({
                       index={openQs.length + followupQs.length + i + 1}
                       text={q.text}
                       type="baseline"
-                      options={q.options}
+                      options={jsonToStringArray(q.options)}
                       category={q.category}
                     />
                   ))}

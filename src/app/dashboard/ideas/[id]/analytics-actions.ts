@@ -56,6 +56,8 @@ export async function getCampaignAnalytics(
   // 1. Responses by day
   const dayCounts = new Map<string, number>();
   for (const r of responses) {
+    if (!r.created_at) continue;
+
     const day = new Date(r.created_at).toISOString().split("T")[0];
     dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
   }

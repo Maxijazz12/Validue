@@ -47,6 +47,8 @@ export default async function CampaignResponsesPage({
 
   const hasExport = !!PLAN_CONFIG[sub.tier].hasExport;
   if (!campaign) notFound();
+  const currentResponses = campaign.current_responses ?? 0;
+  const targetResponses = campaign.target_responses ?? 0;
 
   const questionMap = new Map(
     (questions || []).map((q) => [q.id, q])
@@ -86,8 +88,8 @@ export default async function CampaignResponsesPage({
       : 0;
 
   const progress =
-    campaign.target_responses > 0
-      ? Math.min((campaign.current_responses / campaign.target_responses) * 100, 100)
+    targetResponses > 0
+      ? Math.min((currentResponses / targetResponses) * 100, 100)
       : 0;
 
   // Build response items for client components
@@ -136,7 +138,10 @@ export default async function CampaignResponsesPage({
           : null,
       aiFeedback: response.ai_feedback,
       status: response.status,
-      submittedAt: response.created_at,
+      submittedAt:
+        response.created_at ??
+        response.ranked_at ??
+        new Date(0).toISOString(),
       answers: formattedAnswers,
       isTop: index < 3 && response.status === "ranked",
       scoringSource: response.scoring_source ?? undefined,
@@ -187,7 +192,7 @@ export default async function CampaignResponsesPage({
               {totalResponses}
             </span>
             <span className="text-[13px] text-slate">
-              /{campaign.target_responses}
+              /{targetResponses}
             </span>
           </div>
           <div className="h-[4px] rounded-full bg-bg-muted overflow-hidden mt-[8px]">

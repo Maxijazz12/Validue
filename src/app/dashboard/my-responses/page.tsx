@@ -45,7 +45,7 @@ export default async function MyResponsesPage() {
       quality_score: response.quality_score,
       payout_amount: response.payout_amount,
       ai_feedback: response.ai_feedback,
-      created_at: response.created_at,
+      created_at: response.created_at ?? new Date(0).toISOString(),
       campaign,
     };
   });

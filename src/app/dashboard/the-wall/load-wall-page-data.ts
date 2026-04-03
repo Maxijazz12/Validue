@@ -8,6 +8,7 @@ import {
   type WallCampaign,
 } from "@/lib/wall-ranking";
 import { DEFAULTS, safeNumber } from "@/lib/defaults";
+import { isCampaignOpenForResponses } from "@/lib/campaign-availability";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -31,6 +32,7 @@ type ProfileRow = {
 
 type CampaignRow = {
   id: string;
+  status: string;
   title: string;
   description: string | null;
   category: string | null;
@@ -41,6 +43,7 @@ type CampaignRow = {
   target_responses: number | null;
   created_at: string;
   deadline: string | null;
+  expires_at: string | null;
   bonus_available: boolean | null;
   rewards_top_answers: boolean | null;
   reward_type: string | null;
@@ -329,7 +332,9 @@ export async function loadWallPageData(
   const respondentProfile = buildRespondentProfile(profile as ProfileRow | null);
   const isRespondent = profile?.role === "respondent";
   const profileIncomplete = isRespondent && !respondentProfile.profile_completed;
-  const activeCampaigns = ((campaigns as CampaignRow[] | null) ?? []).filter(hasRemainingReachBudget);
+  const activeCampaigns = ((campaigns as CampaignRow[] | null) ?? []).filter((campaign) =>
+    isCampaignOpenForResponses(campaign) && hasRemainingReachBudget(campaign)
+  );
   const campaignIds = activeCampaigns.map((campaign) => campaign.id);
 
   const [

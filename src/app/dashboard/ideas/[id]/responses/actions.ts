@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/database.types";
 import { revalidatePath } from "next/cache";
 import { scoreResponse } from "@/lib/ai/rank-responses";
 import type { AnswerWithMeta } from "@/lib/ai/types";
@@ -128,6 +129,14 @@ export async function rankCampaignResponses(campaignId: string) {
       // Clamp score and confidence to valid DB ranges before write
       const clampedScore = Math.min(Math.max(result.score, 0), 100);
       const clampedConfidence = Math.min(Math.max(result.confidence, 0), 1);
+      const scoringDimensions: Json = result.dimensions
+        ? {
+            depth: result.dimensions.depth,
+            relevance: result.dimensions.relevance,
+            authenticity: result.dimensions.authenticity,
+            consistency: result.dimensions.consistency,
+          }
+        : null;
 
       await supabase
         .from("responses")
@@ -136,7 +145,7 @@ export async function rankCampaignResponses(campaignId: string) {
           ai_feedback: result.feedback,
           scoring_source: result.source,
           scoring_confidence: clampedConfidence,
-          scoring_dimensions: result.dimensions,
+          scoring_dimensions: scoringDimensions,
           status: "ranked",
           ranked_at: new Date().toISOString(),
         })
