@@ -90,7 +90,7 @@ describe("DB constraints & state machine", () => {
     expect(completed.status).toBe("completed");
   }));
 
-  it("allows pending_funding → active only", runIfDb(async () => {
+  it("allows pending_funding → active or pending_gate only", runIfDb(async () => {
     const campaign = await seedCampaign({
       creatorId: founderId,
       status: "pending_funding",
@@ -105,6 +105,17 @@ describe("DB constraints & state machine", () => {
     await sql`UPDATE campaigns SET status = 'active' WHERE id = ${campaign.id}`;
     const [result] = await sql`SELECT status FROM campaigns WHERE id = ${campaign.id}`;
     expect(result.status).toBe("active");
+  }));
+
+  it("allows pending_funding → pending_gate", runIfDb(async () => {
+    const campaign = await seedCampaign({
+      creatorId: founderId,
+      status: "pending_funding",
+    });
+
+    await sql`UPDATE campaigns SET status = 'pending_gate' WHERE id = ${campaign.id}`;
+    const [result] = await sql`SELECT status FROM campaigns WHERE id = ${campaign.id}`;
+    expect(result.status).toBe("pending_gate");
   }));
 
   /* ─── Response State Machine ─── */

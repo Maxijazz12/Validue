@@ -81,10 +81,20 @@ export async function isFirstMonth(userId: string): Promise<boolean> {
 /**
  * Checks if this is the user's first-ever campaign (for welcome reach boost).
  */
-export async function isFirstCampaign(userId: string): Promise<boolean> {
-  const rows = await sql`
-    SELECT COUNT(*)::int AS count FROM campaigns WHERE creator_id = ${userId}
-  `;
+export async function isFirstCampaign(
+  userId: string,
+  opts?: { excludeCampaignId?: string }
+): Promise<boolean> {
+  const rows = opts?.excludeCampaignId
+    ? await sql`
+        SELECT COUNT(*)::int AS count
+        FROM campaigns
+        WHERE creator_id = ${userId}
+          AND id <> ${opts.excludeCampaignId}
+      `
+    : await sql`
+        SELECT COUNT(*)::int AS count FROM campaigns WHERE creator_id = ${userId}
+      `;
   return rows[0].count === 0;
 }
 

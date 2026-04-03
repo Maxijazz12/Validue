@@ -87,7 +87,7 @@ export default function FundCampaignButton({
                 : `Pay & Go Live — $${rewardAmount.toFixed(2)}`)}
         </button>
       </div>
-      <span className="text-[11px] text-slate">Secure payment via Stripe</span>
+      <span className="text-[11px] text-slate">Stripe is used only if a charge is required</span>
       {error && (
         <span className="text-[12px] text-red-500">{error}</span>
       )}

@@ -4,6 +4,7 @@ import {
   checkGate,
   requiresGate,
   RECIPROCAL_REQUIRED,
+  getStatusAfterFunding,
 } from "../reciprocal-gate";
 
 describe("initialGateStatus", () => {
@@ -77,5 +78,17 @@ describe("checkGate", () => {
     expect(result.completed).toBe(1);
     expect(result.required).toBe(RECIPROCAL_REQUIRED);
     expect(result.remaining).toBe(RECIPROCAL_REQUIRED - 1);
+  });
+});
+
+describe("getStatusAfterFunding", () => {
+  it("activates immediately for cleared, exempt, and legacy campaigns", () => {
+    expect(getStatusAfterFunding("cleared")).toBe("active");
+    expect(getStatusAfterFunding("exempt")).toBe("active");
+    expect(getStatusAfterFunding(null)).toBe("active");
+  });
+
+  it("keeps funded campaigns in pending_gate when the reciprocal gate is still pending", () => {
+    expect(getStatusAfterFunding("pending")).toBe("pending_gate");
   });
 });

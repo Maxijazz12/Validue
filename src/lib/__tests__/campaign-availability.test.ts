@@ -69,5 +69,17 @@ describe("campaign availability helpers", () => {
         now
       )
     ).toBe(false);
+
+    expect(
+      isCampaignOpenForResponses(
+        {
+          status: "active",
+          current_responses: 0,
+          target_responses: 0,
+          expires_at: "2026-04-03T13:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(false);
   });
 });

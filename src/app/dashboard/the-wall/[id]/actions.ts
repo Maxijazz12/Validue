@@ -71,6 +71,9 @@ export async function startResponse(campaignId: string): Promise<{
   if (campaign.expires_at && new Date() >= new Date(campaign.expires_at)) {
     throw new Error("This campaign has expired.");
   }
+  if ((campaign.target_responses ?? 0) <= 0) {
+    throw new Error("This campaign is not accepting responses yet.");
+  }
 
   // V2: Clean up stale in-progress responses for this user (> 60 min old)
   if (campaign.economics_version === 2) {

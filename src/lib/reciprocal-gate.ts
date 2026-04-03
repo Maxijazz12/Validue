@@ -94,3 +94,14 @@ export function checkGate(
 export function requiresGate(tier: PlanTier): boolean {
   return tier === "free";
 }
+
+/**
+ * Determines which campaign status should be used once funding is complete.
+ */
+export function getStatusAfterFunding(
+  gateStatus: GateStatus | null
+): "active" | "pending_gate" {
+  return !gateStatus || gateStatus === "cleared" || gateStatus === "exempt"
+    ? "active"
+    : "pending_gate";
+}

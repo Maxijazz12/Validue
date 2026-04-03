@@ -25,6 +25,7 @@ export function isCampaignOpenForResponses(
 ): boolean {
   return (
     campaign.status === "active" &&
+    (campaign.target_responses ?? 0) > 0 &&
     !isCampaignExpired(campaign.expires_at, now) &&
     !hasReachedResponseTarget(campaign.current_responses, campaign.target_responses)
   );

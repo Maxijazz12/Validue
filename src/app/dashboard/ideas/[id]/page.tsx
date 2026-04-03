@@ -113,7 +113,9 @@ export default async function CampaignDetailPage({
     if (sub.tier === "free") {
       const firstMonth = await isFirstMonth(user.id);
       if (firstMonth) {
-        const firstCampaign = await isFirstCampaign(user.id);
+        const firstCampaign = await isFirstCampaign(user.id, {
+          excludeCampaignId: campaign.id,
+        });
         if (firstCampaign) {
           const [subRow] = await sql`SELECT welcome_credit_used FROM subscriptions WHERE user_id = ${user.id}`;
           hasWelcomeCredit = !subRow || !subRow.welcome_credit_used;
@@ -311,6 +313,12 @@ export default async function CampaignDetailPage({
         </div>
       )}
 
+      {funded === "true" && campaign.status === "pending_gate" && (
+        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-success/10 border border-success/20 text-[13px] text-success font-medium">
+          Funding received. Complete the reciprocal step below and your campaign will go live.
+        </div>
+      )}
+
       {campaign.status === "pending_gate" && (() => {
         const completed = campaign.reciprocal_responses_completed ?? 0;
         const remaining = Math.max(0, RECIPROCAL_REQUIRED - completed);
@@ -361,7 +369,7 @@ export default async function CampaignDetailPage({
                 <p className="text-[13px] text-text-secondary mt-[2px]">
                   {rewardAmt > 0
                     ? `Budget: $${rewardAmt.toFixed(2)}. Your campaign goes live on The Wall as soon as payment clears.`
-                    : "Your campaign will go live on The Wall once you set a budget or choose to run for free."}
+                    : "Your campaign will go live on The Wall once you set a budget and complete funding."}
                 </p>
                 {hasWelcomeCredit && (
                   <p className="text-[12px] text-success font-medium mt-[4px]">

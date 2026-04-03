@@ -6,6 +6,7 @@ import type Stripe from "stripe";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { env } from "@/lib/env";
+import { getStatusAfterFunding, type GateStatus } from "@/lib/reciprocal-gate";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -57,52 +58,59 @@ export async function POST(request: Request) {
       }
 
       try {
-        // Set expires_at for V2 campaigns (CAMPAIGN_EXPIRY_DAYS after activation)
-        // Only activate if reciprocal gate is already cleared (or not required).
-        // If gate is still pending, mark as funded but leave status for gate to activate later.
-        const expiryInterval = `${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} days`;
-        await sql`
-          UPDATE campaigns
-          SET funded_at = NOW(),
-              stripe_payment_intent_id = ${(session.payment_intent as string) || null},
-              status = CASE
-                WHEN reciprocal_gate_status IS NULL OR reciprocal_gate_status IN ('cleared', 'exempt')
-                  THEN 'active'
-                ELSE status
-              END,
-              expires_at = CASE
-                WHEN economics_version = 2
-                  AND (reciprocal_gate_status IS NULL OR reciprocal_gate_status IN ('cleared', 'exempt'))
-                  THEN NOW() + ${expiryInterval}::interval
-                ELSE expires_at
-              END
-          WHERE id = ${campaignId}
-            AND status = 'pending_funding'
-        `;
-
         // If this was a welcome-credit campaign, mark the credit as used
         const userId = session.metadata?.userId;
         const welcomeCreditUsed = session.metadata?.welcomeCredit === "true";
-        if (userId && welcomeCreditUsed) {
-          await sql`
-            UPDATE subscriptions
-            SET welcome_credit_used = true, updated_at = NOW()
-            WHERE user_id = ${userId}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+        const fundedStatus = await sql.begin(async (tx: any) => {
+          const [campaign] = await tx`
+            SELECT reciprocal_gate_status
+            FROM campaigns
+            WHERE id = ${campaignId}
+              AND status = 'pending_funding'
+            FOR UPDATE
           `;
-        }
+          if (!campaign) return null;
 
-        // V2: Clear platform credit if it was applied
-        const platformCreditUsed = Number(session.metadata?.platformCreditCents || 0);
-        if (userId && platformCreditUsed > 0) {
-          await sql`
-            UPDATE profiles
-            SET platform_credit_cents = GREATEST(0, platform_credit_cents - ${platformCreditUsed}),
-                platform_credit_expires_at = CASE
-                  WHEN platform_credit_cents - ${platformCreditUsed} <= 0 THEN NULL
-                  ELSE platform_credit_expires_at
+          const nextStatus = getStatusAfterFunding(
+            (campaign.reciprocal_gate_status as GateStatus | null) ?? null
+          );
+          const expiryInterval = `${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} days`;
+
+          await tx`
+            UPDATE campaigns
+            SET funded_at = NOW(),
+                stripe_payment_intent_id = ${(session.payment_intent as string) || null},
+                status = ${nextStatus},
+                expires_at = CASE
+                  WHEN economics_version = 2 AND ${nextStatus} = 'active'
+                    THEN NOW() + ${expiryInterval}::interval
+                  ELSE expires_at
                 END
-            WHERE id = ${userId}
+            WHERE id = ${campaignId}
+              AND status = 'pending_funding'
           `;
+
+          if (userId && welcomeCreditUsed) {
+            await tx`
+              UPDATE subscriptions
+              SET welcome_credit_used = true, updated_at = NOW()
+              WHERE user_id = ${userId}
+            `;
+          }
+
+          return nextStatus;
+        });
+
+        if (!fundedStatus) {
+          logOps({
+            event: "webhook.processed",
+            stripeEventId: event.id,
+            eventType: event.type,
+            result: "no_op",
+            detail: `Campaign ${campaignId} no longer pending funding`,
+          });
+          break;
         }
 
         logOps({
@@ -117,7 +125,7 @@ export async function POST(request: Request) {
           event: "campaign.status_changed",
           campaignId,
           fromStatus: "pending_funding",
-          toStatus: "active",
+          toStatus: fundedStatus,
           triggeredBy: "webhook",
         });
         logOps({
@@ -125,7 +133,7 @@ export async function POST(request: Request) {
           stripeEventId: event.id,
           eventType: event.type,
           result: "success",
-          detail: `Campaign ${campaignId} activated`,
+          detail: `Campaign ${campaignId} moved to ${fundedStatus}`,
         });
       } catch (err) {
         console.error("[stripe-webhook] Failed to activate campaign:", err);

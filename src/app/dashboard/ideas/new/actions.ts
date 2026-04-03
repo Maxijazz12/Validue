@@ -135,9 +135,7 @@ export async function publishCampaign(
     .map((a) => enforceLength(a, 500).text);
   // Determine initial status:
   // - Subsidized → active immediately
-  // - Funded → pending_funding (awaits Stripe)
-  // - Free-tier with reciprocal gate → pending_funding (awaits gate clearance, reuses status)
-  // - Free-tier without gate → active
+  // - All other campaigns → pending_funding until a budget is set and funding clears
   const gateRequired = requiresGate(allowance.tier) && !isSubsidized;
 
   // Verify gate clearance server-side — don't trust the client flag alone
@@ -171,11 +169,7 @@ export async function publishCampaign(
       : initialGateStatus(allowance.tier);
   const initialStatus = isSubsidized
     ? "active"
-    : fundingAmount > 0
-      ? "pending_funding"
-      : gateRequired && !gateAlreadyCleared
-        ? "pending_gate"
-        : "active";
+    : "pending_funding";
   // Subsidized: use subsidy budget as reward_amount for display; funded: use actual amount
   const effectiveRewardAmount = isSubsidized ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN : fundingAmount;
 
@@ -190,8 +184,8 @@ export async function publishCampaign(
         ON CONFLICT (id) DO NOTHING
       `;
 
-      // Set expires_at when campaign goes active at publish (subsidized or gate pre-cleared)
-      const needsExpiry = isSubsidized || (gateAlreadyCleared && fundingAmount <= 0);
+      // Set expires_at only when campaign goes active at publish.
+      const needsExpiry = isSubsidized;
       const expiresAt = needsExpiry ? sql`NOW() + (${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} * INTERVAL '1 day')` : null;
 
       const [campaign] = await tx`
