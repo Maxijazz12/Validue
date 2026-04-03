@@ -9,6 +9,23 @@ import { rateLimit } from "@/lib/rate-limit";
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 
+function cashoutIdempotencyKey(cashoutId: string, attemptCount: number): string {
+  return `cashout_${cashoutId}_attempt_${Math.max(1, attemptCount)}`;
+}
+
+async function markSnapshotResponsesPaidOut(
+  respondentId: string,
+  snapshotAt: string | Date
+) {
+  await sql`
+    UPDATE responses
+    SET money_state = 'paid_out'
+    WHERE respondent_id = ${respondentId}
+      AND money_state = 'available'
+      AND (available_at IS NULL OR available_at <= ${snapshotAt})
+  `;
+}
+
 /* ─── Stripe Connect Onboarding ─── */
 
 /**
@@ -194,6 +211,8 @@ export async function requestCashout(): Promise<
 
   // Atomic: deduct balance + create cashout record + initiate transfer
   let cashoutId: string;
+  let cashoutSnapshotAt: string;
+  let transferAttempt = 1;
   let transferId: string;
 
   try {
@@ -216,15 +235,21 @@ export async function requestCashout(): Promise<
 
       // Create cashout record
       const [cashout] = await tx`
-        INSERT INTO cashouts (respondent_id, amount_cents, status)
-        VALUES (${user.id}, ${balanceCents}, 'processing')
-        RETURNING id
+        INSERT INTO cashouts (respondent_id, amount_cents, status, attempt_count)
+        VALUES (${user.id}, ${balanceCents}, 'processing', 1)
+        RETURNING id, created_at, attempt_count
       `;
 
-      return { cashoutId: cashout.id };
+      return {
+        cashoutId: cashout.id,
+        createdAt: cashout.created_at,
+        attemptCount: cashout.attempt_count,
+      };
     });
 
     cashoutId = result.cashoutId;
+    cashoutSnapshotAt = result.createdAt;
+    transferAttempt = Number(result.attemptCount) || 1;
   } catch (err) {
     if (err instanceof Error && err.message === "INSUFFICIENT_BALANCE") {
       return { error: "Balance changed. Please refresh and try again." };
@@ -245,7 +270,7 @@ export async function requestCashout(): Promise<
         userId: user.id,
       },
     }, {
-      idempotencyKey: `cashout_${cashoutId}`,
+      idempotencyKey: cashoutIdempotencyKey(cashoutId, transferAttempt),
     });
 
     transferId = transfer.id;
@@ -257,13 +282,7 @@ export async function requestCashout(): Promise<
       WHERE id = ${cashoutId}
     `;
 
-    // Mark all "available" responses as "paid_out" for this respondent
-    await sql`
-      UPDATE responses
-      SET money_state = 'paid_out'
-      WHERE respondent_id = ${user.id}
-        AND money_state = 'available'
-    `;
+    await markSnapshotResponsesPaidOut(user.id, cashoutSnapshotAt);
 
     logOps({
       event: "cashout.initiated",
@@ -322,7 +341,7 @@ export async function retryCashout(
 
   // Verify the cashout belongs to this user and is failed
   const [cashout] = await sql`
-    SELECT id, amount_cents, status
+    SELECT id, amount_cents, status, created_at
     FROM cashouts
     WHERE id = ${cashoutId} AND respondent_id = ${user.id}
   `;
@@ -360,11 +379,19 @@ export async function retryCashout(
     `;
     if (!updated) return { error: "Balance changed. Please refresh." } as const;
 
-    await tx`
-      UPDATE cashouts SET status = 'processing', failure_reason = NULL
+    const [updatedCashout] = await tx`
+      UPDATE cashouts
+      SET status = 'processing',
+          failure_reason = NULL,
+          attempt_count = attempt_count + 1
       WHERE id = ${cashoutId}
+      RETURNING attempt_count, created_at
     `;
-    return { ok: true } as const;
+    return {
+      ok: true,
+      attemptCount: Number(updatedCashout?.attempt_count) || 1,
+      snapshotAt: updatedCashout?.created_at || cashout.created_at,
+    } as const;
   });
 
   if ("error" in txResult) return { error: txResult.error as string };
@@ -376,6 +403,8 @@ export async function retryCashout(
       currency: "usd",
       destination: profile.stripe_connect_account_id,
       metadata: { cashoutId, userId: user.id },
+    }, {
+      idempotencyKey: cashoutIdempotencyKey(cashoutId, txResult.attemptCount),
     });
 
     await sql`
@@ -384,10 +413,7 @@ export async function retryCashout(
       WHERE id = ${cashoutId} AND status = 'processing'
     `;
 
-    await sql`
-      UPDATE responses SET money_state = 'paid_out'
-      WHERE respondent_id = ${user.id} AND money_state = 'available'
-    `;
+    await markSnapshotResponsesPaidOut(user.id, txResult.snapshotAt);
 
     logOps({
       event: "cashout.initiated",

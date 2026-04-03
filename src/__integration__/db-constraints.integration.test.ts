@@ -8,6 +8,7 @@ import {
   seedUser,
   seedCampaign,
   seedRespondent,
+  seedQuestion,
   seedResponse,
   testId,
 } from "./helpers";
@@ -197,5 +198,44 @@ describe("DB constraints & state machine", () => {
         campaignStrength: 15,
       })
     ).rejects.toThrow(/chk_campaign_strength_range/);
+  }));
+
+  it("rejects answers for questions outside the response campaign", runIfDb(async () => {
+    const campaignA = await seedCampaign({ creatorId: founderId });
+    const campaignB = await seedCampaign({ creatorId: founderId });
+    const response = await seedResponse(campaignA.id, respondentId, "in_progress");
+    const foreignQuestion = await seedQuestion(campaignB.id, "Wrong campaign question");
+
+    await expect(
+      sql`INSERT INTO answers (response_id, question_id, text, metadata)
+          VALUES (${response.id}::uuid, ${foreignQuestion.id}::uuid, 'answer', '{}'::jsonb)`
+    ).rejects.toThrow(/does not belong to response/);
+  }));
+
+  it("rejects answers outside the assigned partial-response question set", runIfDb(async () => {
+    const campaign = await seedCampaign({ creatorId: founderId });
+    const assignedQuestion = await seedQuestion(campaign.id, "Assigned question");
+    const unassignedQuestion = await seedQuestion(campaign.id, "Unassigned question", "open", 1);
+    const [response] = await sql`
+      INSERT INTO responses (campaign_id, respondent_id, status, is_partial, assigned_question_ids)
+      VALUES (
+        ${campaign.id}::uuid,
+        ${respondentId}::uuid,
+        'in_progress',
+        true,
+        ARRAY[${assignedQuestion.id}::uuid]
+      )
+      RETURNING id
+    `;
+
+    await sql`
+      INSERT INTO answers (response_id, question_id, text, metadata)
+      VALUES (${response.id}::uuid, ${assignedQuestion.id}::uuid, 'valid answer', '{}'::jsonb)
+    `;
+
+    await expect(
+      sql`INSERT INTO answers (response_id, question_id, text, metadata)
+          VALUES (${response.id}::uuid, ${unassignedQuestion.id}::uuid, 'invalid answer', '{}'::jsonb)`
+    ).rejects.toThrow(/not assigned to partial response/);
   }));
 });

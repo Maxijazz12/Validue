@@ -21,13 +21,27 @@ export type AnswerMetadata = {
   charCount: number;
 };
 
-function sanitizeMetadata(m: AnswerMetadata): AnswerMetadata {
+function sanitizeCounter(value: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return 0;
+  return Math.floor(numeric);
+}
+
+function sanitizeMetadata(m: AnswerMetadata, text: string): AnswerMetadata {
   return {
     pasteDetected: m.pasteDetected === true,
-    pasteCount: Math.max(0, Math.floor(Number(m.pasteCount) || 0)),
-    timeSpentMs: Math.max(0, Math.floor(Number(m.timeSpentMs) || 0)),
-    charCount: Math.max(0, Math.floor(Number(m.charCount) || 0)),
+    pasteCount: sanitizeCounter(m.pasteCount),
+    timeSpentMs: sanitizeCounter(m.timeSpentMs),
+    // Derive character count from the persisted answer text, not the client payload.
+    charCount: text.length,
   };
+}
+
+function elapsedMsSince(createdAt: string | null): number {
+  if (!createdAt) return 0;
+  const startedAt = new Date(createdAt).getTime();
+  if (!Number.isFinite(startedAt)) return 0;
+  return Math.max(0, Date.now() - startedAt);
 }
 
 export async function startResponse(campaignId: string): Promise<{
@@ -290,19 +304,44 @@ export async function saveAnswer(
   // Verify this response belongs to the authenticated user
   const { data: ownerCheck } = await supabase
     .from("responses")
-    .select("id")
+    .select("id, status, campaign_id, is_partial, assigned_question_ids")
     .eq("id", responseId)
     .eq("respondent_id", user.id)
     .maybeSingle();
   if (!ownerCheck) throw new Error("Response not found");
+  if (ownerCheck.status !== "in_progress") {
+    throw new Error("This response is no longer editable.");
+  }
+
+  const { data: question } = await supabase
+    .from("questions")
+    .select("id")
+    .eq("id", questionId)
+    .eq("campaign_id", ownerCheck.campaign_id)
+    .maybeSingle();
+  if (!question) {
+    throw new Error("Question not found for this response.");
+  }
+
+  if (ownerCheck.is_partial && (!ownerCheck.assigned_question_ids || ownerCheck.assigned_question_ids.length === 0)) {
+    throw new Error("This partial response no longer has assigned questions.");
+  }
+
+  if (
+    ownerCheck.is_partial &&
+    ownerCheck.assigned_question_ids?.length &&
+    !ownerCheck.assigned_question_ids.includes(questionId)
+  ) {
+    throw new Error("This question is not assigned to your response.");
+  }
 
   // Rate limit: 120 saves per hour (rapid typing/navigation is normal)
   const rl = rateLimit(`save:${user.id}`, 3600000, 300);
   if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
 
   // Sanitize metadata + content moderation + length enforcement
-  const safeMetadata = sanitizeMetadata(metadata);
   const { text: safeText } = enforceLength(text, MAX_LENGTHS.ANSWER_TEXT);
+  const safeMetadata = sanitizeMetadata(metadata, safeText);
   const contentCheck = checkContent(safeText);
   if (!contentCheck.allowed) {
     logOps({ event: "content.flagged", userId: user.id, fieldName: "answer", action: "blocked", reason: contentCheck.reason ?? "", entryPoint: "saveAnswer" });
@@ -356,7 +395,7 @@ export async function submitResponse(responseId: string) {
   // Verify response belongs to user and is in_progress
   const { data: response } = await supabase
     .from("responses")
-    .select("id, status, campaign_id, money_state, assigned_question_ids, is_partial")
+    .select("id, status, campaign_id, money_state, assigned_question_ids, is_partial, created_at")
     .eq("id", responseId)
     .eq("respondent_id", user.id)
     .single();
@@ -409,29 +448,13 @@ export async function submitResponse(responseId: string) {
   if (unanswered.length > 0)
     throw new Error(`${unanswered.length} questions still unanswered`);
 
-  // Behavioral screening: fetch answer metadata and check quality signals
-  const { data: answerDetails } = await supabase
-    .from("answers")
-    .select("metadata")
-    .eq("response_id", responseId);
-
   const { data: campaign } = await supabase
     .from("campaigns")
     .select("economics_version, format")
     .eq("id", response.campaign_id)
     .single();
 
-  if (campaign?.economics_version === 2 && answerDetails) {
-    let totalTimeMs = 0;
-    let pasteHeavyCount = 0;
-
-    for (const a of answerDetails) {
-      const meta = (a.metadata || {}) as Record<string, unknown>;
-      totalTimeMs += Math.max(0, Number(meta.timeSpentMs) || 0);
-      const pasteCount = Math.max(0, Number(meta.pasteCount) || 0);
-      if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
-    }
-
+  if (campaign?.economics_version === 2) {
     // Scale time threshold for partial responses
     // Full: 90s standard / 45s quick. Partial: scale by (assigned / total) with 15s floor
     let minTime: number =
@@ -451,23 +474,10 @@ export async function submitResponse(responseId: string) {
       minTime = Math.max(perQuestionFloor, Math.round(minTime * ratio));
     }
 
-    if (totalTimeMs < minTime) {
+    const serverDurationMs = elapsedMsSince(response.created_at);
+    if (serverDurationMs < minTime) {
       throw new Error(
         "Your response was submitted too quickly. Please take more time to provide thoughtful answers."
-      );
-    }
-
-    // Paste-heavy screening — reject if majority of answers are paste-heavy
-    if (
-      answerDetails.length > 0 &&
-      pasteHeavyCount / answerDetails.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO
-    ) {
-      console.log(
-        "[screening] Paste-rejected:",
-        JSON.stringify({ userId: user.id, responseId, pasteHeavyCount, totalAnswers: answerDetails.length })
-      );
-      throw new Error(
-        "Your response was flagged for excessive pasted content. Please provide original answers."
       );
     }
   }
@@ -475,7 +485,12 @@ export async function submitResponse(responseId: string) {
   // Submit + increment atomically (CAS prevents double-submission)
   const [submitted] = await sql`
     WITH cas AS (
-      UPDATE responses SET status = 'submitted'
+      UPDATE responses
+      SET status = 'submitted',
+          submitted_duration_ms = GREATEST(
+            0,
+            FLOOR(EXTRACT(EPOCH FROM (NOW() - COALESCE(created_at, NOW()))) * 1000)
+          )::int
       WHERE id = ${responseId} AND status = 'in_progress'
       RETURNING campaign_id
     )

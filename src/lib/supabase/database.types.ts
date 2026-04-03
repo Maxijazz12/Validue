@@ -95,6 +95,7 @@ export type Database = {
       cashouts: {
         Row: {
           amount_cents: number
+          attempt_count: number
           completed_at: string | null
           created_at: string
           failure_reason: string | null
@@ -105,6 +106,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          attempt_count?: number
           completed_at?: string | null
           created_at?: string
           failure_reason?: string | null
@@ -115,6 +117,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          attempt_count?: number
           completed_at?: string | null
           created_at?: string
           failure_reason?: string | null
@@ -707,6 +710,7 @@ export type Database = {
           scoring_history: Json | null
           scoring_source: string | null
           status: string
+          submitted_duration_ms: number | null
         }
         Insert: {
           ai_feedback?: string | null
@@ -731,6 +735,7 @@ export type Database = {
           scoring_history?: Json | null
           scoring_source?: string | null
           status?: string
+          submitted_duration_ms?: number | null
         }
         Update: {
           ai_feedback?: string | null
@@ -755,6 +760,7 @@ export type Database = {
           scoring_history?: Json | null
           scoring_source?: string | null
           status?: string
+          submitted_duration_ms?: number | null
         }
         Relationships: [
           {

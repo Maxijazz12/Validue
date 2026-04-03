@@ -8,19 +8,25 @@ type AnswerMetadata = {
   charCount: number;
 };
 
-function sanitizeMetadata(m: AnswerMetadata): AnswerMetadata {
+function sanitizeCounter(value: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return 0;
+  return Math.floor(numeric);
+}
+
+function sanitizeMetadata(m: AnswerMetadata, text: string): AnswerMetadata {
   return {
     pasteDetected: m.pasteDetected === true,
-    pasteCount: Math.max(0, Math.floor(Number(m.pasteCount) || 0)),
-    timeSpentMs: Math.max(0, Math.floor(Number(m.timeSpentMs) || 0)),
-    charCount: Math.max(0, Math.floor(Number(m.charCount) || 0)),
+    pasteCount: sanitizeCounter(m.pasteCount),
+    timeSpentMs: sanitizeCounter(m.timeSpentMs),
+    charCount: text.length,
   };
 }
 
 describe("sanitizeMetadata", () => {
-  it("passes through valid metadata unchanged", () => {
+  it("passes through valid counters and recomputes charCount from text", () => {
     const input = { pasteDetected: true, pasteCount: 3, timeSpentMs: 5000, charCount: 150 };
-    expect(sanitizeMetadata(input)).toEqual(input);
+    expect(sanitizeMetadata(input, "x".repeat(150))).toEqual(input);
   });
 
   it("coerces string numbers", () => {
@@ -30,7 +36,7 @@ describe("sanitizeMetadata", () => {
       timeSpentMs: "12000" as unknown as number,
       charCount: "200.9" as unknown as number,
     };
-    const result = sanitizeMetadata(input);
+    const result = sanitizeMetadata(input, "x".repeat(200));
     expect(result.pasteCount).toBe(5);
     expect(result.timeSpentMs).toBe(12000);
     expect(result.charCount).toBe(200);
@@ -38,7 +44,7 @@ describe("sanitizeMetadata", () => {
 
   it("clamps negative values to 0", () => {
     const input = { pasteDetected: false, pasteCount: -10, timeSpentMs: -1, charCount: -999 };
-    const result = sanitizeMetadata(input);
+    const result = sanitizeMetadata(input, "");
     expect(result.pasteCount).toBe(0);
     expect(result.timeSpentMs).toBe(0);
     expect(result.charCount).toBe(0);
@@ -46,14 +52,12 @@ describe("sanitizeMetadata", () => {
 
   it("handles NaN — coerces to 0", () => {
     const input = { pasteDetected: false, pasteCount: NaN, timeSpentMs: 0, charCount: 0 };
-    expect(sanitizeMetadata(input).pasteCount).toBe(0);
+    expect(sanitizeMetadata(input, "").pasteCount).toBe(0);
   });
 
-  it("does not clamp Infinity (known edge case)", () => {
-    // Number(Infinity) || 0 → Infinity (truthy), Math.floor(Infinity) → Infinity
-    // In practice timeSpentMs won't be Infinity from client
+  it("clamps Infinity to 0", () => {
     const input = { pasteDetected: false, pasteCount: 0, timeSpentMs: Infinity, charCount: 0 };
-    expect(sanitizeMetadata(input).timeSpentMs).toBe(Infinity);
+    expect(sanitizeMetadata(input, "").timeSpentMs).toBe(0);
   });
 
   it("coerces truthy non-boolean pasteDetected to false", () => {
@@ -63,22 +67,22 @@ describe("sanitizeMetadata", () => {
       timeSpentMs: 0,
       charCount: 0,
     };
-    expect(sanitizeMetadata(input).pasteDetected).toBe(false);
+    expect(sanitizeMetadata(input, "").pasteDetected).toBe(false);
   });
 
   it("preserves pasteDetected: true", () => {
     const input = { pasteDetected: true, pasteCount: 0, timeSpentMs: 0, charCount: 0 };
-    expect(sanitizeMetadata(input).pasteDetected).toBe(true);
+    expect(sanitizeMetadata(input, "").pasteDetected).toBe(true);
   });
 
   it("preserves pasteDetected: false", () => {
     const input = { pasteDetected: false, pasteCount: 0, timeSpentMs: 0, charCount: 0 };
-    expect(sanitizeMetadata(input).pasteDetected).toBe(false);
+    expect(sanitizeMetadata(input, "").pasteDetected).toBe(false);
   });
 
   it("floors decimal values", () => {
     const input = { pasteDetected: false, pasteCount: 2.9, timeSpentMs: 5000.7, charCount: 99.1 };
-    const result = sanitizeMetadata(input);
+    const result = sanitizeMetadata(input, "x".repeat(99));
     expect(result.pasteCount).toBe(2);
     expect(result.timeSpentMs).toBe(5000);
     expect(result.charCount).toBe(99);
@@ -91,7 +95,7 @@ describe("sanitizeMetadata", () => {
       timeSpentMs: null as unknown as number,
       charCount: "" as unknown as number,
     };
-    const result = sanitizeMetadata(input);
+    const result = sanitizeMetadata(input, "");
     expect(result.pasteCount).toBe(0);
     expect(result.timeSpentMs).toBe(0);
     expect(result.charCount).toBe(0);

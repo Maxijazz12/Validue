@@ -64,70 +64,62 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    // Verify dispute exists and is in a resolvable state
-    const [existing] = await sql`
-      SELECT status FROM disputes WHERE id = ${disputeId}
-    `;
-    if (!existing) {
-      return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
-    }
-    if (existing.status.startsWith("resolved_")) {
-      return NextResponse.json(
-        { error: "Dispute already resolved — cannot modify" },
-        { status: 409 }
-      );
-    }
-
-    const resolved = status.startsWith("resolved_") ? "NOW()" : null;
-
-    await sql`
-      UPDATE disputes
-      SET status = ${status},
-          admin_notes = ${adminNotes || null},
-          resolved_at = ${resolved ? sql`NOW()` : null}
-      WHERE id = ${disputeId}
-        AND NOT status LIKE 'resolved_%'
-    `;
-
-    // If overturned, re-qualify the response and add to respondent balance
-    if (status === "resolved_overturned") {
-      const [dispute] = await sql`
-        SELECT response_id, respondent_id FROM disputes WHERE id = ${disputeId}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+    const result = await sql.begin(async (tx: any) => {
+      const [updatedDispute] = await tx`
+        UPDATE disputes
+        SET status = ${status},
+            admin_notes = ${adminNotes || null},
+            resolved_at = ${status.startsWith("resolved_") ? tx`NOW()` : null}
+        WHERE id = ${disputeId}
+          AND NOT status LIKE 'resolved_%'
+        RETURNING response_id, respondent_id
       `;
 
-      if (dispute) {
-        // Get the campaign's distributable info to calculate a fair payout
-        const [response] = await sql`
-          SELECT r.campaign_id, r.base_payout, r.payout_amount
-          FROM responses r WHERE r.id = ${dispute.response_id}
+      if (!updatedDispute) {
+        const [existing] = await tx`
+          SELECT status FROM disputes WHERE id = ${disputeId}
+        `;
+        if (!existing) {
+          return { error: "Dispute not found", status: 404 } as const;
+        }
+        return {
+          error: "Dispute already resolved — cannot modify",
+          status: 409,
+        } as const;
+      }
+
+      if (status === "resolved_overturned") {
+        const [response] = await tx`
+          UPDATE responses
+          SET money_state = 'available',
+              available_at = NOW(),
+              is_qualified = true,
+              disqualification_reasons = ARRAY[]::text[]
+          WHERE id = ${updatedDispute.response_id}
+            AND money_state = 'not_qualified'
+          RETURNING base_payout, payout_amount
         `;
 
         if (response) {
           const payoutAmount = Number(response.base_payout) || Number(response.payout_amount) || 0;
           const payoutCents = Math.round(payoutAmount * 100);
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
-          await sql.begin(async (tx: any) => {
-            // Re-qualify the response
+          if (payoutCents > 0) {
             await tx`
-              UPDATE responses
-              SET money_state = 'available',
-                  is_qualified = true,
-                  disqualification_reasons = '{}'
-              WHERE id = ${dispute.response_id}
+              UPDATE profiles
+              SET available_balance_cents = available_balance_cents + ${payoutCents}
+              WHERE id = ${updatedDispute.respondent_id}
             `;
-
-            // Credit the respondent if there's a payout amount
-            if (payoutCents > 0) {
-              await tx`
-                UPDATE profiles
-                SET available_balance_cents = available_balance_cents + ${payoutCents}
-                WHERE id = ${dispute.respondent_id}
-              `;
-            }
-          });
+          }
         }
       }
+
+      return { ok: true } as const;
+    });
+
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
     return NextResponse.json({ success: true });

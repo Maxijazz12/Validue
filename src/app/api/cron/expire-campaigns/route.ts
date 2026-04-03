@@ -159,6 +159,7 @@ export async function GET(request: Request) {
         // Fetch ranked responses with answer metadata
         const responses = await sql`
           SELECT r.id, r.respondent_id, r.quality_score, r.scoring_confidence,
+                 r.submitted_duration_ms,
                  p.full_name AS respondent_name
           FROM responses r
           LEFT JOIN profiles p ON p.id = r.respondent_id
@@ -166,20 +167,21 @@ export async function GET(request: Request) {
             AND r.status = 'ranked'
         `;
 
-        // Fetch answer metadata for qualification
+        // Fetch persisted answer text for qualification checks.
         const answerData = await sql`
-          SELECT a.response_id, a.metadata
+          SELECT a.response_id, a.text, q.type
           FROM answers a
+          JOIN questions q ON q.id = a.question_id
           JOIN responses r ON r.id = a.response_id
           WHERE r.campaign_id = ${campaign.id}
             AND r.status = 'ranked'
         `;
 
         // Group answers by response
-        const answersByResponse = new Map<string, { metadata: Record<string, unknown> }[]>();
+        const answersByResponse = new Map<string, { text: string | null; type: string | null }[]>();
         for (const a of answerData) {
           const list = answersByResponse.get(a.response_id) || [];
-          list.push({ metadata: a.metadata || {} });
+          list.push({ text: a.text, type: a.type });
           answersByResponse.set(a.response_id, list);
         }
 
@@ -225,32 +227,35 @@ export async function GET(request: Request) {
         // Build qualification data and distribute payouts
         const format: CampaignFormat = campaign.format === "quick" ? "quick" : "standard";
         const distributable = Number(campaign.distributable_amount) || 0;
+        const submittedDurationByResponse = new Map<string, number>();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const scoredResponses: ScoredResponse[] = responses.map((r: any) => ({
-          responseId: r.id,
-          respondentId: r.respondent_id,
-          respondentName: r.respondent_name || "Anonymous",
-          qualityScore: Number(r.quality_score) || 0,
-          confidence: Number(r.scoring_confidence) || 0.5,
-        }));
+        const scoredResponses: ScoredResponse[] = responses.map((r: any) => {
+          submittedDurationByResponse.set(r.id, Math.max(0, Number(r.submitted_duration_ms) || 0));
+          return {
+            responseId: r.id,
+            respondentId: r.respondent_id,
+            respondentName: r.respondent_name || "Anonymous",
+            qualityScore: Number(r.quality_score) || 0,
+            confidence: Number(r.scoring_confidence) || 0.5,
+          };
+        });
 
         const qualResults = scoredResponses.map((sr) => {
           const answers = answersByResponse.get(sr.responseId) || [];
-          let totalTimeMs = 0;
-          let pasteHeavyCount = 0;
           const openAnswers: { charCount: number }[] = [];
           for (const a of answers) {
-            totalTimeMs += Math.max(0, Number(a.metadata.timeSpentMs) || 0);
-            const charCount = Math.max(0, Number(a.metadata.charCount) || 0);
-            if (charCount > 0) openAnswers.push({ charCount });
-            const pasteCount = Math.max(0, Number(a.metadata.pasteCount) || 0);
-            if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
+            if (a.type !== "open") continue;
+            const charCount = (a.text || "").trim().length;
+            if (charCount > 0) {
+              openAnswers.push({ charCount });
+            }
           }
-          const spamFlagged =
-            answers.length > 0 &&
-            pasteHeavyCount / answers.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO;
-          const meta: ResponseMetadata = { totalTimeMs, openAnswers, spamFlagged };
+          const meta: ResponseMetadata = {
+            totalTimeMs: submittedDurationByResponse.get(sr.responseId) ?? 0,
+            openAnswers,
+            spamFlagged: false,
+          };
           return qualifyResponse(sr, format, meta);
         });
 

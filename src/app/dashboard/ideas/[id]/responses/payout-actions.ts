@@ -392,63 +392,77 @@ export async function allocatePayouts(
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function suggestDistributionV2(supabase: any, campaign: any, distributable: number) {
+async function suggestDistributionV2(_supabase: any, campaign: any, distributable: number) {
   const format: CampaignFormat = campaign.format === "quick" ? "quick" : "standard";
   const isSubsidized = campaign.is_subsidized === true;
 
-  // Fetch ranked responses with answer metadata for qualification
-  const { data: responses } = await supabase
-    .from("responses")
-    .select(`
-      id, respondent_id, quality_score, scoring_confidence, scoring_source,
-      respondent:profiles!respondent_id(full_name),
-      answers(metadata)
-    `)
-    .eq("campaign_id", campaign.id)
-    .eq("status", "ranked")
-    .order("quality_score", { ascending: false, nullsFirst: false });
+  const responses = await sql`
+    SELECT
+      r.id,
+      r.respondent_id,
+      r.quality_score,
+      r.scoring_confidence,
+      r.submitted_duration_ms,
+      p.full_name AS respondent_name
+    FROM responses r
+    LEFT JOIN profiles p ON p.id = r.respondent_id
+    WHERE r.campaign_id = ${campaign.id}
+      AND r.status = 'ranked'
+    ORDER BY r.quality_score DESC NULLS LAST
+  `;
 
-  if (!responses || responses.length === 0)
+  if (responses.length === 0)
     return { suggestions: [], distributable };
+
+  const responseIds = responses.map((response) => response.id);
+  const answerRows = responseIds.length === 0
+    ? []
+    : await sql`
+        SELECT a.response_id, a.text, q.type
+        FROM answers a
+        JOIN questions q ON q.id = a.question_id
+        WHERE a.response_id = ANY(${responseIds}::uuid[])
+      `;
+
+  const answersByResponse = new Map<string, { text: string | null; type: string | null }[]>();
+  for (const row of answerRows) {
+    const existing = answersByResponse.get(row.response_id) ?? [];
+    existing.push({ text: row.text, type: row.type });
+    answersByResponse.set(row.response_id, existing);
+  }
 
   // Build ScoredResponse[] and ResponseMetadata[] for qualification
   const scoredResponses: ScoredResponse[] = [];
   const metadataMap = new Map<string, ResponseMetadata>();
 
   for (const r of responses) {
-    const respondentRaw = r.respondent as unknown;
-    const respondent = (
-      Array.isArray(respondentRaw) ? respondentRaw[0] : respondentRaw
-    ) as { full_name: string } | null;
-
     scoredResponses.push({
       responseId: r.id,
       respondentId: r.respondent_id,
-      respondentName: respondent?.full_name || "Anonymous",
+      respondentName: r.respondent_name || "Anonymous",
       qualityScore: safePositive(r.quality_score),
       confidence: safeNumber(r.scoring_confidence, 0.7),
     });
 
-    // Compute total time and open answer metadata from answer records
-    const answers = (r.answers || []) as { metadata: Record<string, unknown> }[];
-    let totalTimeMs = 0;
+    // Qualification uses server-derived response duration and persisted answer text.
+    const answers = answersByResponse.get(r.id) ?? [];
     const openAnswers: { charCount: number }[] = [];
-    let pasteHeavyCount = 0;
 
     for (const a of answers) {
-      const meta = a.metadata || {};
-      totalTimeMs += Math.max(0, Number(meta.timeSpentMs) || 0);
-      const charCount = Math.max(0, Number(meta.charCount) || 0);
-      if (charCount > 0) openAnswers.push({ charCount });
-      const pasteCount = Math.max(0, Number(meta.pasteCount) || 0);
-      if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
+      if (a.type !== "open") continue;
+      const charCount = (a.text || "").trim().length;
+      if (charCount > 0) {
+        openAnswers.push({ charCount });
+      }
     }
 
-    const spamFlagged =
-      answers.length > 0 &&
-      pasteHeavyCount / answers.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO;
-
-    metadataMap.set(r.id, { totalTimeMs, openAnswers, spamFlagged });
+    metadataMap.set(r.id, {
+      totalTimeMs: Math.max(0, safeNumber(r.submitted_duration_ms, 0)),
+      openAnswers,
+      // Client-supplied paste telemetry is still stored for analytics/ranking,
+      // but payout qualification only trusts server-derived signals.
+      spamFlagged: false,
+    });
   }
 
   // Run qualification on each response
