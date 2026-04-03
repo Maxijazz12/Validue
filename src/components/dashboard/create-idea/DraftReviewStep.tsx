@@ -12,10 +12,10 @@ import AudienceTargetingPanel from "./AudienceTargetingPanel";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
 import CampaignStrengthMeter from "@/components/dashboard/CampaignStrengthMeter";
 import { calculateReach, getFundingPresets, estimateFillSpeed } from "@/lib/reach";
-import { PLAN_CONFIG, type PlanTier } from "@/lib/plans";
+import { PLAN_CONFIG, PLATFORM_FEE_RATE, type PlanTier } from "@/lib/plans";
 
 const selectClass =
-  "text-[14px] px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
+  "text-[14px] px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
 
 interface DraftReviewStepProps {
   draft: CampaignDraft;
@@ -145,10 +145,10 @@ export default function DraftReviewStep({
   return (
     <>
       <div className="mb-[40px] flex flex-col gap-2">
-        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-[#1C1917] font-mono uppercase">
+        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-text-primary font-mono uppercase">
           [ SYNTHESIS COMPLETE. AWAITING REVIEW ]
         </h1>
-        <p className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase">
+        <p className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase">
           Verify and modify campaign nodes before execution.
         </p>
       </div>
@@ -157,11 +157,11 @@ export default function DraftReviewStep({
         {/* Left column */}
         <div className="flex flex-col gap-[24px]">
           {/* ─── Idea Summary ─── */}
-          <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
-            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+          <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
+            <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">
               [ 01: CORE METADATA ]
             </h2>
-            <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E] mb-[24px]">
+            <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-muted mb-[24px]">
               Public-facing parameters.
             </p>
 
@@ -170,7 +170,7 @@ export default function DraftReviewStep({
               <div className="flex flex-col gap-[6px]">
                 <label
                   htmlFor="draft-title"
-                  className="text-[13px] font-medium text-[#64748B]"
+                  className="text-[13px] font-medium text-text-secondary"
                 >
                   Title
                 </label>
@@ -178,7 +178,7 @@ export default function DraftReviewStep({
                   id="draft-title"
                   value={draft.title}
                   onChange={(e) => updateField("title", e.target.value)}
-                  className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans placeholder:text-[#94A3B8] outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+                  className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans placeholder:text-slate outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
                 />
               </div>
 
@@ -186,7 +186,7 @@ export default function DraftReviewStep({
               <div className="flex flex-col gap-[6px]">
                 <label
                   htmlFor="draft-summary"
-                  className="text-[13px] font-medium text-[#64748B]"
+                  className="text-[13px] font-medium text-text-secondary"
                 >
                   Description
                 </label>
@@ -195,7 +195,7 @@ export default function DraftReviewStep({
                   value={draft.summary}
                   onChange={(e) => updateField("summary", e.target.value)}
                   rows={4}
-                  className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans placeholder:text-[#94A3B8] outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] resize-y min-h-[100px]"
+                  className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans placeholder:text-slate outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] resize-y min-h-[100px]"
                 />
               </div>
 
@@ -204,7 +204,7 @@ export default function DraftReviewStep({
                 <div className="flex flex-col gap-[6px]">
                   <label
                     htmlFor="draft-category"
-                    className="text-[13px] font-medium text-[#64748B]"
+                    className="text-[13px] font-medium text-text-secondary"
                   >
                     Category
                   </label>
@@ -224,19 +224,19 @@ export default function DraftReviewStep({
 
                 {/* Tags */}
                 <div className="flex flex-col gap-[6px]">
-                  <label className="text-[13px] font-medium text-[#64748B]">
+                  <label className="text-[13px] font-medium text-text-secondary">
                     Tags
                   </label>
                   <div className="flex flex-wrap gap-[6px] min-h-[44px] items-center">
                     {draft.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-[4px] text-[12px] px-[10px] py-[5px] rounded-full border border-[#E2E8F0] text-[#64748B] bg-[#FCFCFD]"
+                        className="inline-flex items-center gap-[4px] text-[12px] px-[10px] py-[5px] rounded-full border border-border-light text-text-secondary bg-bg-muted"
                       >
                         {tag}
                         <button
                           onClick={() => removeTag(tag)}
-                          className="text-[#94A3B8] hover:text-[#64748B] transition-colors cursor-pointer border-none bg-transparent p-0 text-[14px] leading-none"
+                          className="text-slate hover:text-text-secondary transition-colors cursor-pointer border-none bg-transparent p-0 text-[14px] leading-none"
                         >
                           &times;
                         </button>
@@ -244,7 +244,7 @@ export default function DraftReviewStep({
                     ))}
                     <button
                       onClick={addTag}
-                      className="text-[12px] text-[#94A3B8] hover:text-[#64748B] transition-colors cursor-pointer border-none bg-transparent p-0"
+                      className="text-[12px] text-slate hover:text-text-secondary transition-colors cursor-pointer border-none bg-transparent p-0"
                     >
                       + add
                     </button>
@@ -254,18 +254,18 @@ export default function DraftReviewStep({
 
               {/* Assumptions */}
               <div className="flex flex-col gap-[8px]">
-                <label className="text-[13px] font-medium text-[#64748B]">
+                <label className="text-[13px] font-medium text-text-secondary">
                   Key Assumptions Being Tested
                 </label>
                 {draft.assumptions.map((a, i) => (
                   <div key={i} className="flex items-center gap-[8px]">
-                    <span className="text-[12px] text-[#94A3B8] w-[16px] shrink-0">
+                    <span className="text-[12px] text-slate w-[16px] shrink-0">
                       {i + 1}.
                     </span>
                     <input
                       value={a}
                       onChange={(e) => updateAssumption(i, e.target.value)}
-                      className="flex-1 px-[12px] py-[8px] rounded-xl border border-[#E2E8F0] bg-white text-[13px] text-[#111111] font-sans outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
+                      className="flex-1 px-[12px] py-[8px] rounded-xl border border-border-light bg-white text-[13px] text-text-primary font-sans outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
                     />
                     <button
                       onClick={() => handleImproveAssumption(i)}
@@ -273,7 +273,7 @@ export default function DraftReviewStep({
                       className={`w-[28px] h-[28px] rounded-md flex items-center justify-center transition-all cursor-pointer border-none bg-transparent ${
                         improvingAssumption === i
                           ? "animate-spin text-[#a855f7]"
-                          : "text-[#94A3B8] hover:bg-[#f3e8ff] hover:text-[#a855f7]"
+                          : "text-slate hover:bg-[#f3e8ff] hover:text-[#a855f7]"
                       }`}
                       title="AI improve"
                     >
@@ -289,7 +289,7 @@ export default function DraftReviewStep({
                     </button>
                     <button
                       onClick={() => removeAssumption(i)}
-                      className="text-[#94A3B8] hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent p-[4px]"
+                      className="text-slate hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent p-[4px]"
                     >
                       <svg
                         width="14"
@@ -308,18 +308,18 @@ export default function DraftReviewStep({
                   </div>
                 ))}
                 {improveError && (
-                  <p className="text-[12px] text-[#ef4444] mt-[2px]">{improveError}</p>
+                  <p className="text-[12px] text-error mt-[2px]">{improveError}</p>
                 )}
                 {draft.assumptions.length < 5 && (
                   <button
                     onClick={addAssumption}
-                    className="self-start text-[12px] font-medium text-[#64748B] px-[12px] py-[6px] rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:text-[#111111] transition-all duration-200 cursor-pointer bg-transparent mt-[4px]"
+                    className="self-start text-[12px] font-medium text-text-secondary px-[12px] py-[6px] rounded-xl border border-border-light hover:border-border-muted hover:text-text-primary transition-all duration-200 cursor-pointer bg-transparent mt-[4px]"
                   >
                     + Add assumption
                   </button>
                 )}
                 {draft.assumptions.length >= 5 && (
-                  <span className="text-[11px] text-[#94A3B8] mt-[4px]">
+                  <span className="text-[11px] text-slate mt-[4px]">
                     Maximum 5 assumptions
                   </span>
                 )}
@@ -348,8 +348,8 @@ export default function DraftReviewStep({
           />
 
           {/* ─── V2: Campaign Format Toggle ─── */}
-          <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
-            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">[ 04: EXECUTION PROTOCOL ]</h2>
+          <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
+            <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">[ 04: EXECUTION PROTOCOL ]</h2>
             <div className="flex gap-[12px] mt-[16px]">
               {(["quick", "standard"] as const).map((fmt) => (
                 <button
@@ -358,32 +358,32 @@ export default function DraftReviewStep({
                   onClick={() => updateField("format", fmt)}
                   className={`flex-1 text-left px-[16px] py-[16px] rounded-[16px] border text-[13px] transition-all cursor-pointer ${
                     (draft.format || "quick") === fmt
-                      ? "border-[#1C1917] bg-[#1C1917] text-white shadow-lg"
-                      : "border-white/60 bg-white/40 text-[#1C1917] hover:border-white/80 hover:bg-white/60"
+                      ? "border-accent bg-accent text-white shadow-lg"
+                      : "border-border-light bg-white/40 text-text-primary hover:border-border-light hover:bg-white/60"
                   }`}
                 >
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-widest block mb-1">
+                  <span className="font-mono text-[11px] font-medium uppercase tracking-wide block mb-1">
                     {fmt === "quick" ? "[ QUICK_RUN ]" : "[ STD_RUN ]"}
                   </span>
-                  <span className={`font-mono text-[9px] uppercase tracking-wider block ${(draft.format || "quick") === fmt ? "text-white/70" : "text-[#A8A29E]"}`}>
+                  <span className={`font-mono text-[11px] uppercase tracking-wider block ${(draft.format || "quick") === fmt ? "text-white/70" : "text-text-muted"}`}>
                     {fmt === "quick"
-                      ? "3 NODES \u00B7 ~3 MIN"
-                      : "5 NODES \u00B7 ~5 MIN"}
+                      ? "3 NODES \u00B7 ~2 MIN"
+                      : "5 NODES \u00B7 ~3 MIN"}
                   </span>
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-[8px]">
+            <p className="text-[11px] text-slate mt-[8px]">
               Quick is the default format for fast validation. Switch to Standard for deeper feedback.
             </p>
           </div>
 
           {/* ─── Campaign Funding ─── */}
-          <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
-            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+          <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
+            <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">
               [ 05: RESOURCE ALLOCATION ]
             </h2>
-            <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E] mb-[28px]">
+            <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-muted mb-[28px]">
               Fuel the execution engine to increase range and speed.
             </p>
 
@@ -402,12 +402,12 @@ export default function DraftReviewStep({
                       }}
                       className={`relative text-left px-[14px] py-[14px] rounded-xl border text-[13px] transition-all cursor-pointer ${
                         isSelected
-                          ? "border-[#111111] bg-[#111111] text-white"
-                          : "border-[#E2E8F0] bg-white text-[#111111] hover:border-[#CBD5E1]"
+                          ? "border-accent bg-accent text-white"
+                          : "border-border-light bg-white text-text-primary hover:border-border-muted"
                       }`}
                     >
                       {preset.recommended && (
-                        <span className="absolute -top-[8px] right-[8px] text-[9px] font-bold uppercase tracking-[0.5px] px-[6px] py-[2px] rounded-full bg-[#22c55e] text-white">
+                        <span className="absolute -top-[8px] right-[8px] text-[9px] font-bold uppercase tracking-[0.5px] px-[6px] py-[2px] rounded-full bg-success text-white">
                           Recommended
                         </span>
                       )}
@@ -419,14 +419,14 @@ export default function DraftReviewStep({
                       </span>
                       <span
                         className={`block text-[11px] mb-[4px] ${
-                          isSelected ? "text-white/70" : "text-[#94A3B8]"
+                          isSelected ? "text-white/70" : "text-slate"
                         }`}
                       >
                         Strength: {preset.strength}/10
                       </span>
                       <span
                         className={`block text-[11px] ${
-                          isSelected ? "text-white/70" : "text-[#94A3B8]"
+                          isSelected ? "text-white/70" : "text-slate"
                         }`}
                       >
                         ~{preset.estimatedResponsesLow}–
@@ -449,14 +449,14 @@ export default function DraftReviewStep({
                 <button
                   type="button"
                   onClick={() => setShowCustomAmount(!showCustomAmount)}
-                  className="text-[12px] text-[#64748B] hover:text-[#111111] bg-transparent border-none cursor-pointer underline"
+                  className="text-[12px] text-text-secondary hover:text-text-primary bg-transparent border-none cursor-pointer underline"
                 >
                   {showCustomAmount ? "Use preset" : "Custom amount"}
                 </button>
                 {showCustomAmount && (
                   <div className="mt-[8px]">
                     <div className="relative">
-                      <span className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[15px] text-[#94A3B8]">
+                      <span className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[15px] text-slate">
                         $
                       </span>
                       <input
@@ -471,14 +471,14 @@ export default function DraftReviewStep({
                             Math.max(0, Number(e.target.value))
                           )
                         }
-                        className="w-full pl-[32px] pr-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-mono outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
+                        className="w-full pl-[32px] pr-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-mono outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
                       />
                     </div>
                     {(draft.rewardPool ?? 0) > PLAN_CONFIG[tier].efficientZone && (
-                      <p className="mt-[6px] text-[11px] text-[#E5654E]">
+                      <p className="mt-[6px] text-[11px] text-brand">
                         You&apos;re getting less value per dollar above ${PLAN_CONFIG[tier].efficientZone} on your current plan.{" "}
                         {tier !== "pro" && (
-                          <Link href="/#pricing" className="text-[#111111] font-semibold underline">
+                          <Link href="/#pricing" className="text-text-primary font-semibold underline">
                             A higher plan stretches this budget further.
                           </Link>
                         )}
@@ -490,18 +490,18 @@ export default function DraftReviewStep({
 
               {/* Platform fee breakdown */}
               {(draft.rewardPool ?? 0) > 0 && (
-                <div className="flex items-center gap-[8px] text-[12px] text-[#94A3B8]">
+                <div className="flex items-center gap-[8px] text-[12px] text-slate">
                   <span>
-                    Service fee (20%):{" "}
+                    Service fee ({Math.round(PLATFORM_FEE_RATE * 100)}%):{" "}
                     <span className="font-mono">
-                      ${((draft.rewardPool ?? 0) * 0.20).toFixed(2)}
+                      ${((draft.rewardPool ?? 0) * PLATFORM_FEE_RATE).toFixed(2)}
                     </span>
                   </span>
                   <span className="text-[#d4d4d4]">&middot;</span>
                   <span>
                     Respondents receive:{" "}
-                    <span className="font-mono font-semibold text-[#111111]">
-                      ${((draft.rewardPool ?? 0) * 0.80).toFixed(2)}
+                    <span className="font-mono font-semibold text-text-primary">
+                      ${((draft.rewardPool ?? 0) * (1 - PLATFORM_FEE_RATE)).toFixed(2)}
                     </span>
                   </span>
                 </div>
@@ -521,13 +521,13 @@ export default function DraftReviewStep({
 
               {/* Tier upgrade nudge for free/starter */}
               {(tier === "free" || tier === "starter") && (draft.rewardPool ?? 0) > 0 && (
-                <div className="px-[14px] py-[10px] rounded-lg bg-[#F3F4F6] border border-[#E2E8F0]/50 text-[12px] text-[#64748B]">
+                <div className="px-[14px] py-[10px] rounded-lg bg-bg-muted border border-border-light/50 text-[12px] text-text-secondary">
                   With a Pro plan, this same ${draft.rewardPool} would reach significantly more people — Strength{" "}
                   <strong>
                     {calculateReach("pro", draft.rewardPool ?? 0, { qualityScore }).campaignStrength}
                   </strong>{" "}
                   vs {reachEstimate.campaignStrength}.{" "}
-                  <Link href="/#pricing" className="text-[#111111] font-semibold underline">
+                  <Link href="/#pricing" className="text-text-primary font-semibold underline">
                     See plans
                   </Link>
                 </div>
@@ -535,8 +535,8 @@ export default function DraftReviewStep({
 
               {/* V2: How payouts work explainer (replaces reward type + toggles) */}
               {(draft.rewardPool ?? 0) > 0 && (
-                <details className="text-[12px] text-[#64748B] border border-[#E2E8F0] rounded-lg p-[14px]">
-                  <summary className="font-medium text-[13px] text-[#111111] cursor-pointer">
+                <details className="text-[12px] text-text-secondary border border-border-light rounded-lg p-[14px]">
+                  <summary className="font-medium text-[13px] text-text-primary cursor-pointer">
                     How respondent payouts work
                   </summary>
                   <div className="mt-[8px] space-y-[6px]">
@@ -552,7 +552,7 @@ export default function DraftReviewStep({
               )}
 
               {(draft.rewardPool ?? 0) === 0 && (
-                <p className="text-[12px] text-[#94A3B8] italic">
+                <p className="text-[12px] text-slate italic">
                   You can run without a budget, but funded campaigns typically
                   get 3x more qualified responses.
                 </p>
@@ -565,7 +565,7 @@ export default function DraftReviewStep({
             <button
               onClick={onPublish}
               disabled={isPublishing || isSaving}
-              className="inline-flex items-center justify-center px-[32px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest bg-[#1C1917] text-white hover:bg-white hover:text-[#1C1917] hover:shadow-[0_0_24px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer border border-[#1C1917] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center px-[32px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide bg-accent text-white hover:bg-white hover:text-text-primary hover:shadow-[0_0_24px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer border border-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPublishing
                 ? "[ INITIATING... ]"
@@ -577,7 +577,7 @@ export default function DraftReviewStep({
               <button
                 onClick={onSaveDraft}
                 disabled={isPublishing || isSaving}
-                className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest text-[#1C1917] bg-white border border-white hover:border-[#1C1917] hover:shadow-sm transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide text-text-primary bg-white border border-white hover:border-accent hover:shadow-sm transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? "[ SAVING CACHE... ]" : "[ SUSPEND TO CACHE ]"}
               </button>
@@ -585,7 +585,7 @@ export default function DraftReviewStep({
             <button
               onClick={onBack}
               disabled={isPublishing || isSaving}
-              className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest text-[#A8A29E] hover:text-[#1C1917] transition-all cursor-pointer border-none bg-transparent disabled:opacity-50"
+              className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide text-text-muted hover:text-text-primary transition-all cursor-pointer border-none bg-transparent disabled:opacity-50"
             >
               [ ABORT TO RAW ]
             </button>
@@ -599,7 +599,7 @@ export default function DraftReviewStep({
 
             {/* Live preview of how the card will appear on The Wall */}
             <div>
-              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8] mb-[8px]">
+              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-slate mb-[8px]">
                 Wall Preview
               </p>
               <div className="pointer-events-none opacity-90 scale-[0.92] origin-top-left">

@@ -4,11 +4,11 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 
 const statusColors: Record<string, string> = {
-  draft: "bg-[#F5F5F4] text-[#78716C]",
-  pending_funding: "bg-[#E5654E]/10 text-[#E5654E]",
-  pending_gate: "bg-[#E5654E]/10 text-[#E5654E]",
+  draft: "bg-bg-muted text-text-secondary",
+  pending_funding: "bg-brand/10 text-brand",
+  pending_gate: "bg-brand/10 text-brand",
   active: "bg-[#1C1A1A] text-white",
-  completed: "bg-[#F5F5F4] text-[#A8A29E]",
+  completed: "bg-bg-muted text-text-muted",
   paused: "bg-[#fde047]/10 text-[#a16207]",
 };
 
@@ -118,7 +118,7 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
       `}} />
       
       {/* Precision Search & Filter Pane */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-[20px] mb-[40px] p-[8px] bg-white rounded-full border border-[#E7E5E4]/50 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-[20px] mb-[40px] p-[8px] bg-white rounded-full border border-border-light/50 shadow-card-sm">
         <div className="relative flex-1 w-full flex items-center shrink-0">
           <svg className="absolute left-[20px]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D6D3D1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -128,7 +128,7 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
             placeholder="Command and index campaigns..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-[52px] pr-[20px] py-[12px] bg-transparent text-[15px] font-medium tracking-tight text-[#1C1917] placeholder:text-[#A8A29E] outline-none"
+            className="w-full pl-[52px] pr-[20px] py-[12px] bg-transparent text-[15px] font-medium tracking-tight text-text-primary placeholder:text-text-muted outline-none"
           />
         </div>
 
@@ -140,10 +140,10 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={`text-[12px] font-bold uppercase tracking-widest py-[8px] px-[18px] rounded-full transition-all duration-300 cursor-pointer border-none flex items-center gap-2 ${
+                  className={`text-[12px] font-medium uppercase tracking-wide py-[8px] px-[18px] rounded-full transition-all duration-300 cursor-pointer border-none flex items-center gap-2 ${
                     isActive
-                      ? "bg-[#1C1917] text-white shadow-md relative overflow-hidden"
-                      : "bg-transparent text-[#A8A29E] hover:text-[#1C1917] hover:bg-[#F5F5F4]"
+                      ? "bg-accent text-white shadow-md relative overflow-hidden"
+                      : "bg-transparent text-text-muted hover:text-text-primary hover:bg-bg-muted"
                   }`}
                 >
                   {s === "all" ? "ALL" : statusLabel[s] || s}
@@ -158,57 +158,61 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-[100px] border border-dashed border-[#E7E5E4] rounded-[32px] bg-white/40 backdrop-blur-sm">
-          <span className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase mb-4">Query returned zero nodes</span>
-          <span className="text-[20px] md:text-[24px] font-medium tracking-tight text-[#1C1917]">
+        <div className="flex flex-col items-center justify-center py-[100px] border border-dashed border-border-light rounded-[32px] bg-white/90">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4">Query returned zero nodes</span>
+          <span className="text-[20px] md:text-[24px] font-medium tracking-tight text-text-primary">
              No campaigns found
           </span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px] auto-rows-min">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-[12px] md:gap-[24px] auto-rows-min">
           {filtered.map((idea, index) => {
             const progress = idea.target_responses > 0 ? Math.min((idea.current_responses / idea.target_responses) * 100, 100) : 0;
             const hasReward = idea.reward_amount > 0;
             const targetTags = [...(idea.target_interests || []), ...(idea.target_expertise || [])].slice(0, 3);
             const ideaHref = idea.status === "draft" ? `/dashboard/ideas/${idea.id}/edit` : `/dashboard/ideas/${idea.id}`;
-            const isFeatureCard = idea.status === "active"; // Bento sizing
+            const isFeatureCard = idea.status === "active";
 
             return (
               <Link
                 key={idea.id}
                 href={ideaHref}
                 style={staggerDelay(index)}
-                className={`glow-hover bento-card flex flex-col justify-between bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] p-[28px] transition-all duration-400 no-underline rounded-[28px] ${
-                  isFeatureCard ? "md:col-span-2 lg:col-span-2 row-span-2 min-h-[300px]" : "col-span-1 min-h-[220px]"
+                className={`glow-hover bento-card flex flex-col justify-between bg-white border border-border-light shadow-card transition-all duration-400 no-underline ${
+                  isFeatureCard
+                    ? "col-span-2 lg:col-span-2 row-span-2 min-h-[300px] rounded-[28px] p-[28px]"
+                    : "col-span-1 rounded-[20px] px-[14px] py-[20px] md:rounded-[28px] md:p-[28px] md:min-h-[220px]"
                 }`}
               >
-                <div className="flex flex-col gap-[16px]">
+                <div className={`flex flex-col ${isFeatureCard ? "gap-[16px]" : "gap-[10px] md:gap-[16px]"}`}>
                   {/* Metadata Row */}
                   <div className="flex items-center justify-between">
                     <span
-                      className={`px-[12px] py-[4px] rounded-full text-[10px] font-bold uppercase tracking-[0.1em] ${
+                      className={`px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight ${
                         statusColors[idea.status] || statusColors.draft
                       }`}
                     >
                       {statusLabel[idea.status] || idea.status}
                     </span>
                     {hasReward && (
-                      <span className="text-[12px] font-mono font-bold text-[#E5654E]">
+                      <span className="text-[13px] font-semibold tracking-tight text-success">
                         ${idea.reward_amount.toFixed(2)}
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Title */}
-                  <h3 className={`font-medium tracking-tight text-[#1C1917] leading-[1.1] m-0 ${isFeatureCard ? 'text-[28px] md:text-[36px]' : 'text-[20px]'}`}>
+                  <h3 className={`font-medium tracking-tight text-text-primary leading-[1.2] m-0 ${
+                    isFeatureCard ? "text-[28px] md:text-[36px]" : "text-[15px] md:text-[20px]"
+                  }`}>
                     {idea.title}
                   </h3>
 
-                  {/* Targeting Tags */}
+                  {/* Targeting Tags — hidden on compact mobile */}
                   {targetTags.length > 0 && (
-                    <div className="flex items-center gap-[6px] shrink-0 flex-wrap mt-[4px]">
+                    <div className={`flex items-center gap-[6px] shrink-0 flex-wrap ${isFeatureCard ? "" : "hidden md:flex"}`}>
                       {targetTags.map((tag) => (
-                        <span key={tag} className="text-[10px] px-[8px] py-[3px] rounded-md font-mono font-semibold uppercase bg-[#F5F5F4] text-[#A8A29E]">
+                        <span key={tag} className="px-[8px] py-[3px] rounded-md text-[11px] font-medium tracking-tight bg-bg-muted text-text-secondary">
                           {tag}
                         </span>
                       ))}
@@ -217,23 +221,27 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
                 </div>
 
                 {/* Progress / Status Bar Footer */}
-                <div className="pt-[24px] mt-[16px]">
-                  <div className="flex items-end justify-between font-mono text-[11px] font-bold text-[#78716C] mb-[8px] uppercase tracking-widest">
-                    <span>{idea.current_responses} Node{idea.current_responses !== 1 && 's'}</span>
-                    <span className="text-[#D6D3D1]">{idea.target_responses} Max</span>
+                <div className={`mt-auto ${isFeatureCard ? "pt-[24px]" : "pt-[16px] md:pt-[24px]"}`}>
+                  <div className="flex items-end justify-between mb-[8px]">
+                    <span className={`font-medium tracking-tight text-text-secondary ${isFeatureCard ? "text-[12px]" : "text-[11px] md:text-[12px]"}`}>
+                      {idea.current_responses} response{idea.current_responses !== 1 && "s"}
+                    </span>
+                    <span className="text-[11px] font-semibold tracking-tight text-text-muted">
+                      {idea.target_responses} max
+                    </span>
                   </div>
-                  <div className="h-[2px] w-full bg-[#F5F5F4] overflow-hidden rounded-full">
+                  <div className="h-[3px] w-full bg-bg-muted overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${idea.status === "active" ? "bg-[#1C1917]" : "bg-[#D6D3D1]"}`}
+                      className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${idea.status === "active" ? "bg-success" : "bg-border-muted"}`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  
+
                   {isFeatureCard && idea.matched_responses > 0 && (
                     <div className="flex items-center gap-[8px] mt-[16px]">
-                       <div className="w-1.5 h-1.5 rounded-full bg-[#2ca05a] animate-pulse" />
-                       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#2ca05a]">
-                         {Math.round((idea.matched_responses / idea.current_responses) * 100)}% Index Match Quality
+                       <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                       <span className="text-[11px] font-medium tracking-tight text-success">
+                         {Math.round((idea.matched_responses / idea.current_responses) * 100)}% match quality
                        </span>
                     </div>
                   )}

@@ -80,7 +80,7 @@ export default function CampaignDetail({
       {/* Back link */}
       <Link
         href="/dashboard/the-wall"
-        className="inline-flex items-center gap-[6px] font-mono text-[10px] uppercase tracking-widest font-bold text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline mb-[24px]"
+        className="inline-flex items-center gap-[6px] font-mono text-[11px] uppercase tracking-wide font-medium text-text-muted hover:text-text-primary transition-colors no-underline mb-[24px]"
       >
         <svg fill="currentColor" viewBox="0 0 24 24" className="w-[12px] h-[12px]">
             <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -89,9 +89,9 @@ export default function CampaignDetail({
       </Link>
 
       {/* Title */}
-      <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] border border-white/80 p-[32px] max-md:p-[20px] mb-[16px] relative overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)]">
-        <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#E5654E]/20 to-transparent" />
-        <h1 className="text-[28px] font-bold tracking-tight text-[#1C1917]">{campaign.title}</h1>
+      <div className="bg-white rounded-[24px] border border-border-light p-[32px] max-md:p-[20px] mb-[16px] relative overflow-hidden shadow-card-sm">
+        <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
+        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{campaign.title}</h1>
       </div>
 
       {/* Creator */}
@@ -101,7 +101,7 @@ export default function CampaignDetail({
           imageUrl={campaign.creatorAvatar}
           size={20}
         />
-        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#78716C]">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-secondary">
           [ ROOT.{campaign.creatorName.split(" ")[0].toUpperCase()} ]
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function CampaignDetail({
           {campaign.tags.map((tag) => (
             <span
               key={tag}
-              className="font-mono text-[9px] font-bold uppercase tracking-widest px-[8px] py-[4px] rounded-md border border-black/10 bg-black/5 text-[#A8A29E]"
+              className="font-mono text-[11px] font-medium uppercase tracking-wide px-[8px] py-[4px] rounded-md border border-black/10 bg-black/5 text-text-muted"
             >
               {tag}
             </span>
@@ -123,48 +123,48 @@ export default function CampaignDetail({
       {/* Info cards */}
       <div className="grid grid-cols-3 gap-[16px] mb-[24px] max-md:grid-cols-1">
         {/* Questions */}
-        <div className="bg-white/60 backdrop-blur-lg border border-white/80 rounded-[20px] p-[20px] relative overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#1C1917]/10 to-transparent" />
-          <span className="font-mono text-[9px] font-bold text-[#A8A29E] uppercase tracking-widest block mb-[12px]">
+        <div className="bg-white border border-border-light rounded-[20px] p-[20px] relative overflow-hidden shadow-card-sm">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
+          <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-[12px]">
             [ QUESTIONS ]
           </span>
-          <div className="font-mono text-[24px] font-bold text-[#1C1917] mt-[4px] leading-none mb-[8px]">
+          <div className="font-mono text-[24px] font-bold text-text-primary mt-[4px] leading-none mb-[8px]">
             {questionCount}
           </div>
-          <div className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest">
+          <div className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
             {openCount} OPEN / {mcCount} MC
           </div>
         </div>
 
         {/* Time */}
-        <div className="bg-white/60 backdrop-blur-lg border border-white/80 rounded-[20px] p-[20px] relative overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#1C1917]/10 to-transparent" />
-          <span className="font-mono text-[9px] font-bold text-[#A8A29E] uppercase tracking-widest block mb-[12px]">
+        <div className="bg-white border border-border-light rounded-[20px] p-[20px] relative overflow-hidden shadow-card-sm">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
+          <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-[12px]">
             [ EST_TIME ]
           </span>
-          <div className="font-mono text-[24px] font-bold text-[#1C1917] mt-[4px] leading-none">
+          <div className="font-mono text-[24px] font-bold text-text-primary mt-[4px] leading-none">
             {campaign.estimatedMinutes}M
           </div>
         </div>
 
         {/* Progress */}
-        <div className="bg-white/60 backdrop-blur-lg border border-white/80 rounded-[20px] p-[20px] relative overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E5654E]/20 to-transparent" />
-          <span className="font-mono text-[9px] font-bold text-[#A8A29E] uppercase tracking-widest block mb-[12px]">
+        <div className="bg-white border border-border-light rounded-[20px] p-[20px] relative overflow-hidden shadow-card-sm">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
+          <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-[12px]">
             [ RESPONSES ]
           </span>
           <div className="mt-[4px] flex items-baseline gap-[4px]">
-            <span className="font-mono text-[24px] font-bold text-[#1C1917] leading-none">
+            <span className="font-mono text-[24px] font-bold text-text-primary leading-none">
               {campaign.currentResponses}
             </span>
-            <span className="font-mono text-[11px] text-[#A8A29E] uppercase tracking-widest">
+            <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
               /{campaign.targetResponses}
             </span>
           </div>
           <div className="h-[2px] w-full bg-black/5 overflow-hidden mt-[16px]">
             <div
               className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${
-                progress >= 75 ? "bg-[#E5654E]" : "bg-[#1C1917]"
+                progress >= 75 ? "bg-brand" : "bg-accent"
               }`}
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
@@ -174,23 +174,23 @@ export default function CampaignDetail({
 
       {/* Reward section */}
       {hasReward && (
-        <div className="bg-[#1C1917] border border-transparent rounded-[20px] p-[20px] mb-[32px] relative overflow-hidden shadow-[0_8px_32px_rgba(28,25,23,0.15)]">
-          <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#2ca05a]/40 to-transparent" />
+        <div className="bg-accent border border-transparent rounded-[20px] p-[20px] mb-[32px] relative overflow-hidden shadow-[0_8px_32px_rgba(28,25,23,0.15)]">
+          <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-success/40 to-transparent" />
           <div className="flex items-center gap-[12px] flex-wrap mb-[12px]">
             <span className="font-mono font-bold text-[14px] text-white">
               {getRewardLabel(campaign.rewardAmount, campaign.rewardType).toUpperCase()}
             </span>
             {campaign.bonusAvailable && (
-              <span className="font-mono text-[9px] font-bold px-[8px] py-[4px] rounded-md bg-[#2ca05a]/20 text-[#2ca05a] uppercase tracking-widest">
+              <span className="font-mono text-[11px] font-medium px-[8px] py-[4px] rounded-md bg-success/20 text-success uppercase tracking-wide">
                 [ BONUSES_ENABLED ]
               </span>
             )}
           </div>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-[#A8A29E] leading-[1.6]">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted leading-[1.6]">
             REWARDS ALLOCATED TO HIGH QUALITY RESPONSES.
           </p>
           {campaign.rewardsTopAnswers && (
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[#2ca05a] mt-[8px] font-bold">
+            <p className="font-mono text-[11px] uppercase tracking-wide text-success mt-[8px] font-medium">
               {"// "}SYS: THOUGHTFUL_RESPONSES_EARN_MORE
             </p>
           )}
@@ -200,11 +200,11 @@ export default function CampaignDetail({
       {/* Blocker or CTA */}
       {blockerMessage ? (
         <div className="text-center p-[20px] rounded-[16px] bg-black/5 border border-black/5">
-          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#A8A29E]">{blockerMessage}</p>
+          <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{blockerMessage}</p>
           {hasSubmitted && (
             <Link
               href="/dashboard/my-responses"
-              className="inline-block mt-[12px] font-mono text-[10px] font-bold uppercase tracking-widest text-[#1C1917] underline hover:text-[#E5654E] transition-colors"
+              className="inline-block mt-[12px] font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary underline hover:text-brand transition-colors"
             >
               [ VIEW_DATA_LOGS ]
             </Link>
@@ -214,8 +214,8 @@ export default function CampaignDetail({
         <Button
           onClick={onStart}
           disabled={!canStart || isLoading}
-          className={`w-full py-[16px] font-mono text-[12px] tracking-widest uppercase font-bold text-center !bg-[#1C1917] !text-white transition-all duration-300 rounded-[16px] ${
-            !canStart || isLoading ? "opacity-50 cursor-not-allowed" : "hover:!bg-[#292524] hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
+          className={`w-full py-[16px] font-mono text-[12px] tracking-wide uppercase font-medium text-center !bg-accent !text-white transition-all duration-300 rounded-[16px] ${
+            !canStart || isLoading ? "opacity-50 cursor-not-allowed" : "hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
           }`}
         >
           {isLoading ? "[ INITIALIZING... ]" : "[ START_RESPONDING ]"}

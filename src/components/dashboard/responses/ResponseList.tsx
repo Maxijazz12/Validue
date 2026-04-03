@@ -102,7 +102,7 @@ export default function ResponseList({
       {/* Controls row */}
       <div className="flex items-center justify-between mb-[12px] gap-[12px] max-md:flex-col max-md:items-stretch">
         {/* Filter tabs */}
-        <div className="flex gap-[4px] p-[4px] rounded-lg bg-[#F3F4F6]">
+        <div className="flex gap-[4px] p-[4px] rounded-lg bg-bg-muted">
           {filterTabs.map((tab) => (
             <button
               key={tab.key}
@@ -110,12 +110,12 @@ export default function ResponseList({
               onClick={() => setFilter(tab.key)}
               className={`text-[12px] font-semibold py-[6px] px-[12px] rounded-md transition-all cursor-pointer border-none ${
                 filter === tab.key
-                  ? "bg-white text-[#111111] shadow-sm"
-                  : "bg-transparent text-[#64748B] hover:text-[#111111]"
+                  ? "bg-white text-text-primary shadow-sm"
+                  : "bg-transparent text-text-secondary hover:text-text-primary"
               }`}
             >
               {tab.label}
-              <span className="ml-[4px] text-[#94A3B8] font-normal">
+              <span className="ml-[4px] text-slate font-normal">
                 {tab.count}
               </span>
             </button>
@@ -124,11 +124,11 @@ export default function ResponseList({
 
         {/* Sort dropdown */}
         <div className="flex items-center gap-[6px]">
-          <span className="text-[12px] text-[#94A3B8]">Sort by</span>
+          <span className="text-[12px] text-slate">Sort by</span>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOption)}
-            className="text-[12px] border border-[#E2E8F0] rounded-lg px-[8px] py-[6px] text-[#111111] bg-white outline-none focus:border-[#CBD5E1] cursor-pointer"
+            className="text-[12px] border border-border-light rounded-lg px-[8px] py-[6px] text-text-primary bg-white outline-none focus:border-border-muted cursor-pointer"
           >
             <option value="score">Score</option>
             <option value="newest">Newest</option>
@@ -139,7 +139,7 @@ export default function ResponseList({
 
       {/* Response cards */}
       {sorted.length === 0 ? (
-        <div className="text-center py-[32px] text-[13px] text-[#94A3B8]">
+        <div className="text-center py-[32px] text-[13px] text-slate">
           No responses match this filter.
         </div>
       ) : (

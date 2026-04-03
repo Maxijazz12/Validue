@@ -7,6 +7,7 @@ import CommandPalette from "@/components/dashboard/CommandPalette";
 import SubscriptionBanner from "@/components/dashboard/SubscriptionBanner";
 import NotificationToast from "@/components/dashboard/NotificationToast";
 import ImmersiveProvider from "@/components/ImmersiveProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG } from "@/lib/plans";
 
@@ -59,13 +60,13 @@ export default async function DashboardLayout({
   const totalEarned = Number(profile?.total_earned) || 0;
 
   return (
+    <ToastProvider>
     <ImmersiveProvider>
-      <div className="min-h-screen bg-white dark:bg-[#0F0F11] immersive-shell relative overflow-hidden">
-        {/* Global Ambient Background Orbs */}
-        <div className="fixed top-[10%] left-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-br from-[#E8C1B0]/15 to-transparent blur-[120px] pointer-events-none z-0" />
-        <div className="fixed bottom-[15%] right-[-5%] w-[45%] h-[40%] rounded-full bg-gradient-to-tl from-[#2ca05a]/10 to-transparent blur-[120px] pointer-events-none z-0" />
+      <div className="min-h-screen bg-white immersive-shell relative overflow-hidden">
+        {/* Global Ambient Background Orb — warm only, no competing green accent */}
+        <div className="fixed top-[10%] left-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-br from-accent-warm-muted/15 to-transparent blur-[120px] pointer-events-none z-0" />
         
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-[8px] focus:left-[8px] focus:px-[16px] focus:py-[8px] focus:bg-[#1A1A1A] focus:text-white focus:rounded-lg focus:text-[14px] focus:font-medium">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-[8px] focus:left-[8px] focus:px-[16px] focus:py-[8px] focus:bg-accent focus:text-white focus:rounded-lg focus:text-[14px] focus:font-medium">
           Skip to main content
         </a>
         <Sidebar
@@ -79,7 +80,7 @@ export default async function DashboardLayout({
           totalEarned={totalEarned}
           hasNewResponses={(newResponseCount ?? 0) > 0}
         />
-        <MobileTabBar />
+        <MobileTabBar userName={userName} userAvatar={userAvatar} />
         <CommandPalette />
         <main id="main-content" className="md:ml-[64px] min-h-screen relative z-10">
           <div className="dashboard-content-wrapper max-w-[1080px] mx-auto px-[48px] py-[48px] max-md:px-[20px] max-md:pt-[72px] max-md:pb-[80px]">
@@ -92,5 +93,6 @@ export default async function DashboardLayout({
         </main>
       </div>
     </ImmersiveProvider>
+    </ToastProvider>
   );
 }

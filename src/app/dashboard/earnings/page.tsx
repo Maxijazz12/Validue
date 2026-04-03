@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button";
 import ReputationBadge from "@/components/ui/ReputationBadge";
 import StatCard from "@/components/dashboard/StatCard";
 import type { ReputationTier } from "@/lib/reputation-config";
+import { DEFAULTS } from "@/lib/defaults";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -72,10 +73,9 @@ export default async function EarningsPage() {
 
   return (
     <>
-      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
-        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
-        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">Earnings</h1>
-        <p className="text-[14px] text-[#64748B] mt-[4px]">Track your earnings from responding to ideas</p>
+      <div className="mb-[24px]">
+        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">Earnings</h1>
+        <p className="text-[14px] text-text-secondary mt-[4px]">Track your earnings from responding to ideas</p>
       </div>
 
       {/* V2 Balance cards */}
@@ -91,19 +91,21 @@ export default async function EarningsPage() {
       </div>
 
       {/* Cash-out threshold notice */}
-      {availableBalanceCents > 0 && availableBalanceCents < 200 && (
-        <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-xl p-[16px] mb-[24px]">
-          <p className="text-[13px] text-[#64748B]">
-            You need <span className="font-semibold font-mono">${((200 - availableBalanceCents) / 100).toFixed(2)}</span> more
-            in available balance to cash out. Minimum cash-out is $2.00.
+      {availableBalanceCents > 0 && availableBalanceCents < DEFAULTS.MIN_CASHOUT_BALANCE_CENTS && (
+        <div className="bg-white border border-warning/20 rounded-[24px] p-[20px] mb-[24px] shadow-card">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-warning uppercase block mb-[6px]">Threshold</span>
+          <p className="text-[14px] text-text-secondary font-medium">
+            You need <span className="font-bold font-mono text-text-primary">${((DEFAULTS.MIN_CASHOUT_BALANCE_CENTS - availableBalanceCents) / 100).toFixed(2)}</span> more
+            in available balance to cash out. Minimum cash-out is ${(DEFAULTS.MIN_CASHOUT_BALANCE_CENTS / 100).toFixed(2)}.
           </p>
         </div>
       )}
 
       {/* Locked balance explainer */}
       {pendingBalanceCents > 0 && (
-        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-[16px] mb-[24px]">
-          <p className="text-[13px] text-[#64748B]">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] mb-[24px] shadow-card">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[6px]">Lock Period</span>
+          <p className="text-[14px] text-text-secondary font-medium">
             Locked payouts become available when their campaigns close. This can take up to 7 days.
           </p>
         </div>
@@ -113,34 +115,35 @@ export default async function EarningsPage() {
       {hasEarnings ? (
         <>
         <div>
-          <h2 className="text-[16px] font-semibold text-[#111111] mb-[12px]">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">Ledger</span>
+          <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">
             Payout History
           </h2>
-          <div className="flex flex-col gap-[12px]">
+          <div className="flex flex-col gap-[8px]">
             {allPayouts.map((payout) => {
               const statusConfig: Record<
                 string,
                 { label: string; bg: string; text: string }
               > = {
                 pending: {
-                  label: "Pending",
-                  bg: "bg-[#E5654E]/10",
-                  text: "text-[#CC5340]",
+                  label: "PENDING",
+                  bg: "bg-brand/10",
+                  text: "text-brand-dark",
                 },
                 processing: {
-                  label: "Processing",
-                  bg: "bg-[#3b82f6]/10",
-                  text: "text-[#3b82f6]",
+                  label: "PROCESSING",
+                  bg: "bg-info/10",
+                  text: "text-info",
                 },
                 completed: {
-                  label: "Completed",
-                  bg: "bg-[#22c55e]/10",
-                  text: "text-[#22c55e]",
+                  label: "COMPLETED",
+                  bg: "bg-success/10",
+                  text: "text-success",
                 },
                 failed: {
-                  label: "Failed",
-                  bg: "bg-[#ef4444]/10",
-                  text: "text-[#ef4444]",
+                  label: "FAILED",
+                  bg: "bg-error/10",
+                  text: "text-error",
                 },
               };
               const config = statusConfig[payout.status] || statusConfig.pending;
@@ -148,22 +151,22 @@ export default async function EarningsPage() {
               return (
                 <div
                   key={payout.id}
-                  className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start hover:border-[#CBD5E1] transition-all duration-200"
+                  className="bg-white border border-border-light rounded-[24px] p-[20px] flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start shadow-card-interactive transition-all duration-400"
                 >
                   <div className="min-w-0">
-                    <span className="text-[14px] font-medium text-[#111111] block truncate">
+                    <span className="text-[15px] font-medium tracking-tight text-text-primary block truncate">
                       {payout.campaign?.title || "Unknown Campaign"}
                     </span>
-                    <span className="text-[12px] text-[#94A3B8]">
+                    <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide mt-[4px] block">
                       {formatDate(payout.created_at)}
                     </span>
                   </div>
                   <div className="flex items-center gap-[10px] shrink-0">
-                    <span className="font-mono text-[16px] font-bold text-[#111111]">
+                    <span className="font-mono text-[16px] font-bold text-text-primary">
                       ${Number(payout.amount).toFixed(2)}
                     </span>
                     <span
-                      className={`px-[8px] py-[3px] rounded-full text-[11px] font-semibold uppercase tracking-[0.5px] ${config.bg} ${config.text}`}
+                      className={`px-[10px] py-[4px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}
                     >
                       {config.label}
                     </span>
@@ -176,36 +179,37 @@ export default async function EarningsPage() {
 
         {/* V2: Recent responses with money state */}
         {responseList.length > 0 && (
-          <div className="mt-[24px]">
-            <h2 className="text-[16px] font-semibold text-[#111111] mb-[12px]">Recent Responses</h2>
+          <div className="mt-[32px]">
+            <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">Pipeline</span>
+            <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">Recent Responses</h2>
             <div className="flex flex-col gap-[8px]">
               {responseList.map((r) => {
                 const moneyStateConfig: Record<string, { label: string; bg: string; text: string }> = {
-                  pending_qualification: { label: "Pending", bg: "bg-[#94A3B8]/10", text: "text-[#64748B]" },
-                  locked: { label: "Locked", bg: "bg-[#F59E0B]/10", text: "text-[#D97706]" },
-                  available: { label: "Available", bg: "bg-[#22c55e]/10", text: "text-[#22c55e]" },
-                  paid_out: { label: "Paid out", bg: "bg-[#3b82f6]/10", text: "text-[#3b82f6]" },
-                  not_qualified: { label: "Not qualified", bg: "bg-[#ef4444]/10", text: "text-[#ef4444]" },
+                  pending_qualification: { label: "PENDING", bg: "bg-[#94A3B8]/10", text: "text-text-secondary" },
+                  locked: { label: "LOCKED", bg: "bg-warning/10", text: "text-[#D97706]" },
+                  available: { label: "AVAILABLE", bg: "bg-success/10", text: "text-success" },
+                  paid_out: { label: "PAID OUT", bg: "bg-info/10", text: "text-info" },
+                  not_qualified: { label: "NOT QUALIFIED", bg: "bg-error/10", text: "text-error" },
                 };
                 const state = r.money_state || "pending_qualification";
                 const config = moneyStateConfig[state] || moneyStateConfig.pending_qualification;
                 const amount = Number(r.payout_amount) || 0;
 
                 return (
-                  <div key={r.id} className="bg-white border border-[#E2E8F0] rounded-xl p-[12px] flex items-center justify-between gap-[12px]">
-                    <span className="text-[13px] text-[#111111] truncate min-w-0">
+                  <div key={r.id} className="bg-white border border-border-light rounded-[20px] p-[16px] flex items-center justify-between gap-[12px] shadow-card-interactive transition-all duration-400">
+                    <span className="text-[14px] font-medium tracking-tight text-text-primary truncate min-w-0">
                       {r.campaign?.title || "Unknown Campaign"}
                     </span>
                     <div className="flex items-center gap-[8px] shrink-0">
                       {amount > 0 && (
-                        <span className="font-mono text-[13px] font-semibold text-[#111111]">
+                        <span className="font-mono text-[13px] font-bold text-text-primary">
                           ${amount.toFixed(2)}
                         </span>
                       )}
                       {state === "not_qualified" && (
-                        <span className="text-[13px] text-[#94A3B8]">$0.00</span>
+                        <span className="font-mono text-[13px] text-text-muted">$0.00</span>
                       )}
-                      <span className={`px-[6px] py-[2px] rounded-full text-[10px] font-semibold uppercase tracking-[0.5px] ${config.bg} ${config.text}`}>
+                      <span className={`px-[8px] py-[3px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}>
                         {config.label}
                       </span>
                     </div>
@@ -217,17 +221,12 @@ export default async function EarningsPage() {
         )}
         </>
       ) : (
-        <div className="bg-[#FAF9FA] border border-[#E2E8F0] rounded-2xl p-[48px] text-center relative overflow-hidden">
-          <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-          <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
-          <h2 className="text-[20px] font-bold text-[#111111] mb-[8px]">
-            No earnings <span className="italic font-normal text-gradient-warm">yet</span>
-          </h2>
-          <p className="text-[14px] text-[#64748B] max-w-[360px] mx-auto mb-[28px]">
+        <div className="py-[120px] text-center border border-dashed border-border-light rounded-[32px] bg-white/90">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4 block">Balance Empty</span>
+          <p className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">
+            No earnings yet
+          </p>
+          <p className="text-[14px] text-text-secondary mt-[4px] max-w-[360px] mx-auto mb-[28px]">
             Thoughtful feedback pays. Literally. Head to The Wall and share what you know.
           </p>
           <Button href="/dashboard/the-wall">

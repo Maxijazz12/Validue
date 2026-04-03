@@ -43,18 +43,19 @@ export default function NotificationPreferences({ preferences, role }: Notificat
   }
 
   return (
-    <div className="bg-white rounded-[28px] border border-[#E7E5E4]/60 shadow-[0_8px_30px_rgba(0,0,0,0.03)] overflow-hidden p-[32px]">
+    <div className="bg-white rounded-[28px] border border-border-light/60 shadow-card-sm overflow-hidden p-[32px]">
       <div className="flex items-center justify-between mb-[24px]">
         <div>
-          <h2 className="text-[20px] font-medium tracking-tight text-[#1C1917] mb-[4px]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[6px]">Preferences</span>
+          <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">
             Notifications
           </h2>
-          <p className="text-[14px] text-[#A8A29E] font-medium">
+          <p className="text-[14px] text-text-secondary">
             Choose which notifications you receive
           </p>
         </div>
         {saved && (
-          <span className="text-[13px] text-[#2ca05a] font-semibold tracking-wide bg-[#2ca05a]/10 px-3 py-1 rounded-full">Saved</span>
+          <span className="text-[13px] text-success font-semibold tracking-wide bg-success/10 px-3 py-1 rounded-full">Saved</span>
         )}
       </div>
 
@@ -62,13 +63,13 @@ export default function NotificationPreferences({ preferences, role }: Notificat
         {options.map((opt) => (
           <label
             key={opt.key}
-            className="flex items-center justify-between p-[16px] rounded-[16px] hover:bg-[#F5F5F4]/60 transition-colors cursor-pointer"
+            className="flex items-center justify-between p-[16px] rounded-[16px] hover:bg-bg-muted/60 transition-colors cursor-pointer"
           >
             <div className="min-w-0 mr-[16px]">
-              <span className="text-[15px] font-semibold tracking-tight text-[#1C1917] block">
+              <span className="text-[15px] font-semibold tracking-tight text-text-primary block">
                 {opt.label}
               </span>
-              <span className="text-[13px] font-medium text-[#78716C] mt-[2px] block">
+              <span className="text-[13px] font-medium text-text-secondary mt-[2px] block">
                 {opt.description}
               </span>
             </div>
@@ -79,7 +80,7 @@ export default function NotificationPreferences({ preferences, role }: Notificat
               onClick={() => handleToggle(opt.key)}
               disabled={isPending}
               className={`relative w-[46px] h-[26px] rounded-full transition-colors duration-300 cursor-pointer border-none shrink-0 ${
-                prefs[opt.key] !== false ? "bg-[#1C1917]" : "bg-[#E7E5E4]"
+                prefs[opt.key] !== false ? "bg-accent" : "bg-border-light"
               } ${isPending ? "opacity-50" : ""}`}
             >
               <span

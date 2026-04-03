@@ -27,7 +27,7 @@ export default function RetestCampaignButton({ campaignId }: RetestCampaignButto
         type="button"
         onClick={handleRetest}
         disabled={isPending}
-        className={`inline-flex items-center gap-[6px] px-[16px] py-[10px] rounded-xl text-[13px] font-semibold border border-[#3b82f6]/20 text-[#3b82f6] bg-[#3b82f6]/5 hover:bg-[#3b82f6]/10 hover:border-[#3b82f6]/30 transition-all duration-200 cursor-pointer ${
+        className={`inline-flex items-center gap-[6px] px-[16px] py-[10px] rounded-xl text-[13px] font-semibold border border-info/20 text-info bg-info/5 hover:bg-info/10 hover:border-info/30 transition-all duration-200 cursor-pointer ${
           isPending ? "opacity-50 cursor-not-allowed" : ""
         }`}
       >
@@ -38,7 +38,7 @@ export default function RetestCampaignButton({ campaignId }: RetestCampaignButto
         {isPending ? "Creating retest..." : "Retest"}
       </button>
       {error && (
-        <p className="text-[12px] text-[#ef4444] mt-[6px]">{error}</p>
+        <p className="text-[12px] text-error mt-[6px]">{error}</p>
       )}
     </div>
   );

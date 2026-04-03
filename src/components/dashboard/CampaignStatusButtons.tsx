@@ -28,8 +28,8 @@ export function CompleteCampaignButton({ campaignId }: { campaignId: string }) {
         disabled={loading}
         className={`px-[16px] py-[8px] rounded-lg border text-[13px] font-medium transition-all cursor-pointer bg-white disabled:opacity-50 ${
           confirming
-            ? "border-[#E5654E] text-[#E5654E] hover:bg-[#E5654E]/5"
-            : "border-[#E2E8F0] text-[#64748B] hover:text-[#111111] hover:border-[#CBD5E1]"
+            ? "border-brand text-brand hover:bg-brand/5"
+            : "border-border-light text-text-secondary hover:text-text-primary hover:border-border-muted"
         }`}
       >
         {loading ? "Completing..." : confirming ? "Are you sure?" : "Complete Campaign"}
@@ -37,7 +37,7 @@ export function CompleteCampaignButton({ campaignId }: { campaignId: string }) {
       {confirming && !loading && (
         <button
           onClick={() => setConfirming(false)}
-          className="ml-[8px] text-[12px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer transition-colors"
+          className="ml-[8px] text-[12px] text-slate hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors"
         >
           Cancel
         </button>
@@ -64,7 +64,7 @@ export function PauseCampaignButton({ campaignId }: { campaignId: string }) {
       <button
         onClick={handlePause}
         disabled={loading}
-        className="px-[16px] py-[8px] rounded-xl border border-[#E2E8F0] text-[13px] font-medium text-[#64748B] hover:text-[#111111] hover:border-[#CBD5E1] transition-all duration-200 cursor-pointer bg-white disabled:opacity-50"
+        className="px-[16px] py-[8px] rounded-xl border border-border-light text-[13px] font-medium text-text-secondary hover:text-text-primary hover:border-border-muted transition-all duration-200 cursor-pointer bg-white disabled:opacity-50"
       >
         {loading ? "Pausing..." : "Pause Campaign"}
       </button>
@@ -90,7 +90,7 @@ export function ResumeCampaignButton({ campaignId }: { campaignId: string }) {
       <button
         onClick={handleResume}
         disabled={loading}
-        className="px-[20px] py-[10px] rounded-xl bg-[#22c55e] text-white text-[14px] font-medium hover:bg-[#16a34a] transition-all duration-200 cursor-pointer border-none disabled:opacity-50"
+        className="px-[20px] py-[10px] rounded-xl bg-success text-white text-[14px] font-medium hover:bg-[#16a34a] transition-all duration-200 cursor-pointer border-none disabled:opacity-50"
       >
         {loading ? "Resuming..." : "Resume Campaign"}
       </button>

@@ -2,6 +2,8 @@
 
 import MiniPeach from "@/components/ui/MiniPeach";
 import type { WallCardProps } from "@/components/dashboard/WallCardUnified";
+import { PLATFORM_FEE_RATE } from "@/lib/plans";
+import { DEFAULTS } from "@/lib/defaults";
 
 function getRewardLabel(
   rewardAmount: number,
@@ -14,10 +16,10 @@ function getRewardLabel(
     if (!rewardAmount) return "Free";
     return `$${rewardAmount}${bonusAvailable ? "+" : ""}`;
   }
-  if (isSubsidized) return "$0.30+";
+  if (isSubsidized) return `$${DEFAULTS.SUBSIDY_FLAT_PAYOUT.toFixed(2)}+`;
   if (!rewardAmount) return "Free";
-  const basePay = (rewardAmount * 0.85 * 0.60) / Math.max(targetResponses, 1);
-  return `$${basePay.toFixed(0)}+`;
+  const basePay = (rewardAmount * (1 - PLATFORM_FEE_RATE)) / Math.max(targetResponses, 1);
+  return `$${basePay.toFixed(2)}+`;
 }
 
 export default function BirdseyePill({
@@ -43,14 +45,14 @@ export default function BirdseyePill({
     >
       <MiniPeach accent="blue" size={24} />
 
-      <span className="text-[13px] text-[#78716C] font-medium truncate flex-1 min-w-0">
-        <span className="text-[#57534E] font-semibold">{creatorName}</span>
+      <span className="text-[13px] text-text-secondary font-medium truncate flex-1 min-w-0">
+        <span className="text-text-secondary font-semibold">{creatorName}</span>
         {" posted: "}
         {title}
       </span>
 
       {reward !== "Free" && (
-        <span className="text-[11px] font-mono font-semibold text-[#1C1917] bg-[#F5F0EB] px-[8px] py-[2px] rounded-full shrink-0">
+        <span className="text-[11px] font-mono font-semibold text-text-primary bg-[#F5F0EB] px-[8px] py-[2px] rounded-full shrink-0">
           {reward}
         </span>
       )}
@@ -59,13 +61,13 @@ export default function BirdseyePill({
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave?.(id); }}
         className={`w-[28px] h-[28px] rounded-full flex items-center justify-center shrink-0 bg-transparent border-none cursor-pointer transition-all ${
-          isSaved ? "bg-[#E5654E]/8" : "hover:bg-black/[0.03]"
+          isSaved ? "bg-brand/8" : "hover:bg-black/[0.03]"
         }`}
         aria-label={isSaved ? "Unsave" : "Save"}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
           fill={isSaved ? "currentColor" : "none"} stroke="currentColor"
-          className={isSaved ? "text-[#E5654E]" : "text-[#A8A29E]"}
+          className={isSaved ? "text-brand" : "text-text-muted"}
         >
           <path d="M5 3h14a1 1 0 011 1v16.5l-8-5.5-8 5.5V4a1 1 0 011-1z" />
         </svg>

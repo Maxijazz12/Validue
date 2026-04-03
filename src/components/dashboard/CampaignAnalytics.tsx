@@ -29,16 +29,16 @@ function BarChart({
         const pct = (value / max) * 100;
         return (
           <div key={i} className="flex items-center gap-[8px]">
-            <span className="text-[11px] text-[#64748B] w-[60px] shrink-0 truncate text-right">
+            <span className="text-[11px] text-text-secondary w-[60px] shrink-0 truncate text-right">
               {d[labelKey]}
             </span>
-            <div className="flex-1 h-[16px] rounded bg-[#F3F4F6] overflow-hidden">
+            <div className="flex-1 h-[16px] rounded bg-bg-muted overflow-hidden">
               <div
                 className="h-full rounded transition-all duration-500"
                 style={{ width: `${pct}%`, backgroundColor: color }}
               />
             </div>
-            <span className="text-[11px] font-mono font-semibold text-[#111111] w-[24px] text-right">
+            <span className="text-[11px] font-mono font-semibold text-text-primary w-[24px] text-right">
               {value}
             </span>
           </div>
@@ -63,10 +63,10 @@ function ResponseTimeline({
         return (
           <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group relative">
             <div
-              className="w-full rounded-t bg-[#E5654E]/70 hover:bg-[#E5654E] transition-colors min-h-[2px]"
+              className="w-full rounded-t bg-brand/70 hover:bg-brand transition-colors min-h-[2px]"
               style={{ height: `${Math.max(pct, 3)}%` }}
             />
-            <div className="absolute -top-[24px] left-1/2 -translate-x-1/2 px-[6px] py-[2px] rounded bg-[#111111] text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <div className="absolute -top-[24px] left-1/2 -translate-x-1/2 px-[6px] py-[2px] rounded bg-accent text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               {d.date.slice(5)}: {d.count}
             </div>
           </div>
@@ -82,17 +82,17 @@ function DemographicPills({
   items: { label: string; count: number }[];
 }) {
   if (items.length === 0) {
-    return <span className="text-[12px] text-[#94A3B8]">No data</span>;
+    return <span className="text-[12px] text-slate">No data</span>;
   }
   return (
     <div className="flex flex-wrap gap-[6px]">
       {items.map((item) => (
         <span
           key={item.label}
-          className="text-[11px] px-[8px] py-[3px] rounded-full bg-[#F3F4F6] text-[#64748B]"
+          className="text-[11px] px-[8px] py-[3px] rounded-full bg-bg-muted text-text-secondary"
         >
           {item.label}
-          <span className="ml-[4px] font-mono font-semibold text-[#111111]">
+          <span className="ml-[4px] font-mono font-semibold text-text-primary">
             {item.count}
           </span>
         </span>
@@ -118,10 +118,10 @@ export default function CampaignAnalytics({
 
   if (loading) {
     return (
-      <div className="bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] p-[32px]">
+      <div className="bg-white/90 border border-border-light rounded-[24px] p-[32px]">
         <div className="flex items-center gap-[8px]">
-          <div className="w-[5px] h-[5px] bg-[#1C1917]/50 rounded-full animate-pulse" />
-          <span className="font-mono text-[11px] text-[#A8A29E] uppercase tracking-widest">Loading telemetry...</span>
+          <div className="w-[5px] h-[5px] bg-accent/50 rounded-full animate-pulse" />
+          <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">Loading telemetry...</span>
         </div>
       </div>
     );
@@ -132,7 +132,7 @@ export default function CampaignAnalytics({
   const hasScores = data.scoreDistribution.some((d) => d.count > 0);
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] overflow-hidden transition-all duration-400">
+    <div className="bg-white border border-border-light shadow-card rounded-[24px] overflow-hidden transition-all duration-400">
       {/* Header — always visible */}
       <button
         type="button"
@@ -143,7 +143,7 @@ export default function CampaignAnalytics({
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 20h.01" /><path d="M7 20v-4" /><path d="M12 20v-8" /><path d="M17 20V8" /><path d="M22 4v16" />
           </svg>
-          <h2 className="text-[16px] font-semibold text-[#111111]">Analytics</h2>
+          <h2 className="text-[16px] font-semibold text-text-primary">Analytics</h2>
         </div>
         <svg
           width="16"
@@ -164,19 +164,19 @@ export default function CampaignAnalytics({
         <div className="border-t border-white/40 p-[24px_32px] max-md:p-[20px]">
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-[16px] mb-[32px]">
-            <div className="p-[20px] rounded-[16px] bg-white/40 border border-white/60 shadow-sm relative overflow-hidden">
-              <span className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest">
+            <div className="p-[20px] rounded-[16px] bg-white/40 border border-border-light shadow-sm relative overflow-hidden">
+              <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
                 Avg time/rep
               </span>
-              <div className="font-mono text-[24px] font-bold text-[#1C1917] mt-[4px]">
+              <div className="font-mono text-[24px] font-bold text-text-primary mt-[4px]">
                 {data.avgTimePerResponse > 0 ? `${data.avgTimePerResponse}s` : "—"}
               </div>
             </div>
-            <div className="p-[20px] rounded-[16px] bg-white/40 border border-white/60 shadow-sm relative overflow-hidden">
-              <span className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest">
+            <div className="p-[20px] rounded-[16px] bg-white/40 border border-border-light shadow-sm relative overflow-hidden">
+              <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
                 Pattern matches
               </span>
-              <div className={`font-mono text-[24px] font-bold mt-[4px] ${data.totalPasteDetected > 0 ? "text-[#E5654E]" : "text-[#1C1917]"}`}>
+              <div className={`font-mono text-[24px] font-bold mt-[4px] ${data.totalPasteDetected > 0 ? "text-brand" : "text-text-primary"}`}>
                 {data.totalPasteDetected}
               </div>
             </div>
@@ -185,15 +185,15 @@ export default function CampaignAnalytics({
           {/* Response timeline */}
           {data.responsesByDay.length > 1 && (
             <div className="mb-[24px]">
-              <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+              <h3 className="text-[13px] font-semibold text-text-secondary mb-[12px]">
                 Responses over time
               </h3>
               <ResponseTimeline data={data.responsesByDay} />
               <div className="flex items-center justify-between mt-[4px]">
-                <span className="text-[10px] text-[#CBD5E1]">
+                <span className="text-[10px] text-border-muted">
                   {data.responsesByDay[0].date.slice(5)}
                 </span>
-                <span className="text-[10px] text-[#CBD5E1]">
+                <span className="text-[10px] text-border-muted">
                   {data.responsesByDay[data.responsesByDay.length - 1].date.slice(5)}
                 </span>
               </div>
@@ -203,7 +203,7 @@ export default function CampaignAnalytics({
           {/* Score distribution */}
           {hasScores && (
             <div className="mb-[24px]">
-              <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+              <h3 className="text-[13px] font-semibold text-text-secondary mb-[12px]">
                 Quality score distribution
               </h3>
               <BarChart
@@ -217,21 +217,21 @@ export default function CampaignAnalytics({
 
           {/* Respondent demographics */}
           <div className="mb-[24px]">
-            <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+            <h3 className="text-[13px] font-semibold text-text-secondary mb-[12px]">
               Respondent interests
             </h3>
             <DemographicPills items={data.respondentDemographics.interests} />
           </div>
 
           <div className="mb-[24px]">
-            <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+            <h3 className="text-[13px] font-semibold text-text-secondary mb-[12px]">
               Respondent expertise
             </h3>
             <DemographicPills items={data.respondentDemographics.expertise} />
           </div>
 
           <div>
-            <h3 className="text-[13px] font-semibold text-[#64748B] mb-[12px]">
+            <h3 className="text-[13px] font-semibold text-text-secondary mb-[12px]">
               Reputation tiers
             </h3>
             <DemographicPills items={data.respondentDemographics.tiers} />

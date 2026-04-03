@@ -7,7 +7,7 @@ export default function ResponsesLoading() {
       <Skeleton className="h-[14px] w-[100px] mb-[16px]" />
 
       {/* Header */}
-      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px]">
+      <div className="bg-bg-muted rounded-2xl border border-border-light p-[24px_32px] max-md:p-[20px] mb-[24px]">
         <Skeleton className="h-[28px] w-[160px] mb-[8px]" />
         <Skeleton className="h-[14px] w-[240px]" />
       </div>

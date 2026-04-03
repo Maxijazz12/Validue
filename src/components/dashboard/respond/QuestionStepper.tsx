@@ -179,25 +179,25 @@ export default function QuestionStepper({
   if (showReview) {
     return (
       <div>
-        <h2 className="text-[18px] font-semibold text-[#111111] mb-[4px]">Review your answers</h2>
-        <p className="text-[13px] text-[#94A3B8] mb-[20px]">Make sure everything looks good before submitting.</p>
+        <h2 className="text-[18px] font-semibold text-text-primary mb-[4px]">Review your answers</h2>
+        <p className="text-[13px] text-slate mb-[20px]">Make sure everything looks good before submitting.</p>
 
         <div className="flex flex-col gap-[12px] mb-[24px]">
           {questions.map((q, i) => {
             const answer = answers.get(q.id);
             return (
-              <div key={q.id} className="bg-white border border-[#E2E8F0] rounded-xl p-[16px]">
+              <div key={q.id} className="bg-white border border-border-light rounded-xl p-[16px]">
                 <div className="flex items-start justify-between gap-[12px]">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-[#94A3B8] mb-[4px]">Question {i + 1}</p>
-                    <p className="text-[14px] font-medium text-[#111111] mb-[6px]">{q.text}</p>
-                    <p className="text-[13px] text-[#64748B] whitespace-pre-wrap">
-                      {answer?.text || <span className="italic text-[#CBD5E1]">No answer</span>}
+                    <p className="text-[12px] text-slate mb-[4px]">Question {i + 1}</p>
+                    <p className="text-[14px] font-medium text-text-primary mb-[6px]">{q.text}</p>
+                    <p className="text-[13px] text-text-secondary whitespace-pre-wrap">
+                      {answer?.text || <span className="italic text-border-muted">No answer</span>}
                     </p>
                   </div>
                   <button
                     onClick={() => { setShowReview(false); setCurrentIndex(i); setCurrentText(answer?.text || ""); }}
-                    className="text-[12px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer shrink-0 transition-colors"
+                    className="text-[12px] text-slate hover:text-text-primary bg-transparent border-none cursor-pointer shrink-0 transition-colors"
                   >
                     Edit
                   </button>
@@ -208,19 +208,19 @@ export default function QuestionStepper({
         </div>
 
         {error && (
-          <div className="font-mono text-[10px] text-[#ef4444] tracking-widest font-bold uppercase mb-[12px] p-[12px] rounded-[12px] bg-[#ef4444]/5 border border-[#ef4444]/10">
+          <div className="font-mono text-[11px] text-error tracking-wide font-medium uppercase mb-[12px] p-[12px] rounded-[12px] bg-error/5 border border-error/10">
             [ ERROR: {error.toUpperCase()} ]
           </div>
         )}
 
         <div className="flex items-center justify-between gap-[12px]">
-          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase border-black/10 hover:border-black/30 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-black/10 hover:border-black/30 w-full sm:w-auto">
             [ RETURN ]
           </Button>
           <Button
             onClick={handleFinalSubmit}
             disabled={isPending}
-            className={`px-[24px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase !bg-[#1C1917] !text-white w-full sm:w-auto ${isPending ? "opacity-50 cursor-not-allowed" : "hover:!bg-[#292524] hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"}`}
+            className={`px-[24px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide !bg-accent !text-white w-full sm:w-auto ${isPending ? "opacity-50 cursor-not-allowed" : "hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"}`}
           >
             {isPending ? "[ SUBMITTING_PAYLOAD... ]" : "[ INITIATE_TRANSFER ]"}
           </Button>
@@ -251,9 +251,9 @@ export default function QuestionStepper({
 
       {/* Question text with slide animation */}
       <div className={slideClass}>
-        <div className="bg-white/60 backdrop-blur-md border border-white/80 shadow-[0_4px_16px_rgba(0,0,0,0.03)] rounded-[20px] p-[24px] mb-[20px] relative overflow-hidden">
-          <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#1C1917]/10 to-transparent" />
-          <p className="text-[18px] font-medium tracking-tight text-[#1C1917] leading-[1.4] m-0">
+        <div className="bg-white border border-border-light shadow-card-sm rounded-[20px] p-[24px] mb-[20px] relative overflow-hidden">
+          <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
+          <p className="text-[18px] font-medium tracking-tight text-text-primary leading-[1.4] m-0">
             {question.text}
           </p>
         </div>
@@ -283,7 +283,7 @@ export default function QuestionStepper({
 
       {/* Error */}
       {error && (
-        <div className="font-mono text-[10px] text-[#ef4444] tracking-widest font-bold uppercase mb-[12px] p-[12px] rounded-xl bg-[#ef4444]/5 border border-[#ef4444]/10">
+        <div className="font-mono text-[11px] text-error tracking-wide font-medium uppercase mb-[12px] p-[12px] rounded-xl bg-error/5 border border-error/10">
           [ ERROR: {error.toUpperCase()} ]
         </div>
       )}
@@ -294,7 +294,7 @@ export default function QuestionStepper({
           variant="outline"
           onClick={handleBack}
           disabled={currentIndex === 0}
-          className={`px-[20px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase border-black/10 transition-colors w-full sm:w-auto ${
+          className={`px-[20px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-black/10 transition-colors w-full sm:w-auto ${
             currentIndex === 0 ? "opacity-40 cursor-not-allowed" : "hover:border-black/30 bg-white"
           }`}
         >
@@ -304,10 +304,10 @@ export default function QuestionStepper({
         <Button
           onClick={handleSaveAndNext}
           disabled={!isValid || isPending}
-          className={`px-[24px] py-[12px] font-mono text-[11px] font-bold tracking-widest uppercase transition-all duration-300 w-full sm:w-auto ${
+          className={`px-[24px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide transition-all duration-300 w-full sm:w-auto ${
             !isValid || isPending 
-              ? "opacity-50 cursor-not-allowed bg-black/5 text-[#A8A29E] border border-black/5" 
-              : "!bg-[#1C1917] !text-white hover:!bg-[#292524] hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
+              ? "opacity-50 cursor-not-allowed bg-black/5 text-text-muted border border-black/5" 
+              : "!bg-accent !text-white hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
           }`}
         >
           {isPending

@@ -53,10 +53,9 @@ export default async function MyResponsesPage() {
 
   return (
     <>
-      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px] relative overflow-hidden">
-        <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
-        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">My Responses</h1>
-        <p className="text-[14px] text-[#64748B] mt-[4px]">Track your submitted responses</p>
+      <div className="mb-[24px]">
+        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">My Responses</h1>
+        <p className="text-[14px] text-text-secondary mt-[4px]">Track your submitted responses</p>
       </div>
 
       {/* Reputation stats */}

@@ -114,7 +114,8 @@ export default function CreateIdeaFlow() {
     const d = aiDraftRef.current;
     if (!d) return;
     setDraft(d);
-    setStep("review");
+    // Brief pause so the completion state registers visually before the view swaps
+    setTimeout(() => setStep("review"), 600);
   }, [isFree]);
 
   const handleScribbleSubmit = useCallback((text: string) => {
@@ -278,20 +279,20 @@ export default function CreateIdeaFlow() {
   return (
     <div>
       {showRestore && (
-        <div className="mb-[16px] p-[16px] rounded-[16px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-sm flex items-center justify-between gap-[12px]">
-          <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#1C1917]">
-            [ SUSPENDED SESSION DETECTED INCORPORATING SAVED CACHE ]
+        <div className="mb-[16px] p-[16px] rounded-[16px] bg-white/90 border border-border-light shadow-sm flex items-center justify-between gap-[12px]">
+          <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-primary">
+            [ UNSAVED DRAFT FOUND ]
           </p>
           <div className="flex items-center gap-[8px] shrink-0">
             <button
               onClick={handleRestore}
-              className="px-[16px] py-[8px] rounded-full bg-[#1C1917] text-white font-mono text-[10px] font-bold uppercase tracking-widest border border-transparent cursor-pointer hover:bg-white hover:text-[#1C1917] hover:border-[#1C1917] hover:shadow-md transition-all duration-300"
+              className="px-[16px] py-[8px] rounded-full bg-accent text-white font-mono text-[11px] font-medium uppercase tracking-wide border border-transparent cursor-pointer hover:bg-white hover:text-text-primary hover:border-accent hover:shadow-md transition-all duration-300"
             >
               [ RESTORE ]
             </button>
             <button
               onClick={handleDiscardRestore}
-              className="px-[16px] py-[8px] rounded-full font-mono text-[10px] uppercase tracking-widest font-bold text-[#A8A29E] bg-transparent border border-[#E7E5E4] cursor-pointer hover:border-[#1C1917] hover:text-[#1C1917] transition-all duration-300"
+              className="px-[16px] py-[8px] rounded-full font-mono text-[11px] uppercase tracking-wide font-medium text-text-muted bg-transparent border border-border-light cursor-pointer hover:border-accent hover:text-text-primary transition-all duration-300"
             >
               [ PURGE ]
             </button>
@@ -300,12 +301,12 @@ export default function CreateIdeaFlow() {
       )}
 
       {error && (
-        <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-[#ef4444]/10 border border-[#ef4444]/20 backdrop-blur-md flex items-center justify-between gap-[12px]">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">[ ERR: {error} ]</span>
+        <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-error/10 border border-error/20 flex items-center justify-between gap-[12px]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-error">[ ERR: {error} ]</span>
           {error.includes("Upgrade") && (
             <Link
               href="/#pricing"
-              className="shrink-0 px-[16px] py-[8px] rounded-full bg-[#ef4444] text-white font-mono text-[10px] uppercase tracking-widest font-bold no-underline hover:shadow-[0_0_16px_rgba(239,68,68,0.3)] transition-all duration-300"
+              className="shrink-0 px-[16px] py-[8px] rounded-full bg-error text-white font-mono text-[11px] uppercase tracking-wide font-medium no-underline hover:shadow-[0_0_16px_rgba(239,68,68,0.3)] transition-all duration-300"
             >
               [ ELEVATE PERMISSIONS ]
             </Link>

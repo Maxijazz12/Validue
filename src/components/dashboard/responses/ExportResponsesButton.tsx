@@ -53,14 +53,14 @@ export default function ExportResponsesButton({
         <button
           type="button"
           disabled
-          className="inline-flex items-center gap-[6px] px-[14px] py-[8px] rounded-xl text-[12px] font-medium border border-[#E2E8F0] text-[#CBD5E1] bg-white cursor-not-allowed"
+          className="inline-flex items-center gap-[6px] px-[14px] py-[8px] rounded-xl text-[12px] font-medium border border-border-light text-border-muted bg-white cursor-not-allowed"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           Export CSV
         </button>
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[6px] px-[10px] py-[4px] rounded-lg bg-[#111111] text-white text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[6px] px-[10px] py-[4px] rounded-lg bg-accent text-white text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Requires Pro plan
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function ExportResponsesButton({
         type="button"
         onClick={handleExport}
         disabled={loading}
-        className={`inline-flex items-center gap-[6px] px-[14px] py-[8px] rounded-xl text-[12px] font-medium border border-[#E2E8F0] text-[#64748B] bg-white hover:bg-[#FCFCFD] hover:border-[#CBD5E1] hover:text-[#111111] transition-all duration-200 cursor-pointer ${
+        className={`inline-flex items-center gap-[6px] px-[14px] py-[8px] rounded-xl text-[12px] font-medium border border-border-light text-text-secondary bg-white hover:bg-bg-muted hover:border-border-muted hover:text-text-primary transition-all duration-200 cursor-pointer ${
           loading ? "opacity-50 cursor-not-allowed" : ""
         }`}
       >
@@ -83,7 +83,7 @@ export default function ExportResponsesButton({
         {loading ? "Exporting..." : "Export CSV"}
       </button>
       {error && (
-        <p className="text-[11px] text-[#ef4444] mt-[4px]">{error}</p>
+        <p className="text-[11px] text-error mt-[4px]">{error}</p>
       )}
     </div>
   );

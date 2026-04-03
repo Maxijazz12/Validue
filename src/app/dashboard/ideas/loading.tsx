@@ -4,7 +4,7 @@ export default function IdeasLoading() {
   return (
     <>
       {/* Header skeleton */}
-      <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] mb-[24px]">
+      <div className="bg-bg-muted rounded-2xl border border-border-light p-[24px_32px] max-md:p-[20px] mb-[24px]">
         <div className="flex items-center justify-between">
           <div>
             <Skeleton className="h-[28px] w-[140px] mb-[8px]" />

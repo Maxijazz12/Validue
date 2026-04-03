@@ -140,7 +140,7 @@ export default function ResponseFlow({
   return (
     <div className="max-w-[640px] mx-auto">
       {error && (
-        <div className="text-[13px] text-[#ef4444] mb-[16px] p-[12px] rounded-xl bg-[#ef4444]/5">
+        <div className="text-[13px] text-error mb-[16px] p-[12px] rounded-xl bg-error/5">
           {error}
         </div>
       )}

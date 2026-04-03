@@ -83,14 +83,14 @@ export default function OpenEndedAnswer({
         onPaste={handlePaste}
         placeholder={placeholder}
         rows={5}
-        className="w-full px-[20px] py-[16px] rounded-[16px] border border-black/10 bg-white/60 backdrop-blur-md text-[15px] text-[#1C1917] leading-[1.6] resize-y outline-none focus:border-[#1C1917] transition-all duration-300 placeholder:text-[#A8A29E] font-sans"
+        className="w-full px-[20px] py-[16px] rounded-[16px] border border-black/10 bg-white text-[15px] text-text-primary leading-[1.6] resize-y outline-none focus:border-accent transition-all duration-300 placeholder:text-text-muted font-sans"
       />
 
       {/* Response anchors — fade after 100 chars */}
       {showAnchors && (
         <div className="flex flex-wrap gap-[6px] mt-[12px] transition-opacity duration-300" style={{ opacity: charCount > 60 ? 0.4 : 1 }}>
           {anchors.map((anchor, i) => (
-            <span key={i} className="font-mono text-[9px] font-bold uppercase tracking-[1px] text-[#A8A29E] bg-black/5 border border-black/10 px-[8px] py-[3px] rounded-md">
+            <span key={i} className="font-mono text-[9px] font-bold uppercase tracking-[1px] text-text-muted bg-black/5 border border-black/10 px-[8px] py-[3px] rounded-md">
               [ {anchor} ]
             </span>
           ))}
@@ -105,12 +105,12 @@ export default function OpenEndedAnswer({
               <polyline points="20 6 9 17 4 12" />
             </svg>
           ) : (
-            <span className="font-mono text-[10px] font-bold text-[#A8A29E] tracking-widest">
+            <span className="font-mono text-[10px] font-bold text-text-muted tracking-widest">
               {charCount}/{MIN_CHARS} CYCLES
             </span>
           )}
           {!meetsMin && charCount > 0 && (
-            <span className="font-mono text-[9px] font-bold text-[#E5654E] tracking-widest uppercase">
+            <span className="font-mono text-[11px] font-medium text-brand tracking-wide uppercase">
               {MIN_CHARS - charCount} CYCLES_REMAINING
             </span>
           )}
@@ -118,7 +118,7 @@ export default function OpenEndedAnswer({
 
         {/* Coaching tip */}
         {coaching && (
-          <span className="font-mono text-[9px] font-bold tracking-widest uppercase" style={{ color: coaching.color }}>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide" style={{ color: coaching.color }}>
             {coaching.text}
           </span>
         )}

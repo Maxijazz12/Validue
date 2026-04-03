@@ -18,11 +18,11 @@ export default function CampaignDetailLoading() {
       </div>
 
       {/* Signal dashboard skeleton */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px] mb-[24px]">
+      <div className="bg-white border border-border-light rounded-2xl p-[32px] mb-[24px]">
         <Skeleton className="h-[18px] w-[180px] mb-[16px]" />
         <div className="flex flex-col gap-[16px]">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-[#F1F5F9] rounded-xl p-[16px]">
+            <div key={i} className="border border-bg-muted rounded-xl p-[16px]">
               <Skeleton className="h-[14px] w-[80%] mb-[10px]" />
               <Skeleton className="h-[4px] w-full mb-[8px]" />
               <Skeleton className="h-[12px] w-[200px]" />
@@ -32,7 +32,7 @@ export default function CampaignDetailLoading() {
       </div>
 
       {/* Questions skeleton */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px]">
+      <div className="bg-white border border-border-light rounded-2xl p-[32px]">
         <Skeleton className="h-[18px] w-[160px] mb-[20px]" />
         <div className="flex flex-col gap-[12px]">
           {["w-[80%]", "w-[70%]", "w-[60%]", "w-[50%]"].map((w, i) => (

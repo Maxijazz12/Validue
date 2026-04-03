@@ -40,8 +40,8 @@ export default function WallReactionBar({
         aria-pressed={isActive}
         className={`flex items-center gap-[4px] px-[8px] py-[4px] rounded-full transition-all duration-150 cursor-pointer border ${
           isActive
-            ? "border-[#F0F0F0] bg-[#FAFAFA] text-[#1A1A1A]"
-            : "border-transparent text-[#A1A1AA] hover:text-[#71717A]"
+            ? "border-bg-muted bg-bg-muted text-text-primary"
+            : "border-transparent text-text-muted hover:text-text-secondary"
         }`}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill={isActive ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

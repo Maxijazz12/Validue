@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 type AvatarProps = {
   name: string;
@@ -8,9 +11,9 @@ type AvatarProps = {
 };
 
 const warmTints = [
-  { stroke0: "#E8C1B0", stroke1: "#D4A494", fill0: "#E8C1B0", fill1: "#EDD5C8" },
-  { stroke0: "#C4A99A", stroke1: "#B09080", fill0: "#C4A99A", fill1: "#DDD0C8" },
-  { stroke0: "#D4B4A4", stroke1: "#C09888", fill0: "#D4B4A4", fill1: "#E8D8D0" },
+  { stroke0: "#E8845C", stroke1: "#F0A882", fill0: "#E8845C", fill1: "#F0A882" },
+  { stroke0: "#E8845C", stroke1: "#F0A882", fill0: "#E8845C", fill1: "#F0A882" },
+  { stroke0: "#E8845C", stroke1: "#F0A882", fill0: "#E8845C", fill1: "#F0A882" },
 ];
 
 function hashName(name: string) {
@@ -22,6 +25,8 @@ function hashName(name: string) {
 }
 
 export default function Avatar({ name, imageUrl, size = 36, className = "" }: AvatarProps) {
+  const [loaded, setLoaded] = useState(false);
+
   if (imageUrl) {
     return (
       <Image
@@ -29,7 +34,8 @@ export default function Avatar({ name, imageUrl, size = 36, className = "" }: Av
         alt={name}
         width={size}
         height={size}
-        className={`rounded-full object-cover ${className}`}
+        className={`rounded-full object-cover img-blur-up ${loaded ? "loaded" : ""} ${className}`}
+        onLoad={() => setLoaded(true)}
         unoptimized
       />
     );
@@ -57,8 +63,11 @@ export default function Avatar({ name, imageUrl, size = 36, className = "" }: Av
           <stop offset="100%" stopColor={tint.fill1} stopOpacity="0.06" />
         </linearGradient>
       </defs>
-      <ellipse cx="32" cy="32" rx="27" ry="27" fill={`url(#${id}-f)`} stroke={`url(#${id}-s)`} strokeWidth="3" />
-      <path d="M32 6 Q29 30 32 58" stroke={`url(#${id}-s)`} strokeWidth="1.8" fill="none" opacity="0.3" />
+      <g transform="translate(32,32) scale(0.82) translate(-32,-32)">
+        <ellipse cx="32" cy="34" rx="22" ry="22" fill={`url(#${id}-f)`} stroke={`url(#${id}-s)`} strokeWidth="2" />
+        <ellipse cx="32" cy="34" rx="20" ry="20" fill="white" opacity="0.1" />
+        <path d="M32 13 Q29.5 32 32 55" stroke={`url(#${id}-s)`} strokeWidth="1.2" fill="none" opacity="0.3" />
+      </g>
     </svg>
   );
 }

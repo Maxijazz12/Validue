@@ -16,6 +16,13 @@ export type CampaignWithStats = {
 
 type RankingFilter = "all" | "ranked" | "unranked" | "ranking";
 
+const filterLabels: Record<RankingFilter, string> = {
+  all: "ALL",
+  ranked: "RANKED",
+  ranking: "RANKING",
+  unranked: "UNRANKED",
+};
+
 export default function ResponsesOverviewList({ campaigns }: { campaigns: CampaignWithStats[] }) {
   const [search, setSearch] = useState("");
   const [rankingFilter, setRankingFilter] = useState<RankingFilter>("all");
@@ -52,23 +59,28 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
     return result;
   }, [campaigns, rankingFilter, search]);
 
+  const staggerDelay = (index: number) => ({
+    opacity: 0,
+    animation: `cardEntranceV2 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) ${Math.min(index, 12) * 50}ms forwards`,
+  });
+
   return (
-    <div>
-      {/* Search + filter row */}
-      <div className="flex items-center gap-[12px] mb-[16px] max-md:flex-col max-md:items-stretch">
-        {/* Search */}
-        <div className="relative flex-1">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#94A3B8"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="absolute left-[12px] top-1/2 -translate-y-1/2"
-          >
+    <div className="relative z-10 w-full max-w-7xl mx-auto">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes cardEntranceV2 {
+          0% { opacity: 0; transform: translateY(24px) scale(0.96) rotateX(-4deg); }
+          100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
+        }
+        .glow-hover:hover {
+          box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.08);
+          transform: translateY(-2px);
+        }
+      `}} />
+
+      {/* Search + filter pane */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-[20px] mb-[40px] p-[8px] bg-white rounded-full border border-border-light/50 shadow-card-sm">
+        <div className="relative flex-1 w-full flex items-center shrink-0">
+          <svg className="absolute left-[20px]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D6D3D1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -76,28 +88,27 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
             placeholder="Search campaigns..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-[34px] pr-[12px] py-[8px] rounded-xl border border-[#E2E8F0] text-[13px] text-[#111111] bg-white placeholder:text-[#94A3B8] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
+            className="w-full pl-[52px] pr-[20px] py-[12px] bg-transparent text-[15px] font-medium tracking-tight text-text-primary placeholder:text-text-muted outline-none"
           />
         </div>
 
-        {/* Ranking filter tabs */}
         {availableFilters.length > 2 && (
-          <div className="flex gap-[4px] p-[4px] rounded-lg bg-[#F3F4F6] shrink-0">
+          <div className="flex gap-[6px] shrink-0 pr-[8px]">
             {availableFilters.map((f) => {
-              const label = f === "all" ? "All" : f === "ranked" ? "Ranked" : f === "ranking" ? "Ranking" : "Unranked";
+              const isActive = rankingFilter === f;
               return (
                 <button
                   key={f}
                   type="button"
                   onClick={() => setRankingFilter(f)}
-                  className={`text-[12px] font-semibold py-[6px] px-[10px] rounded-md transition-all cursor-pointer border-none whitespace-nowrap ${
-                    rankingFilter === f
-                      ? "bg-white text-[#111111] shadow-sm"
-                      : "bg-transparent text-[#64748B] hover:text-[#111111]"
+                  className={`text-[12px] font-medium uppercase tracking-wide py-[8px] px-[18px] rounded-full transition-all duration-300 cursor-pointer border-none flex items-center gap-2 ${
+                    isActive
+                      ? "bg-accent text-white shadow-md"
+                      : "bg-transparent text-text-muted hover:text-text-primary hover:bg-bg-muted"
                   }`}
                 >
-                  {label}
-                  <span className="ml-[3px] text-[#94A3B8] font-normal text-[11px]">
+                  {filterLabels[f]}
+                  <span className="text-[10px] opacity-80">
                     {f === "all" ? campaigns.length : counts[f] || 0}
                   </span>
                 </button>
@@ -109,12 +120,15 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
 
       {/* Results */}
       {filtered.length === 0 ? (
-        <div className="text-center py-[32px] text-[13px] text-[#94A3B8]">
-          {search.trim() ? `No campaigns matching "${search}"` : "No campaigns in this category."}
+        <div className="flex flex-col items-center justify-center py-[100px] border border-dashed border-border-light rounded-[32px] bg-white/90 text-center">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4 block">Query returned zero nodes</span>
+          <p className="text-[20px] font-medium tracking-tight text-text-primary">
+            {search.trim() ? `No campaigns matching "${search}"` : "No campaigns in this category"}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-[12px]">
-          {filtered.map((c) => {
+          {filtered.map((c, index) => {
             const progress =
               c.target_responses > 0
                 ? Math.min((c.current_responses / c.target_responses) * 100, 100)
@@ -124,16 +138,17 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
               <Link
                 key={c.id}
                 href={`/dashboard/ideas/${c.id}/responses`}
-                className="block bg-white border border-[#E2E8F0] rounded-xl p-[20px] hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-shadow no-underline"
+                style={staggerDelay(index)}
+                className="glow-hover block bg-white border border-border-light shadow-card-interactive rounded-[24px] p-[24px] transition-all duration-400 no-underline"
               >
-                <div className="flex items-center justify-between gap-[12px] mb-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-                  <span className="text-[15px] font-semibold text-[#111111]">
+                <div className="flex items-center justify-between gap-[12px] mb-[16px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
+                  <span className="text-[17px] font-medium tracking-tight text-text-primary">
                     {c.title}
                   </span>
                   <div className="flex items-center gap-[8px] shrink-0">
                     {c.avgScore !== null && (
                       <span
-                        className="text-[12px] font-mono font-semibold"
+                        className="font-mono text-[12px] font-bold"
                         style={{
                           color:
                             c.avgScore >= 70
@@ -143,55 +158,39 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
                                 : "#ef4444",
                         }}
                       >
-                        Avg: {c.avgScore}
+                        AVG {c.avgScore}
                       </span>
                     )}
                     <span
-                      className={`px-[10px] py-[4px] rounded-full text-[11px] font-semibold uppercase tracking-[0.5px] ${
+                      className={`px-[10px] py-[4px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${
                         c.ranking_status === "ranked"
-                          ? "bg-[#22c55e]/10 text-[#22c55e]"
+                          ? "bg-success/15 text-success"
                           : c.ranking_status === "ranking"
-                            ? "bg-[#E5654E]/10 text-[#E5654E]"
-                            : "bg-[#F3F4F6] text-[#94A3B8]"
+                            ? "bg-brand/10 text-brand"
+                            : "bg-bg-muted text-text-muted"
                       }`}
                     >
                       {c.ranking_status === "ranked"
-                        ? "Ranked"
+                        ? "RANKED"
                         : c.ranking_status === "ranking"
-                          ? "Ranking..."
-                          : "Unranked"}
+                          ? "RANKING"
+                          : "UNRANKED"}
                     </span>
                   </div>
                 </div>
 
                 {/* Progress */}
-                <div className="mb-[8px]">
-                  <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[#34D399] transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-[6px]">
-                    <span className="text-[12px] text-[#94A3B8]">
-                      <span className="font-mono font-semibold text-[#111111]">
-                        {c.totalResponses}
-                      </span>{" "}
-                      responses · {c.rankedCount} ranked
-                    </span>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#999999"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </div>
+                <div className="flex items-end justify-between font-mono text-[11px] font-medium text-text-muted mb-[8px] uppercase tracking-wide">
+                  <span>{c.totalResponses} Response{c.totalResponses !== 1 && "s"}</span>
+                  <span className="text-border-muted">{c.rankedCount} Ranked</span>
+                </div>
+                <div className="h-[3px] w-full bg-bg-muted overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${
+                      c.ranking_status === "ranked" ? "bg-success" : "bg-accent"
+                    }`}
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
               </Link>
             );

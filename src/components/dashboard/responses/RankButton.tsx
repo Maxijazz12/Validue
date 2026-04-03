@@ -72,11 +72,11 @@ export default function RankButton({
 
   if (result) {
     return (
-      <div className="flex items-center gap-[8px] p-[12px] rounded-xl bg-[#22c55e]/10">
+      <div className="flex items-center gap-[8px] p-[12px] rounded-xl bg-success/10">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        <span className="text-[13px] font-semibold text-[#22c55e]">
+        <span className="text-[13px] font-semibold text-success">
           {result.ranked} response{result.ranked !== 1 ? "s" : ""} ranked
         </span>
       </div>
@@ -106,16 +106,16 @@ export default function RankButton({
 
       {/* Progress bar */}
       {isRanking && progress && progress.total > 0 && (
-        <div className="mt-[8px] h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden">
+        <div className="mt-[8px] h-[4px] rounded-full bg-bg-muted overflow-hidden">
           <div
-            className="h-full rounded-full bg-[#34D399] transition-all duration-500"
+            className="h-full rounded-full bg-success-mid transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
       )}
 
       {error && (
-        <p className="text-[12px] text-[#ef4444] mt-[8px]">{error}</p>
+        <p className="text-[12px] text-error mt-[8px]">{error}</p>
       )}
     </div>
   );

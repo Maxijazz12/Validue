@@ -37,18 +37,21 @@ export default function RespondentProfileForm({
   const isComplete = interests.length > 0 && expertise.length > 0;
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px] mb-[24px]">
+    <div className="bg-white rounded-[28px] border border-border-light/60 shadow-card-sm overflow-hidden p-[32px] mb-[24px]">
       <div className="flex items-center justify-between mb-[8px]">
-        <h2 className="text-[16px] font-semibold text-[#111111]">
-          Matching Profile
-        </h2>
+        <div>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[6px]">Targeting</span>
+          <h2 className="text-[20px] font-medium tracking-tight text-text-primary">
+            Matching Profile
+          </h2>
+        </div>
         {isComplete && (
-          <span className="text-[11px] font-semibold px-[8px] py-[3px] rounded-full bg-[#22c55e]/10 text-[#22c55e]">
+          <span className="font-mono text-[11px] font-medium px-[10px] py-[4px] rounded-md uppercase tracking-wide bg-success/10 text-success">
             Complete
           </span>
         )}
       </div>
-      <p className="text-[13px] text-[#64748B] mb-[28px]">
+      <p className="text-[14px] text-text-secondary mb-[28px]">
         Help us match you with ideas you&apos;re qualified to answer. Better
         matches mean higher-quality feedback for founders — and more earnings for
         you.
@@ -88,7 +91,7 @@ export default function RespondentProfileForm({
         />
 
         <div className="flex flex-col gap-[6px] max-w-[240px]">
-          <label htmlFor="ageRange" className="text-[13px] font-medium text-[#64748B]">
+          <label htmlFor="ageRange" className="text-[13px] font-medium text-text-secondary">
             Age range
           </label>
           <select
@@ -96,7 +99,7 @@ export default function RespondentProfileForm({
             name="ageRange"
             value={ageRange}
             onChange={(e) => setAgeRange(e.target.value)}
-            className="text-[14px] px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]"
+            className="text-[14px] px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]"
           >
             <option value="">Select...</option>
             {AGE_RANGE_OPTIONS.map((opt) => (
@@ -109,7 +112,7 @@ export default function RespondentProfileForm({
 
         <div className="grid grid-cols-2 gap-[16px] max-w-[500px] max-md:grid-cols-1">
           <div className="flex flex-col gap-[6px]">
-            <label htmlFor="location" className="text-[13px] font-medium text-[#64748B]">
+            <label htmlFor="location" className="text-[13px] font-medium text-text-secondary">
               Location (city or country)
             </label>
             <input
@@ -118,12 +121,12 @@ export default function RespondentProfileForm({
               type="text"
               defaultValue={initialLocation}
               placeholder="e.g. New York, USA"
-              className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-[#94A3B8]"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-slate"
             />
           </div>
 
           <div className="flex flex-col gap-[6px]">
-            <label htmlFor="occupation" className="text-[13px] font-medium text-[#64748B]">
+            <label htmlFor="occupation" className="text-[13px] font-medium text-text-secondary">
               Occupation
             </label>
             <input
@@ -132,7 +135,7 @@ export default function RespondentProfileForm({
               type="text"
               defaultValue={initialOccupation}
               placeholder="e.g. Software Engineer"
-              className="w-full px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[15px] text-[#111111] font-sans outline-none transition-all duration-200 focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-[#94A3B8]"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-slate"
             />
           </div>
         </div>
@@ -141,12 +144,12 @@ export default function RespondentProfileForm({
           <button
             type="submit"
             disabled={saving}
-            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-[#111111] text-white hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-accent text-white hover:bg-accent hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : "Save Matching Profile"}
           </button>
           {saved && (
-            <span className="text-[13px] text-[#22c55e] font-medium animate-in fade-in">
+            <span className="text-[13px] text-success font-medium animate-in fade-in">
               Profile updated
             </span>
           )}

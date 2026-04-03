@@ -14,7 +14,7 @@ import {
 } from "@/lib/constants";
 
 const selectClass =
-  "text-[14px] px-[16px] py-[12px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
+  "text-[14px] px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
 
 interface AudienceTargetingPanelProps {
   audience: DraftAudience;
@@ -59,9 +59,9 @@ export default function AudienceTargetingPanel({
   }
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
+    <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
       <div className="flex items-center justify-between mb-[4px]">
-        <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917]">
+        <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary">
           [ 03: TARGET MATRIX ]
         </h2>
         {scribbleText && (
@@ -87,13 +87,13 @@ export default function AudienceTargetingPanel({
           </button>
         )}
       </div>
-      <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E] mb-[28px]">
+      <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-muted mb-[28px]">
         Define routing parameters for respondent demographic nodes.
       </p>
 
       {suggestError && (
-        <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-[#ef4444]/10 border border-[#ef4444]/20 backdrop-blur-md">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">[ ERR: {suggestError} ]</span>
+        <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-error/10 border border-error/20">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-error">[ ERR: {suggestError} ]</span>
         </div>
       )}
 
@@ -144,7 +144,7 @@ export default function AudienceTargetingPanel({
           <div className="flex flex-col gap-[6px]">
             <label
               htmlFor="audience-industry"
-              className="text-[13px] font-medium text-[#64748B]"
+              className="text-[13px] font-medium text-text-secondary"
             >
               Industry
             </label>
@@ -166,7 +166,7 @@ export default function AudienceTargetingPanel({
           <div className="flex flex-col gap-[6px]">
             <label
               htmlFor="audience-experience"
-              className="text-[13px] font-medium text-[#64748B]"
+              className="text-[13px] font-medium text-text-secondary"
             >
               Experience Level
             </label>

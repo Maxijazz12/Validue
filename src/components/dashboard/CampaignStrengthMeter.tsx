@@ -35,9 +35,9 @@ function Tooltip({
     >
       {children}
       {show && (
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[6px] px-[10px] py-[6px] text-[11px] text-white bg-[#111111] rounded-lg whitespace-normal max-w-[240px] leading-[1.4] z-10 pointer-events-none shadow-lg">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[6px] px-[10px] py-[6px] text-[11px] text-white bg-accent rounded-lg whitespace-normal max-w-[240px] leading-[1.4] z-10 pointer-events-none shadow-lg">
           {text}
-          <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-[#111111]" />
+          <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-accent" />
         </span>
       )}
     </span>
@@ -57,7 +57,7 @@ function InfoIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-[#94A3B8] cursor-help"
+      className="text-slate cursor-help"
     >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
@@ -93,21 +93,21 @@ export default function CampaignStrengthMeter({
           {strength}
         </div>
         <div>
-          <div className="text-[12px] font-semibold text-[#111111]">
+          <div className="text-[12px] font-semibold text-text-primary">
             Campaign Strength
           </div>
-          <div className="text-[11px] text-[#64748B]">{strengthLabel}</div>
+          <div className="text-[11px] text-text-secondary">{strengthLabel}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[24px]">
+    <div className="bg-white border border-border-light shadow-card rounded-[24px] p-[24px]">
       {/* Header */}
       <div className="flex items-center justify-between mb-[20px]">
         <div className="flex items-center gap-[12px]">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary">
             [ ENGINE PROPULSION ]
           </span>
           <Tooltip text="Campaign Strength is a 1–10 score that estimates how many qualified people will see your campaign. It's based on your plan, funding, and survey quality. You can improve it by increasing your fund or sharpening your questions.">
@@ -121,7 +121,7 @@ export default function CampaignStrengthMeter({
           >
             {strength}
           </span>
-          <span className="text-[14px] text-[#94A3B8] font-normal">/10</span>
+          <span className="text-[14px] text-slate font-normal">/10</span>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export default function CampaignStrengthMeter({
       <div className="flex gap-[3px] mb-[8px]">
         {Array.from({ length: 10 }, (_, i) => {
           if (i >= strength) {
-            return <div key={i} className="h-[6px] flex-1 rounded-full" style={{ backgroundColor: "#F1F5F9" }} />;
+            return <div key={i} className="h-[6px] flex-1 rounded-full" style={{ backgroundColor: "var(--color-bg-muted)" }} />;
           }
           const progress = strength <= 1 ? 1 : i / (strength - 1);
           const opacity = 0.35 + 0.65 * progress;
@@ -144,21 +144,21 @@ export default function CampaignStrengthMeter({
       </div>
 
       {/* Label */}
-      <p className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest mb-[24px]">{"// "}{strengthLabel}</p>
+      <p className="font-mono text-[11px] text-text-muted uppercase tracking-widest mb-[24px]">{"// "}{strengthLabel}</p>
 
       {/* Secondary metrics */}
       <div className="grid grid-cols-3 gap-[16px] pt-[20px] border-t border-black/5">
         {/* Estimated Responses */}
         <div>
           <div className="flex items-center gap-[8px] mb-[6px]">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
               EST. YIELD
             </span>
             <Tooltip text="The estimated number of completed responses. This is a range, not a guarantee — actual results depend on your audience, reward, and question quality.">
               <InfoIcon />
             </Tooltip>
           </div>
-          <div className="text-[15px] font-semibold text-[#111111] font-mono">
+          <div className="text-[15px] font-semibold text-text-primary font-mono">
             ~{estimatedResponsesLow}–{estimatedResponsesHigh}
           </div>
         </div>
@@ -166,14 +166,14 @@ export default function CampaignStrengthMeter({
         {/* Expected Visibility */}
         <div>
           <div className="flex items-center gap-[4px] mb-[4px]">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
               VISIBILITY
             </span>
             <Tooltip text="How many people in your target audience will see your campaign. Higher plans and more funding increase this number.">
               <InfoIcon />
             </Tooltip>
           </div>
-          <div className="text-[16px] font-bold text-[#1C1917] font-mono tracking-tight">
+          <div className="text-[16px] font-bold text-text-primary font-mono tracking-tight">
             ~{effectiveReach.toLocaleString()}
           </div>
         </div>
@@ -181,14 +181,14 @@ export default function CampaignStrengthMeter({
         {/* Fill Speed */}
         <div>
           <div className="flex items-center gap-[8px] mb-[6px]">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
               VELOCITY
             </span>
             <Tooltip text="How quickly you can expect responses to come in. This is an estimate based on typical activity — not a guarantee.">
               <InfoIcon />
             </Tooltip>
           </div>
-          <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917] mt-1">
+          <div className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary mt-1">
             {fillSpeedLabel}
           </div>
         </div>

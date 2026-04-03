@@ -33,7 +33,7 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
 
   return (
     <div
-      className="flex items-center gap-[14px] p-[14px_18px] rounded-xl border border-[#E2E8F0] dark:border-[#2A2D3A] mb-[12px] bg-bg-card bg-gradient-to-r from-[#4F7BE8]/5 to-transparent relative overflow-hidden"
+      className="flex items-center gap-[14px] p-[14px_18px] rounded-xl border border-border-light mb-[12px] bg-bg-card bg-gradient-to-r from-[#4F7BE8]/5 to-transparent relative overflow-hidden"
       style={{ borderLeftWidth: 3, borderLeftColor: "#4F7BE8", animation: "slideInFromTop 0.4s ease-out" }}
     >
       {/* Icon */}
@@ -45,16 +45,16 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-[#111111] dark:text-[#E8EAF0]">
+        <p className="text-[13px] font-semibold text-text-primary">
           Your week in review
         </p>
-        <p className="text-[12px] text-[#64748B] dark:text-[#94A3B8] mt-[2px]">
-          <span className="font-mono font-semibold text-[#111111] dark:text-[#E8EAF0]">{digest.responsesThisWeek}</span> response{digest.responsesThisWeek !== 1 ? "s" : ""}
+        <p className="text-[12px] text-text-secondary mt-[2px]">
+          <span className="font-mono font-semibold text-text-primary">{digest.responsesThisWeek}</span> response{digest.responsesThisWeek !== 1 ? "s" : ""}
           {digest.earnedThisWeek > 0 && (
-            <>, <span className="font-mono font-semibold text-[#22C55E]">${digest.earnedThisWeek.toFixed(0)}</span> earned</>
+            <>, <span className="font-mono font-semibold text-success">${digest.earnedThisWeek.toFixed(0)}</span> earned</>
           )}
           {digest.qualityDelta !== 0 && (
-            <>, quality score <span className={digest.qualityDelta > 0 ? "text-[#22C55E]" : "text-[#EF4444]"}>{digest.qualityDelta > 0 ? "+" : ""}{digest.qualityDelta}</span></>
+            <>, quality score <span className={digest.qualityDelta > 0 ? "text-success" : "text-error"}>{digest.qualityDelta > 0 ? "+" : ""}{digest.qualityDelta}</span></>
           )}
           {digest.percentile > 0 && digest.percentile <= 50 && (
             <>. You&apos;re in the <span className="font-semibold text-[#4F7BE8]">top {digest.percentile}%</span> of respondents</>
@@ -73,7 +73,7 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
       {/* Dismiss */}
       <button
         onClick={handleDismiss}
-        className="text-[#94A3B8] hover:text-[#64748B] bg-transparent border-none cursor-pointer p-[4px] transition-colors shrink-0"
+        className="text-slate hover:text-text-secondary bg-transparent border-none cursor-pointer p-[4px] transition-colors shrink-0"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />

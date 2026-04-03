@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-/* ─── Dark mode: use .dark class, not prefers-color-scheme media query ─── */
-@custom-variant dark (&:where(.dark, .dark *));
-
 /* ─── Accessibility: respect reduced motion preference ─── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -30,13 +27,24 @@
   --color-accent-warm: #D4A088;
   --color-accent-warm-light: #FBF6F3;
   --color-accent-soft: rgba(212, 160, 136, 0.10);
+  --color-accent-warm-muted: #E8C1B0;
+
+  /* ─── Extended palette ─── */
+  --color-accent-dark: #292524;
+  --color-brand: #E5654E;
+  --color-brand-dark: #CC5340;
+  --color-bg-muted: #F5F5F4;
+  --color-border-light: #E7E5E4;
+  --color-border-muted: #D6D3D1;
+  --color-success-mid: #34D399;
+  --color-purple: #8b5cf6;
+  --color-pink: #ec4899;
+  --color-slate: #94A3B8;
 
   /* ─── Fonts ─── */
   --font-sans: var(--font-dm-sans), "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
   --font-heading: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
-  --font-wall-heading: var(--font-playfair), "Playfair Display", Georgia, serif;
-  --font-wall-body: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* ─── Motion system ─── */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
@@ -47,50 +55,26 @@
   --duration-slow: 0.7s;
   --stagger-child: 0.06s;
 
+  /* ─── Semantic state colors ─── */
+  --color-success: #22c55e;
+  --color-success-light: rgba(34, 197, 94, 0.10);
+  --color-warning: #f59e0b;
+  --color-warning-light: rgba(245, 158, 11, 0.10);
+  --color-error: #ef4444;
+  --color-error-light: rgba(239, 68, 68, 0.10);
+  --color-info: #3b82f6;
+  --color-info-light: rgba(59, 130, 246, 0.10);
+
   /* ─── Animations ─── */
   --animate-fade-up: fadeUp var(--duration-slow) var(--ease-spring) forwards;
   --animate-slide-up: slideUp var(--duration-enter) var(--ease-spring) forwards;
   --animate-pulse-dot: pulse 2.5s ease infinite;
   --animate-ticker: ticker 60s linear infinite;
   --animate-load-dot: loadDot 1.4s ease infinite;
-  /* float animations removed */
+  --animate-toast-in: toastIn 0.35s var(--ease-spring) forwards;
 }
 
-/* ─── Dark theme overrides (warm dark) ─── */
-.dark {
-  --color-bg: #110F0D;
-  --color-bg-elevated: #1A1816;
-  --color-bg-hero: #13110F;
-  --color-bg-card: #1A1816;
-  --color-border: #2A2622;
-  --color-border-hover: #3D3830;
-  --color-text-primary: #FAF8F5;
-  --color-text-secondary: #A8A29E;
-  --color-text-muted: #78716C;
-  --color-accent: #FAF8F5;
-  color-scheme: dark;
-}
-
-/* Dark mode: override hardcoded colors on common elements */
-.dark input, .dark select, .dark textarea {
-  background-color: #1A1816;
-  border-color: #2A2622;
-  color: #FAF8F5;
-}
-.dark input::placeholder, .dark textarea::placeholder {
-  color: #78716C;
-}
-.dark input:focus, .dark select:focus, .dark textarea:focus {
-  border-color: #3D3830;
-  box-shadow: 0 0 0 3px rgba(212, 160, 136, 0.06);
-}
-
-/* ─── Immersive mode: warm spatial environment ─── */
-/* Note: immersive mode forces .dark class via ImmersiveProvider,
-   so all existing dark: variants apply automatically.
-   These rules are ONLY for immersive-specific enhancements. */
-
-/* Immersive shell — warm brown-black base */
+/* ─── Immersive mode ─── */
 .immersive-shell {
   transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -98,41 +82,16 @@
   background: #141210 !important;
 }
 
-/* Concentric arc rings — the premium depth pattern across the full page */
+/* Single warm glow — top-left ambient light */
 [data-immersive] .immersive-shell::after {
   content: '';
   position: fixed;
   inset: 0;
-  /* Multiple concentric circles from top-right — clearly visible */
-  background:
-    radial-gradient(ellipse 80% 80% at 82% 12%, transparent 28%, rgba(255,255,255,0.035) 28.5%, transparent 29.2%),
-    radial-gradient(ellipse 100% 100% at 82% 12%, transparent 33%, rgba(255,255,255,0.028) 33.5%, transparent 34.2%),
-    radial-gradient(ellipse 125% 125% at 82% 12%, transparent 38%, rgba(255,255,255,0.022) 38.5%, transparent 39.2%),
-    radial-gradient(ellipse 150% 150% at 82% 12%, transparent 43%, rgba(255,255,255,0.016) 43.5%, transparent 44.2%),
-    radial-gradient(ellipse 180% 180% at 82% 12%, transparent 48%, rgba(255,255,255,0.012) 48.5%, transparent 49.2%),
-    /* Warm glow at top-left */
-    radial-gradient(ellipse 50% 40% at 8% 8%, rgba(232, 193, 176, 0.06) 0%, transparent 55%),
-    /* Subtle warm center glow */
-    radial-gradient(ellipse 80% 80% at 50% 50%, rgba(200, 180, 160, 0.015) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 50% at 10% 10%, rgba(232, 193, 176, 0.06) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
 
-/* Vignette — warm darkening at edges */
-[data-immersive] .immersive-shell::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(
-    ellipse 70% 60% at 50% 40%,
-    transparent 20%,
-    rgba(14, 12, 10, 0.6) 100%
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Main content above dot grid + vignette */
 [data-immersive] .immersive-shell > main {
   position: relative;
   z-index: 2;
@@ -162,7 +121,7 @@
 /* Font custom properties — @theme inline doesn't emit these, so declare explicitly */
 :root {
   --font-sans: var(--font-dm-sans), "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
   --font-heading: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
 }
 
@@ -174,6 +133,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  letter-spacing: -0.01em;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -190,43 +150,6 @@ body {
   background: var(--color-border);
   border-radius: 3px;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: #3F3F46;
-}
-
-/* Dark mode: override hardcoded Tailwind arbitrary values */
-/* Backgrounds */
-.dark .bg-white { background-color: #18181B !important; }
-.dark .bg-\[\#FCFCFD\] { background-color: #131315 !important; }
-.dark .bg-\[\#FAFAFA\] { background-color: #131315 !important; }
-.dark .bg-\[\#FAF9FA\] { background-color: #131315 !important; }
-.dark .bg-\[\#F3F4F6\] { background-color: #27272A !important; }
-.dark .bg-\[\#F5F5F5\] { background-color: #27272A !important; }
-.dark .bg-\[\#F8FAFC\] { background-color: #1C1C1F !important; }
-.dark .bg-\[\#F1F5F9\] { background-color: #27272A !important; }
-
-/* Borders */
-.dark .border-\[\#F0F0F0\] { border-color: #27272A !important; }
-.dark .border-\[\#E2E8F0\] { border-color: #27272A !important; }
-.dark .border-\[\#E5E5E5\] { border-color: #3F3F46 !important; }
-.dark .border-\[\#CBD5E1\] { border-color: #3F3F46 !important; }
-.dark .border-\[\#f0f0f0\] { border-color: #27272A !important; }
-
-/* Text */
-.dark .text-\[\#1A1A1A\] { color: #FAFAFA !important; }
-.dark .text-\[\#111111\] { color: #FAFAFA !important; }
-.dark .text-\[\#222222\] { color: #FAFAFA !important; }
-.dark .text-\[\#71717A\] { color: #A1A1AA !important; }
-.dark .text-\[\#A1A1AA\] { color: #71717A !important; }
-.dark .text-\[\#64748B\] { color: #A1A1AA !important; }
-.dark .text-\[\#94A3B8\] { color: #71717A !important; }
-
-/* Hover backgrounds */
-.dark .hover\:bg-\[\#FAFAFA\]:hover { background-color: #27272A !important; }
-.dark .hover\:bg-\[\#FCFCFD\]:hover { background-color: #27272A !important; }
-.dark .hover\:bg-\[\#F9FAFB\]:hover { background-color: #27272A !important; }
-.dark .hover\:border-\[\#E5E5E5\]:hover { border-color: #3F3F46 !important; }
-.dark .hover\:border-\[\#CBD5E1\]:hover { border-color: #3F3F46 !important; }
 
 /* ─── CTA Button (warm dark with terracotta glow on hover) ─── */
 .gradient-btn {
@@ -245,21 +168,42 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transform: translateY(0);
 }
-.dark .gradient-btn {
-  background: #FAF8F5;
-  color: #1C1917;
+/* ─── Shadow System ─── */
+.shadow-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 16px -4px rgba(0, 0, 0, 0.06);
 }
-.dark .gradient-btn:hover {
-  background: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(212, 160, 136, 0.25), 0 2px 8px rgba(0, 0, 0, 0.2);
+.shadow-card-hover {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 8px 24px -4px rgba(0, 0, 0, 0.08);
+}
+.shadow-card-sm {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 2px 8px -2px rgba(0, 0, 0, 0.04);
+}
+.shadow-card-interactive {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 16px -4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.shadow-card-interactive:hover {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 8px 24px -4px rgba(0, 0, 0, 0.08);
 }
 
-/* ─── Glass surface (warm frosted glass) ─── */
+/* ─── Glass surface ─── */
 .glass {
-  background: rgba(255, 252, 248, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 1px 3px rgba(180, 140, 110, 0.06);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px -4px rgba(0, 0, 0, 0.05);
 }
 
 /* ─── Card hover (warm layered shadow) ─── */
@@ -267,17 +211,20 @@ body {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card-hover:hover {
-  box-shadow: 0 4px 16px rgba(180, 140, 110, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 8px 20px -4px rgba(180, 140, 110, 0.1),
+    0 20px 40px -12px rgba(0, 0, 0, 0.05);
   border-color: #DDD6CE;
 }
 
 /* ─── Wall page: full-bleed background ─── */
 /* When .wall-page-bleed is present, color the entire main + shell bg */
 .immersive-shell:has(.wall-page-bleed) {
-  background: #FBF9F7;
+  background: #FFFFFF;
 }
 .immersive-shell:has(.wall-page-bleed) > main {
-  background: #FBF9F7;
+  background: #FFFFFF;
 }
 
 /* ─── Wall: card stagger entrance ─── */
@@ -343,24 +290,19 @@ body {
   background: #FFFFFF;
   box-shadow:
     0 0 0 1px rgba(180, 140, 110, 0.06),
-    0 2px 8px rgba(180, 140, 110, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.02);
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px -2px rgba(180, 140, 110, 0.07),
+    0 12px 32px -8px rgba(0, 0, 0, 0.03);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .stat-card-surface:hover {
   box-shadow:
     0 0 0 1px rgba(180, 140, 110, 0.08),
-    0 4px 16px rgba(180, 140, 110, 0.10),
-    0 2px 4px rgba(0, 0, 0, 0.03);
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 8px 20px -4px rgba(180, 140, 110, 0.1),
+    0 20px 40px -12px rgba(0, 0, 0, 0.05);
   transform: translateY(-1px);
 }
-.dark .stat-card-surface {
-  background: rgba(255, 248, 240, 0.04);
-  box-shadow:
-    0 0 0 1px rgba(255, 248, 240, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
 /* ─── Accent text (warm terracotta) ─── */
 .text-gradient-warm {
   color: #C4856E;
@@ -516,4 +458,48 @@ body {
 }
 .live-pulse {
   animation: livePulse 2s ease infinite;
+}
+
+/* ─── Wall: bento card hover effect ─── */
+.glow-hover {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.glow-hover:hover {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ─── Toast entrance ─── */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Image blur-up loading ─── */
+.img-blur-up {
+  filter: blur(8px);
+  transform: scale(1.02);
+  transition: filter 0.6s ease-out, transform 0.6s ease-out;
+}
+.img-blur-up.loaded {
+  filter: blur(0);
+  transform: scale(1);
+}
+
+/* ─── Mobile touch feedback ─── */
+@media (hover: none) {
+  .glow-hover:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+    transition-duration: 0.1s;
+  }
+  button:active, a:active {
+    opacity: 0.85;
+    transition-duration: 0.1s;
+  }
 }

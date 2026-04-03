@@ -60,7 +60,7 @@ export default function FundCampaignButton({
       <div className="flex items-center gap-[8px]">
         {needsAmount && (
           <div className="relative">
-            <span className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[14px] text-[#94A3B8]">
+            <span className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[14px] text-slate">
               $
             </span>
             <input
@@ -71,14 +71,14 @@ export default function FundCampaignButton({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               disabled={loading}
-              className="w-[100px] pl-[22px] pr-[8px] py-[9px] text-[14px] rounded-xl border border-[#E2E8F0] bg-white text-[#111111] outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-[100px] pl-[22px] pr-[8px] py-[9px] text-[14px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         )}
         <button
           onClick={handleFund}
           disabled={loading}
-          className="px-[20px] py-[10px] rounded-xl bg-[#111111] text-white text-[14px] font-medium hover:bg-[#1a1a1a] hover:shadow-[0_4px_20px_rgba(232,193,176,0.15),0_1px_4px_rgba(232,193,176,0.08)] hover:-translate-y-[1px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+          className="px-[20px] py-[10px] rounded-xl bg-accent text-white text-[14px] font-medium hover:bg-accent hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
         >
           {loading
             ? "Redirecting to payment..."
@@ -87,7 +87,7 @@ export default function FundCampaignButton({
                 : `Pay & Go Live — $${rewardAmount.toFixed(2)}`)}
         </button>
       </div>
-      <span className="text-[11px] text-[#94A3B8]">Secure payment via Stripe</span>
+      <span className="text-[11px] text-slate">Secure payment via Stripe</span>
       {error && (
         <span className="text-[12px] text-red-500">{error}</span>
       )}

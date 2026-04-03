@@ -46,8 +46,8 @@ export default function MultipleChoiceAnswer({
             onClick={() => onChange(option)}
             className={`w-full text-left px-[20px] py-[16px] rounded-[16px] font-sans text-[15px] transition-all duration-300 border cursor-pointer flex items-center gap-[12px] ${
               selected
-                ? "border-[#1C1917] bg-[#1C1917] text-white shadow-[0_8px_24px_rgba(28,25,23,0.15)]"
-                : "border-black/10 bg-white/60 backdrop-blur-md text-[#1C1917] hover:border-black/30 hover:bg-white"
+                ? "border-accent bg-accent text-white shadow-[0_8px_24px_rgba(28,25,23,0.15)]"
+                : "border-black/10 bg-white text-text-primary hover:border-black/30 hover:bg-white"
             }`}
           >
             <div className={`w-[16px] h-[16px] rounded-sm border shrink-0 flex items-center justify-center transition-colors ${

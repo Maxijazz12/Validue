@@ -16,11 +16,11 @@ type Props = ButtonProps | AnchorProps;
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-[#1C1917] text-white font-medium hover:bg-[#292524] shadow-[0_2px_8px_rgba(28,25,23,0.12)] hover:shadow-[0_4px_16px_rgba(212,160,136,0.18)]",
+    "bg-accent text-white font-medium hover:bg-accent-dark shadow-[0_2px_8px_rgba(28,25,23,0.12)] hover:shadow-[0_4px_16px_rgba(212,160,136,0.18)]",
   secondary:
-    "bg-white text-[#1C1917] border border-[#EDE8E3] hover:border-[#DDD6CE] hover:bg-[#FAF8F5]",
+    "bg-white text-text-primary border border-border hover:border-border-hover hover:bg-[#FAF8F5]",
   outline:
-    "bg-transparent text-[#78716C] border border-[#EDE8E3] hover:border-[#DDD6CE] hover:text-[#1C1917]",
+    "bg-transparent text-text-secondary border border-border hover:border-border-hover hover:text-text-primary",
 };
 
 export default function Button({

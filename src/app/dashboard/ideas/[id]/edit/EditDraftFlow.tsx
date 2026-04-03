@@ -92,7 +92,7 @@ export default function EditDraftFlow({ campaignId, initialDraft }: EditDraftFlo
           {error.includes("Upgrade") && (
             <Link
               href="/#pricing"
-              className="shrink-0 px-[14px] py-[6px] rounded-xl bg-[#111111] text-white text-[12px] font-medium no-underline hover:bg-[#1a1a1a] transition-all duration-200"
+              className="shrink-0 px-[14px] py-[6px] rounded-xl bg-accent text-white text-[12px] font-medium no-underline hover:bg-accent transition-all duration-200"
             >
               View Plans
             </Link>

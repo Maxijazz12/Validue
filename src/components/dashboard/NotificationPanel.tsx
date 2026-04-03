@@ -17,7 +17,7 @@ function timeAgo(dateStr: string): string {
 
 const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
   payout_earned: {
-    bg: "bg-[#34D399]/10",
+    bg: "bg-success-mid/10",
     color: "#34D399",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -26,7 +26,7 @@ const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.React
     ),
   },
   campaign_completed: {
-    bg: "bg-[#E5654E]/10",
+    bg: "bg-brand/10",
     color: "#E5654E",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,7 +35,7 @@ const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.React
     ),
   },
   new_response: {
-    bg: "bg-[#3b82f6]/10",
+    bg: "bg-info/10",
     color: "#3b82f6",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -44,7 +44,7 @@ const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.React
     ),
   },
   ranking_complete: {
-    bg: "bg-[#8b5cf6]/10",
+    bg: "bg-purple/10",
     color: "#8b5cf6",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -53,7 +53,7 @@ const NOTIF_ICONS: Record<string, { bg: string; color: string; icon: React.React
     ),
   },
   quality_feedback: {
-    bg: "bg-[#f59e0b]/10",
+    bg: "bg-warning/10",
     color: "#f59e0b",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -114,18 +114,18 @@ export default function NotificationPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-[24px]">
         <div>
-          <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">
+          <h1 className="text-[24px] font-medium tracking-tight text-text-primary">
             Notifications
           </h1>
           {unreadCount > 0 && (
-            <p className="text-[14px] text-[#64748B] mt-[2px]">{unreadCount} unread</p>
+            <p className="text-[14px] text-text-secondary mt-[2px]">{unreadCount} unread</p>
           )}
         </div>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllRead}
             disabled={isPending}
-            className="text-[13px] text-[#94A3B8] hover:text-[#111111] bg-transparent border-none cursor-pointer transition-colors disabled:opacity-50"
+            className="text-[13px] text-slate hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors disabled:opacity-50"
           >
             Mark all as read
           </button>
@@ -134,12 +134,12 @@ export default function NotificationPanel() {
 
       {/* Notification list */}
       {loading ? (
-        <div className="py-[48px] text-center text-[14px] text-[#A8A29E] font-mono uppercase tracking-widest">Reading terminal...</div>
+        <div className="py-[48px] text-center text-[14px] text-text-muted font-mono uppercase tracking-widest">Reading terminal...</div>
       ) : notifications.length === 0 ? (
-        <div className="py-[120px] text-center border border-dashed border-white/60 rounded-[32px] bg-white/40 backdrop-blur-xl">
-          <span className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase mb-4 block">Event Log Empty</span>
-          <p className="text-[20px] font-medium tracking-tight text-[#1C1917] mb-[4px]">You&apos;re all caught up</p>
-          <p className="text-[14px] text-[#78716C] mt-[4px]">
+        <div className="py-[120px] text-center border border-dashed border-border-light rounded-[32px] bg-white/90">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4 block">Event Log Empty</span>
+          <p className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">You&apos;re all caught up</p>
+          <p className="text-[14px] text-text-secondary mt-[4px]">
             Ping signals will resolve here when operations conclude.
           </p>
         </div>
@@ -149,25 +149,25 @@ export default function NotificationPanel() {
             <button
               key={notif.id}
               onClick={() => handleClick(notif)}
-              className={`flex items-start gap-[16px] p-[20px] rounded-[24px] border text-left w-full cursor-pointer transition-all duration-400 group hover:shadow-[0_12px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] ${
+              className={`flex items-start gap-[16px] p-[20px] rounded-[24px] border text-left w-full cursor-pointer transition-all duration-400 group shadow-card-interactive ${
                 notif.read_at
-                  ? "bg-white/30 backdrop-blur-2xl border-white/40 shadow-[0_4px_24px_rgba(0,0,0,0.015)]"
-                  : "bg-white/60 backdrop-blur-3xl border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] border-l-[4px] border-l-[#E5654E]"
+                  ? "bg-white/90 border-white/40"
+                  : "bg-white border-border-light border-l-[4px] border-l-brand"
               }`}
             >
               <NotificationIcon type={notif.type} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-[8px]">
-                  <span className={`text-[15px] tracking-tight font-medium ${notif.read_at ? "text-[#78716C]" : "text-[#1C1917]"}`}>
+                  <span className={`text-[15px] tracking-tight font-medium ${notif.read_at ? "text-text-secondary" : "text-text-primary"}`}>
                     {notif.title}
                   </span>
-                  <span className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-widest shrink-0">{timeAgo(notif.created_at)}</span>
+                  <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest shrink-0">{timeAgo(notif.created_at)}</span>
                 </div>
                 {notif.body && (
-                  <p className="text-[14px] text-[#78716C] mt-[4px] line-clamp-2 leading-snug">{notif.body}</p>
+                  <p className="text-[14px] text-text-secondary mt-[4px] line-clamp-2 leading-snug">{notif.body}</p>
                 )}
                 {notif.amount && (
-                  <span className="inline-block mt-[6px] font-mono font-bold text-[14px] text-[#22C55E]">
+                  <span className="inline-block mt-[6px] font-mono font-bold text-[14px] text-success">
                     ${notif.amount}
                   </span>
                 )}

@@ -78,10 +78,10 @@ function QuestionCard({
   }
 
   return (
-    <div className="group flex flex-col md:flex-row gap-[16px] p-[20px] rounded-[24px] border border-white/60 bg-white/40 shadow-sm backdrop-blur-md hover:border-white/80 hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition-all duration-300 relative overflow-hidden">
+    <div className="group flex flex-col md:flex-row gap-[16px] p-[20px] rounded-[24px] border border-border-light bg-white shadow-sm hover:border-border-light hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition-all duration-300 relative overflow-hidden">
       {/* Numbering */}
-      <div className="flex-shrink-0 w-[32px] h-[32px] rounded-full bg-white flex items-center justify-center border border-[#E7E5E4] shadow-sm relative z-10">
-        <span className="font-mono text-[11px] font-bold text-[#1C1917]">
+      <div className="flex-shrink-0 w-[32px] h-[32px] rounded-full bg-white flex items-center justify-center border border-border-light shadow-sm relative z-10">
+        <span className="font-mono text-[11px] font-bold text-text-primary">
           {String(index + 1).padStart(2, "0")}
         </span>
       </div>
@@ -91,12 +91,12 @@ function QuestionCard({
         {/* Type badge */}
         <div className="flex items-center gap-[12px] mb-[12px]">
           <span
-            className={`font-mono text-[9px] font-bold uppercase tracking-widest px-[10px] py-[4px] rounded-full shadow-sm ${
+            className={`font-mono text-[11px] font-medium uppercase tracking-wide px-[10px] py-[4px] rounded-full shadow-sm ${
               question.isBaseline
-                ? "bg-[#E5654E]/10 text-[#E5654E] border border-[#E5654E]/20"
+                ? "bg-brand/10 text-brand border border-brand/20"
                 : question.type === "open"
-                  ? "bg-[#1C1917]/5 text-[#1C1917] border border-[#1C1917]/10"
-                  : "bg-[#2ca05a]/10 text-[#2ca05a] border border-[#2ca05a]/20"
+                  ? "bg-accent/5 text-text-primary border border-accent/10"
+                  : "bg-success/10 text-success border border-success/20"
             }`}
           >
             {question.isBaseline
@@ -106,7 +106,7 @@ function QuestionCard({
                 : "[ MULTI_NODE ]"}
           </span>
           {question.category && (
-            <span className="font-mono text-[9px] text-[#A8A29E] uppercase tracking-widest">
+            <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
               {"// "}{question.category}
             </span>
           )}
@@ -120,7 +120,7 @@ function QuestionCard({
               onChange={(e) => setEditText(e.target.value)}
               rows={2}
               autoFocus
-              className="w-full px-[16px] py-[12px] rounded-[12px] border border-[#D6D3D1] bg-white text-[15px] font-medium text-[#1C1917] font-sans outline-none resize-none focus:border-[#1C1917] focus:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all"
+              className="w-full px-[16px] py-[12px] rounded-[12px] border border-border-muted bg-white text-[15px] font-medium text-text-primary font-sans outline-none resize-none focus:border-accent focus:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -135,7 +135,7 @@ function QuestionCard({
             <div className="flex gap-[8px]">
               <button
                 onClick={saveEdit}
-                className="font-mono text-[10px] font-bold uppercase tracking-widest text-white px-[16px] py-[8px] rounded-full bg-[#1C1917] hover:bg-[#E5654E] hover:shadow-[0_0_12px_rgba(229,101,78,0.3)] transition-all cursor-pointer border-none"
+                className="font-mono text-[11px] font-medium uppercase tracking-wide text-white px-[16px] py-[8px] rounded-full bg-accent hover:bg-brand hover:shadow-[0_0_12px_rgba(229,101,78,0.3)] transition-all cursor-pointer border-none"
               >
                 [ COMMIT ]
               </button>
@@ -144,7 +144,7 @@ function QuestionCard({
                   setEditText(question.text);
                   setIsEditing(false);
                 }}
-                className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#A8A29E] px-[16px] py-[8px] rounded-full hover:text-[#1C1917] hover:bg-white transition-all cursor-pointer border border-transparent hover:border-[#E7E5E4]"
+                className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted px-[16px] py-[8px] rounded-full hover:text-text-primary hover:bg-white transition-all cursor-pointer border border-transparent hover:border-border-light"
               >
                 [ REVERT ]
               </button>
@@ -152,7 +152,7 @@ function QuestionCard({
           </div>
         ) : (
           <p
-            className="text-[16px] font-medium tracking-tight text-[#1C1917] leading-[1.5] cursor-pointer hover:text-[#E5654E] transition-colors"
+            className="text-[16px] font-medium tracking-tight text-text-primary leading-[1.5] cursor-pointer hover:text-brand transition-colors"
             onClick={() => {
               if (question.isBaseline) return;
               setEditText(question.text);
@@ -169,7 +169,7 @@ function QuestionCard({
             {question.options.map((opt) => (
               <span
                 key={opt}
-                className="text-[12px] px-[10px] py-[4px] rounded-full border border-[#E2E8F0] text-[#64748B] bg-[#FCFCFD]"
+                className="text-[12px] px-[10px] py-[4px] rounded-full border border-border-light text-text-secondary bg-bg-muted"
               >
                 {opt}
               </span>
@@ -184,7 +184,7 @@ function QuestionCard({
         <button
           onClick={onMoveUp}
           disabled={index === 0}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
           title="Move up"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -196,7 +196,7 @@ function QuestionCard({
         <button
           onClick={onMoveDown}
           disabled={index === total - 1}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
           title="Move down"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -208,7 +208,7 @@ function QuestionCard({
         {!question.isBaseline && (
           <button
             onClick={onRegenerate}
-            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-all cursor-pointer border-none bg-transparent"
+            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary transition-all cursor-pointer border-none bg-transparent"
             title="Regenerate from templates (free)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -237,7 +237,7 @@ function QuestionCard({
         {question.isBaseline && (
           <button
             onClick={onSwapBaseline}
-            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#E5654E] hover:bg-[#E5654E]/10 transition-all cursor-pointer border-none bg-transparent"
+            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-brand hover:bg-brand/10 transition-all cursor-pointer border-none bg-transparent"
             title="Swap baseline question"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -252,7 +252,7 @@ function QuestionCard({
         {/* Delete */}
         <button
           onClick={onDelete}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[#94A3B8] hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border-none bg-transparent"
           title="Delete question"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -371,15 +371,15 @@ export default function SurveyEditor({
       <div>
         <div className="flex items-center justify-between mb-[16px]">
           <div>
-            <h3 className="font-mono text-[11px] font-bold tracking-widest text-[#1C1917]">
+            <h3 className="font-mono text-[11px] font-bold tracking-widest text-text-primary">
               {title}
             </h3>
-            <p className="font-mono text-[9px] font-bold tracking-widest uppercase text-[#A8A29E] mt-[4px]">{subtitle}</p>
+            <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted mt-[4px]">{subtitle}</p>
           </div>
           {sectionKey !== "baseline" && (
             <button
               onClick={() => addQuestion(sectionKey)}
-              className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#1C1917] px-[14px] py-[8px] rounded-full border border-[#D6D3D1] hover:border-[#1C1917] bg-white transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
+              className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary px-[14px] py-[8px] rounded-full border border-border-muted hover:border-accent bg-white transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
             >
               [ + ADD_NODE ]
             </button>
@@ -404,7 +404,7 @@ export default function SurveyEditor({
             />
           ))}
           {sectionQs.length === 0 && (
-            <p className="text-[13px] text-[#94A3B8] py-[16px] text-center">
+            <p className="text-[13px] text-slate py-[16px] text-center">
               No questions in this section.
             </p>
           )}
@@ -414,21 +414,21 @@ export default function SurveyEditor({
   }
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[32px] md:p-[40px]">
+    <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
       <div className="flex items-end justify-between mb-[28px]">
         <div>
-          <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+          <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">
             [ 02: VALIDATION TOPOLOGY ]
           </h2>
-          <p className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#A8A29E]">
+          <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-muted">
             Edit node sequences or run automated regeneration protocol.
           </p>
         </div>
       </div>
 
       {rewriteError && (
-        <div className="mb-[24px] px-[20px] py-[16px] rounded-[16px] bg-[#ef4444]/10 border border-[#ef4444]/20 backdrop-blur-md">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">[ ERR: {rewriteError} ]</span>
+        <div className="mb-[24px] px-[20px] py-[16px] rounded-[16px] bg-error/10 border border-error/20">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-error">[ ERR: {rewriteError} ]</span>
         </div>
       )}
 

@@ -68,16 +68,17 @@ export default function PasswordChangeForm() {
   }
 
   return (
-    <div className="bg-white rounded-[28px] border border-[#E7E5E4]/60 shadow-[0_8px_30px_rgba(0,0,0,0.03)] overflow-hidden p-[32px]">
-      <h2 className="text-[20px] font-medium tracking-tight text-[#1C1917] mb-[4px]">
+    <div className="bg-white rounded-[28px] border border-border-light/60 shadow-card-sm overflow-hidden p-[32px]">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[6px]">Security</span>
+      <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">
         Change Password
       </h2>
-      <p className="text-[14px] text-[#A8A29E] font-medium mb-[32px]">
+      <p className="text-[14px] text-text-secondary mb-[32px]">
         Update your password to keep your account secure
       </p>
 
       {success && (
-        <div className="mb-[20px] px-[16px] py-[12px] bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-[12px] text-[13px] text-[#22c55e] font-semibold tracking-wide">
+        <div className="mb-[20px] px-[16px] py-[12px] bg-success/10 border border-success/20 rounded-[12px] text-[13px] text-success font-semibold tracking-wide">
           Password updated successfully
         </div>
       )}
@@ -90,7 +91,7 @@ export default function PasswordChangeForm() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-[20px] max-w-[440px]">
         <div className="flex flex-col gap-[8px]">
-          <label htmlFor="currentPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-[#A8A29E]">
+          <label htmlFor="currentPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-text-muted">
             Current password
           </label>
           <input
@@ -99,13 +100,13 @@ export default function PasswordChangeForm() {
             placeholder="Enter current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-[#F5F5F4]/60 text-[15px] text-[#1C1917] font-medium outline-none transition-all duration-300 hover:border-[#E7E5E4] focus:bg-white focus:border-[#1C1917] focus:ring-1 focus:ring-[#1C1917] shadow-sm placeholder:text-[#D6D3D1]"
+            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-bg-muted/60 text-[15px] text-text-primary font-medium outline-none transition-all duration-300 hover:border-border-light focus:bg-white focus:border-accent focus:ring-1 focus:ring-accent shadow-sm placeholder:text-border-muted"
             required
           />
         </div>
 
         <div className="flex flex-col gap-[8px]">
-          <label htmlFor="newPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-[#A8A29E]">
+          <label htmlFor="newPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-text-muted">
             New password
           </label>
           <input
@@ -114,14 +115,14 @@ export default function PasswordChangeForm() {
             placeholder="Min 6 characters"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-[#F5F5F4]/60 text-[15px] text-[#1C1917] font-medium outline-none transition-all duration-300 hover:border-[#E7E5E4] focus:bg-white focus:border-[#1C1917] focus:ring-1 focus:ring-[#1C1917] shadow-sm placeholder:text-[#D6D3D1]"
+            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-bg-muted/60 text-[15px] text-text-primary font-medium outline-none transition-all duration-300 hover:border-border-light focus:bg-white focus:border-accent focus:ring-1 focus:ring-accent shadow-sm placeholder:text-border-muted"
             required
             minLength={6}
           />
         </div>
 
         <div className="flex flex-col gap-[8px]">
-          <label htmlFor="confirmPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-[#A8A29E]">
+          <label htmlFor="confirmPassword" className="text-[13px] font-bold uppercase tracking-[0.04em] text-text-muted">
             Confirm new password
           </label>
           <input
@@ -130,7 +131,7 @@ export default function PasswordChangeForm() {
             placeholder="Repeat new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-[#F5F5F4]/60 text-[15px] text-[#1C1917] font-medium outline-none transition-all duration-300 hover:border-[#E7E5E4] focus:bg-white focus:border-[#1C1917] focus:ring-1 focus:ring-[#1C1917] shadow-sm placeholder:text-[#D6D3D1]"
+            className="w-full px-[18px] py-[14px] rounded-[16px] border border-transparent bg-bg-muted/60 text-[15px] text-text-primary font-medium outline-none transition-all duration-300 hover:border-border-light focus:bg-white focus:border-accent focus:ring-1 focus:ring-accent shadow-sm placeholder:text-border-muted"
             required
             minLength={6}
           />
@@ -139,7 +140,7 @@ export default function PasswordChangeForm() {
         <button
           type="submit"
           disabled={loading}
-          className={`self-start inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-[#1C1917] text-white transition-all duration-500 hover:bg-[#292524] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4)] cursor-pointer mt-[12px] ${
+          className={`self-start inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-accent text-white transition-all duration-500 hover:bg-accent-dark hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4)] cursor-pointer mt-[12px] ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >

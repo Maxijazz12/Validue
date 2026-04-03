@@ -27,7 +27,7 @@ export default function CloneCampaignButton({ campaignId }: CloneCampaignButtonP
         type="button"
         onClick={handleClone}
         disabled={isPending}
-        className={`inline-flex items-center gap-[6px] px-[16px] py-[10px] rounded-xl text-[13px] font-semibold border border-[#E2E8F0] text-[#64748B] bg-white hover:bg-[#FCFCFD] hover:border-[#CBD5E1] hover:text-[#111111] transition-all duration-200 cursor-pointer ${
+        className={`inline-flex items-center gap-[6px] px-[16px] py-[10px] rounded-xl text-[13px] font-semibold border border-border-light text-text-secondary bg-white hover:bg-bg-muted hover:border-border-muted hover:text-text-primary transition-all duration-200 cursor-pointer ${
           isPending ? "opacity-50 cursor-not-allowed" : ""
         }`}
       >
@@ -38,7 +38,7 @@ export default function CloneCampaignButton({ campaignId }: CloneCampaignButtonP
         {isPending ? "Duplicating..." : "Duplicate"}
       </button>
       {error && (
-        <p className="text-[12px] text-[#ef4444] mt-[6px]">{error}</p>
+        <p className="text-[12px] text-error mt-[6px]">{error}</p>
       )}
     </div>
   );

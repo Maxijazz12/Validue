@@ -88,12 +88,10 @@ export default function AvatarUpload({ userId, name, currentUrl }: AvatarUploadP
   return (
     <div className="flex items-center gap-[20px]">
       <div className="relative">
-        <div className="shadow-sm rounded-full border border-[#E7E5E4]/50">
-          <Avatar name={name} imageUrl={previewUrl} size={64} />
-        </div>
+        <Avatar name={name} imageUrl={previewUrl} size={56} />
         {uploading && (
           <div className="absolute inset-0 rounded-full bg-white/70 flex items-center justify-center">
-            <div className="w-[16px] h-[16px] border-2 border-[#E5654E] border-t-transparent rounded-full animate-spin" />
+            <div className="w-[16px] h-[16px] border-2 border-brand border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>
@@ -104,7 +102,7 @@ export default function AvatarUpload({ userId, name, currentUrl }: AvatarUploadP
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="text-[13px] font-semibold tracking-wide text-[#1C1917] cursor-pointer bg-[#F5F5F4] border border-transparent rounded-full px-[16px] py-[8px] hover:bg-[#E7E5E4] transition-colors disabled:opacity-50"
+            className="text-[13px] font-semibold tracking-wide text-text-primary cursor-pointer bg-bg-muted border border-transparent rounded-full px-[16px] py-[8px] hover:bg-border-light transition-colors disabled:opacity-50"
           >
             {previewUrl ? "Change photo" : "Upload photo"}
           </button>
@@ -112,13 +110,13 @@ export default function AvatarUpload({ userId, name, currentUrl }: AvatarUploadP
             <button
               type="button"
               onClick={handleRemove}
-              className="text-[13px] font-medium text-[#A8A29E] hover:text-red-500 cursor-pointer bg-transparent border-none p-0 transition-colors"
+              className="text-[13px] font-medium text-text-muted hover:text-red-500 cursor-pointer bg-transparent border-none p-0 transition-colors"
             >
               Remove
             </button>
           )}
         </div>
-        <span className="text-[12px] font-medium text-[#A8A29E]">
+        <span className="text-[12px] font-medium text-text-muted">
           JPG, PNG, or WebP. Max 2MB.
         </span>
         {error && (

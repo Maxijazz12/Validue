@@ -1,11 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useRouteActive } from "@/lib/hooks/use-route-active";
+import Avatar from "@/components/ui/Avatar";
+import { FEATURES } from "@/lib/feature-flags";
 
 const tabs = [
   {
-    label: "Wall",
+    label: "The Wall",
     href: "/dashboard/the-wall",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -16,7 +17,17 @@ const tabs = [
     ),
   },
   {
-    label: "Create",
+    label: "My Ideas",
+    href: "/dashboard/ideas",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18h6" />
+        <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+      </svg>
+    ),
+  },
+  {
+    label: "New Idea",
     href: "/dashboard/ideas/new",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -26,7 +37,7 @@ const tabs = [
     ),
   },
   {
-    label: "Responses",
+    label: "My Responses",
     href: "/dashboard/my-responses",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -36,7 +47,7 @@ const tabs = [
       </svg>
     ),
   },
-  {
+  ...(FEATURES.EARNINGS_PAGE ? [{
     label: "Earnings",
     href: "/dashboard/earnings",
     icon: (
@@ -47,45 +58,46 @@ const tabs = [
         <rect x="16" y="5" width="3" height="15" rx="1" />
       </svg>
     ),
-  },
+  }] : []),
 ];
 
-export default function MobileTabBar() {
-  const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
-  useEffect(() => setMounted(true), []);
-
-  function isActive(href: string) {
-    if (!mounted) return false;
-    const p = pathname || "";
-    if (href === "/dashboard/ideas/new") return p === "/dashboard/ideas/new";
-    if (href === "/dashboard/the-wall") return p === "/dashboard/the-wall" || p === "/dashboard";
-    return p.startsWith(href);
-  }
+export default function MobileTabBar({ userName, userAvatar }: { userName?: string; userAvatar?: string | null }) {
+  const { isActive } = useRouteActive();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0C0C0E]/85 backdrop-blur-xl border-t border-white/[0.05] px-[8px] pb-[env(safe-area-inset-bottom)] transition-colors duration-300">
-      <div className="flex items-center justify-around h-[56px]">
-        {tabs.map((tab) => {
-          const active = isActive(tab.href);
-          return (
-            <a
-              key={tab.href}
-              href={tab.href}
-              className={`flex flex-col items-center gap-[2px] px-[12px] py-[6px] rounded-xl no-underline transition-all duration-200 ${
-                active ? "text-[#E8C1B0]" : "text-white/30"
-              }`}
-            >
-              {tab.icon}
-              <span className={`text-[10px] ${active ? "font-semibold" : "font-medium"}`}>
-                {tab.label}
-              </span>
-            </a>
-          );
-        })}
+    <>
+      {/* Profile avatar — top right corner (IG style) */}
+      <div className="md:hidden fixed top-0 right-0 z-50 p-[12px]">
+        <a
+          href="/dashboard/settings"
+          className="block rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all"
+        >
+          <Avatar name={userName || "User"} imageUrl={userAvatar} size={32} />
+        </a>
       </div>
-    </nav>
+
+      {/* Bottom tab bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#000000]/90 backdrop-blur-xl border-t border-white/[0.05] px-[8px] pb-[env(safe-area-inset-bottom)] transition-colors duration-300">
+        <div className="flex items-center justify-around h-[56px]">
+          {tabs.map((tab) => {
+            const active = isActive(tab.href);
+            return (
+              <a
+                key={tab.href}
+                href={tab.href}
+                className={`flex flex-col items-center gap-[2px] px-[12px] py-[6px] rounded-xl no-underline transition-all duration-200 ${
+                  active ? "text-white" : "text-white/30"
+                }`}
+              >
+                {tab.icon}
+                <span className={`text-[10px] ${active ? "font-semibold" : "font-medium"}`}>
+                  {tab.label}
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }

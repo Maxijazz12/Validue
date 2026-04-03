@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import WallReactionBar from "@/components/dashboard/WallReactionBar";
 
 /* ─── Types ─── */
@@ -23,157 +23,152 @@ export type WallCardProps = {
   rewardsTopAnswers: boolean;
   rewardType: string | null;
   matchScore: number;
-  variant?: "featured" | "standard";
-  isVisible?: boolean;
-  isSaved?: boolean;
-  onToggleSave?: (id: string) => void;
-  isExpanded?: boolean;
-  onToggleExpand?: (id: string) => void;
   matchReasons?: string[];
   firstQuestion?: { id: string; text: string; type: string; options: string[] | null } | null;
-  isFocused?: boolean;
   reactionCounts?: Record<string, number>;
   userReactions?: string[];
-  recentRespondents?: Array<{ name: string; avatar: string | null }>;
-  lastActivityLabel?: string | null;
   isSubsidized?: boolean;
   economicsVersion?: number;
   format?: string | null;
-  align?: "left" | "right";
 };
 
 export default function WallCardUnified({
   idea,
   isSaved = false,
   onToggleSave,
+  isHero = false,
 }: {
   idea: WallCardProps;
   isSaved?: boolean;
   onToggleSave?: (id: string) => void;
-  isExpanded?: boolean;
-  onToggleExpand?: (id: string) => void;
-  isFocused?: boolean;
-  tier?: "featured" | "standard";
+  isHero?: boolean;
 }) {
   const {
-    id, title, category,
+    id, title, description, category,
     rewardAmount, currentResponses, targetResponses,
-    creatorName, matchScore, firstQuestion,
+    creatorName, matchScore, matchReasons,
     reactionCounts, userReactions, tags
   } = idea;
+
+  // Deterministic color for creator bubble
+  const bubbleColors = ["#E5654E", "#3b82f6", "#22C55E", "#8b5cf6", "#F59E0B", "#ec4899"];
+  let nameHash = 0;
+  for (let i = 0; i < creatorName.length; i++) nameHash = creatorName.charCodeAt(i) + ((nameHash << 5) - nameHash);
+  const bubbleColor = bubbleColors[Math.abs(nameHash) % bubbleColors.length];
 
   const progress = targetResponses > 0 ? Math.round((currentResponses / targetResponses) * 100) : 0;
   const isHighMatch = matchScore >= 75;
   const isNearlyFull = progress >= 75 && progress < 100;
+  const [showMatchTip, setShowMatchTip] = useState(false);
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{__html: `
-        .bento-card {
-          position: relative;
-        }
-        .bento-card::before {
-          content: "";
-          position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          background: conic-gradient(from 180deg at 50% 50%, #2A8AF6 0deg, #A853BA 180deg, #E92A67 360deg);
-          opacity: 0;
-          z-index: -1;
-          transition: opacity 0.5s ease;
-        }
-        .bento-card:hover::before {
-          opacity: 0; /* Enable or increase for strong glow */
-        }
-        .glow-hover:hover {
-          box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 12px 32px -8px rgba(0,0,0,0.08);
-          transform: translateY(-2px);
-        }
-      `}} />
-
       <div
         id={`wall-card-${id}`}
-        className={`glow-hover bento-card relative flex flex-col justify-between w-full bg-white/60 backdrop-blur-3xl border transition-all duration-400 rounded-[28px] p-[28px] shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] cursor-default overflow-hidden ${
-          isHighMatch ? "border-[#E5654E]/30" : "border-white/80"
-        }`}
+        className={`glow-hover bento-card relative flex flex-col justify-between w-full bg-white border transition-all duration-400 shadow-card cursor-default overflow-hidden ${
+          isHighMatch ? "border-brand/30" : "border-border-light"
+        } ${isHero ? "rounded-[28px] p-[28px]" : "rounded-[20px] px-[14px] py-[20px] md:rounded-[28px] md:p-[28px]"}`}
       >
         {isHighMatch && (
-          <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[#E5654E]/60 to-transparent"></div>
+          <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-brand/60 to-transparent"></div>
         )}
 
         {/* Content Top Half */}
-        <div className="flex flex-col gap-[16px]">
+        <div className="flex flex-col gap-[12px]">
           {/* Metadata Row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-[8px]">
               {isHighMatch ? (
-                <span className="px-[10px] py-[4px] rounded-md font-mono text-[10px] font-bold uppercase tracking-[0.1em] bg-[#E5654E]/10 text-[#E5654E]">
-                  MATCH {matchScore}%
+                <span
+                  className="relative px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight bg-brand text-white cursor-help"
+                  onMouseEnter={() => setShowMatchTip(true)}
+                  onMouseLeave={() => setShowMatchTip(false)}
+                  onClick={(e) => { e.stopPropagation(); setShowMatchTip((p) => !p); }}
+                >
+                  Match {matchScore}%
+                  {showMatchTip && (
+                    <span className="absolute top-full left-0 mt-[6px] w-[200px] p-[10px] rounded-xl bg-accent text-white text-[11px] font-medium tracking-normal leading-[1.5] shadow-[0_8px_24px_rgba(0,0,0,0.2)] z-50 pointer-events-none">
+                      Based on your interests, expertise, and profile.
+                      {matchReasons && matchReasons.length > 0 && (
+                        <span className="block mt-[4px] text-white/60">
+                          {matchReasons.slice(0, 2).join(" · ")}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </span>
               ) : (
-                <span className="px-[10px] py-[4px] rounded-md font-mono text-[10px] font-bold uppercase tracking-[0.1em] bg-[#F5F5F4] text-[#A8A29E]">
-                  {category || "SYS.NODE"}
+                <span className="px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight bg-accent text-white">
+                  {category || "General"}
                 </span>
               )}
             </div>
             {rewardAmount > 0 && (
-              <span className="font-mono text-[13px] font-bold text-[#2ca05a]">
+              <span className="text-[13px] font-semibold tracking-tight text-success">
                 +${rewardAmount.toFixed(2)}
               </span>
             )}
           </div>
 
           {/* Core Title */}
-          <h2 className="font-medium tracking-tight text-[#1C1917] leading-[1.25] text-[18px] md:text-[20px] m-0">
-            {firstQuestion ? `"${firstQuestion.text}"` : title}
+          <h2 className={`font-medium tracking-tight text-text-primary leading-[1.2] m-0 ${isHero ? "text-[18px] md:text-[20px]" : "text-[15px] md:text-[20px]"}`}>
+            {title}
           </h2>
 
-          {/* Options / Tags Row (Minimal) */}
-          <div className="flex flex-wrap gap-[6px] pt-[4px]">
-            {firstQuestion?.options?.slice(0, 3).map((opt, i) => (
-              <span key={i} className="px-3 py-1.5 bg-white text-[#1C1917] rounded-md text-[12px] font-bold border border-[#E7E5E4]/80 shadow-sm leading-none">
-                {opt}
-              </span>
-            ))}
-            {(!firstQuestion || !firstQuestion.options) && tags.slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-[8px] py-[4px] rounded-md font-mono text-[10px] font-semibold uppercase tracking-[0.05em] bg-[#F5F5F4] text-[#A8A29E] leading-none">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {/* Description snippet — hidden on compact mobile cards */}
+          {description && (
+            <p className={`text-[14px] text-text-secondary leading-[1.4] m-0 overflow-hidden ${isHero ? "" : "hidden md:block"}`} style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as React.CSSProperties}>
+              {description}
+            </p>
+          )}
+
+          {/* Tags Row — hidden on compact mobile cards */}
+          {tags.length > 0 && (
+            <div className={`flex flex-wrap gap-[6px] ${isHero ? "" : "hidden md:flex"}`}>
+              {tags.slice(0, 3).map((tag, i) => (
+                <span key={i} className="px-[8px] py-[3px] rounded-md text-[11px] font-medium tracking-tight bg-bg-muted text-text-secondary leading-none">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer Bottom Half */}
-        <div className="pt-[32px] mt-auto">
+        <div className={`mt-auto ${isHero ? "pt-[28px]" : "pt-[20px] md:pt-[28px]"}`}>
           {/* Progression Header */}
-          <div className="flex items-end justify-between font-mono text-[10px] font-bold text-[#A8A29E] mb-[8px] uppercase tracking-widest">
-            <span className="flex items-center gap-[6px]">
-              {creatorName}
-              {isNearlyFull && <span className="w-1.5 h-1.5 rounded-full bg-[#E5654E] animate-pulse"></span>}
+          <div className="flex items-end justify-between mb-[8px]">
+            <span className={`flex items-center gap-[6px] font-medium tracking-tight text-text-secondary ${isHero ? "text-[12px]" : "text-[11px] md:text-[12px]"}`}>
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[12px] h-[12px] shrink-0">
+                <ellipse cx="32" cy="36" rx="24" ry="24" fill={bubbleColor} fillOpacity="0.15" stroke={bubbleColor} strokeWidth="3" />
+                <ellipse cx="32" cy="36" rx="22" ry="22" fill="white" opacity="0.12" />
+                <path d="M32 13 Q29 34 32 59" stroke={bubbleColor} strokeWidth="1.5" fill="none" opacity="0.3" />
+              </svg>
+              <span className={isHero ? "" : "truncate"}>{creatorName}</span>
+              {isNearlyFull && <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>}
             </span>
-            <span className="text-[#D6D3D1]">
-               {currentResponses} / {targetResponses}
+            <span className="text-[11px] font-semibold tracking-tight text-text-muted">
+               {currentResponses}/{targetResponses}
             </span>
           </div>
 
           {/* Hard Line Progress Bar */}
-          <div className="h-[2px] w-full bg-[#F5F5F4] overflow-hidden mb-[20px]">
-            <div 
-              className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${isNearlyFull ? "bg-[#E5654E]" : "bg-[#1C1917]"}`} 
+          <div className={`h-[3px] w-full bg-bg-muted overflow-hidden ${isHero ? "mb-[20px]" : "mb-[12px] md:mb-[20px]"}`}>
+            <div
+              className="h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] bg-success"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
 
           {/* Actions Row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-[8px]">
+            <div className={`flex items-center gap-[8px] ${isHero ? "" : "hidden md:flex"}`}>
               {reactionCounts && userReactions && (
                 <WallReactionBar campaignId={id} reactionCounts={reactionCounts} userReactions={userReactions} />
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleSave?.(id); }}
                 className={`flex items-center justify-center w-[28px] h-[28px] rounded-full transition-all duration-300 border-none cursor-pointer ${
-                  isSaved ? "text-[#E5654E] bg-transparent" : "text-[#D6D3D1] hover:text-[#1C1917] bg-transparent"
+                  isSaved ? "text-brand bg-transparent" : "text-border-muted hover:text-text-primary bg-transparent"
                 }`}
               >
                 <svg className={`w-[16px] h-[16px] ${isSaved ? "fill-current" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor">
@@ -181,17 +176,16 @@ export default function WallCardUnified({
                 </svg>
               </button>
             </div>
-            
+
             <a
               href={`/dashboard/the-wall/${id}`}
-              className="font-mono text-[11px] uppercase tracking-widest font-bold text-[#1C1917] hover:text-[#2A8AF6] transition-colors no-underline flex items-center gap-1.5 bg-transparent border-none p-0"
+              className={`font-mono uppercase tracking-wide font-medium text-text-primary hover:text-text-secondary hover:bg-bg-muted transition-all no-underline flex items-center gap-1.5 border-none rounded-full bg-transparent ${isHero ? "text-[11px] px-[12px] py-[6px]" : "text-[11px] px-[8px] py-[4px] md:text-[11px] md:px-[12px] md:py-[6px] ml-auto"}`}
             >
-              [ EXECUTE ]
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              [ RESPOND ]
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </a>
           </div>
         </div>
       </div>
-    </>
   );
 }

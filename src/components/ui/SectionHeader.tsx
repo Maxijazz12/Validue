@@ -17,16 +17,16 @@ export default function SectionHeader({ label, title, subtitle, align, size = "s
         {label}
       </div>
       {isPage ? (
-        <h1 className="text-[28px] font-bold tracking-[-0.5px] text-[#1C1917]">
+        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">
           {title}
         </h1>
       ) : (
-        <h2 className={`text-[clamp(30px,4.5vw,46px)] font-bold tracking-[-0.02em] leading-[1.1] max-w-[600px] text-[#1C1917] ${isCenter ? "mx-auto" : ""}`}>
+        <h2 className={`text-[clamp(30px,4.5vw,46px)] font-bold tracking-[-0.02em] leading-[1.1] max-w-[600px] text-text-primary ${isCenter ? "mx-auto" : ""}`}>
           {title}
         </h2>
       )}
       {subtitle && (
-        <p className={`${isPage ? "text-[15px]" : "text-[16px] max-w-[500px]"} text-[#78716C] leading-[1.7] ${isPage ? "mt-[4px]" : "mt-[20px]"} ${isCenter ? "mx-auto" : ""}`}>
+        <p className={`${isPage ? "text-[14px]" : "text-[16px] max-w-[500px]"} text-text-secondary leading-[1.7] ${isPage ? "mt-[4px]" : "mt-[20px]"} ${isCenter ? "mx-auto" : ""}`}>
           {subtitle}
         </p>
       )}

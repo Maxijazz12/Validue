@@ -66,13 +66,13 @@ export default function AssumptionSignal({ campaignId, assumptions, initialCover
   if (assumptions.length === 0) return null;
 
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[32px] mb-[24px]">
+    <div className="bg-white border border-border-light rounded-2xl p-[32px] mb-[24px]">
       <div className="flex items-center justify-between mb-[16px]">
-        <h2 className="text-[16px] font-semibold text-[#111111]">
+        <h2 className="text-[16px] font-semibold text-text-primary">
           Assumption Signal
         </h2>
         {isActive && (
-          <span className="text-[10px] text-[#94A3B8]">
+          <span className="text-[10px] text-slate">
             Updated {formatTimeAgo(lastUpdated)}
           </span>
         )}
@@ -85,19 +85,19 @@ export default function AssumptionSignal({ campaignId, assumptions, initialCover
           const color = strengthColor(strength);
 
           return (
-            <div key={i} className="border border-[#F1F5F9] rounded-xl p-[16px]">
+            <div key={i} className="border border-bg-muted rounded-xl p-[16px]">
               <div className="flex items-start gap-[10px] mb-[10px]">
-                <span className="text-[12px] text-[#94A3B8] font-mono w-[20px] shrink-0 mt-[2px]">
+                <span className="text-[12px] text-slate font-mono w-[20px] shrink-0 mt-[2px]">
                   {i + 1}.
                 </span>
-                <p className="text-[14px] text-[#111111] leading-[1.5] flex-1">{a}</p>
+                <p className="text-[14px] text-text-primary leading-[1.5] flex-1">{a}</p>
               </div>
 
               {hasData ? (
                 <div className="ml-[30px]">
                   {/* Strength bar */}
                   <div className="flex items-center gap-[8px] mb-[8px]">
-                    <div className="flex-1 h-[4px] rounded-full bg-[#F1F5F9] overflow-hidden">
+                    <div className="flex-1 h-[4px] rounded-full bg-bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${strength}%`, backgroundColor: color }}
@@ -109,18 +109,18 @@ export default function AssumptionSignal({ campaignId, assumptions, initialCover
                   </div>
 
                   {/* Stats row */}
-                  <div className="flex flex-wrap gap-x-[16px] gap-y-[4px] text-[11px] text-[#64748B]">
+                  <div className="flex flex-wrap gap-x-[16px] gap-y-[4px] text-[11px] text-text-secondary">
                     <span>{c.responseCount} response{c.responseCount !== 1 ? "s" : ""}</span>
                     <span>{c.categoryCount} categor{c.categoryCount !== 1 ? "ies" : "y"}</span>
                     <span>avg quality {c.avgQuality}</span>
                     <span>avg match {c.avgMatch}</span>
                     {!c.hasNegative && c.categoryCount > 0 && (
-                      <span className="text-[#E5654E]">no disconfirmation</span>
+                      <span className="text-brand">no disconfirmation</span>
                     )}
                   </div>
                 </div>
               ) : (
-                <p className="ml-[30px] text-[11px] text-[#94A3B8]">No evidence yet</p>
+                <p className="ml-[30px] text-[11px] text-slate">No evidence yet</p>
               )}
             </div>
           );

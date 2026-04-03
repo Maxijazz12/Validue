@@ -7,7 +7,7 @@ import ExportResponsesButton from "@/components/dashboard/responses/ExportRespon
 import type { ResponseItem } from "@/components/dashboard/responses/ResponseList";
 import { safeNumber } from "@/lib/defaults";
 import { getSubscription } from "@/lib/plan-guard";
-import { PLAN_CONFIG } from "@/lib/plans";
+import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
 
 export default async function CampaignResponsesPage({
   params,
@@ -155,7 +155,7 @@ export default async function CampaignResponsesPage({
       <div className="mb-[24px]">
         <Link
           href={`/dashboard/ideas/${id}`}
-          className="inline-flex items-center gap-[6px] text-[13px] text-[#94A3B8] hover:text-[#64748B] transition-colors no-underline mb-[16px]"
+          className="inline-flex items-center gap-[6px] text-[13px] text-slate hover:text-text-secondary transition-colors no-underline mb-[16px]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
@@ -163,12 +163,12 @@ export default async function CampaignResponsesPage({
           Back to Idea
         </Link>
 
-        <div className="bg-[#FAF9FA] rounded-2xl border border-[#E2E8F0] p-[24px_32px] max-md:p-[20px] relative overflow-hidden">
-          <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-[#E8C1B0]/25 to-transparent" />
+        <div className="bg-bg-muted rounded-2xl border border-border-light p-[24px_32px] max-md:p-[20px] relative overflow-hidden">
+          <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-accent-warm-muted/25 to-transparent" />
           <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
             <div>
-              <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#111111]">Responses</h1>
-              <p className="text-[14px] text-[#64748B] mt-[4px]">{campaign.title}</p>
+              <h1 className="text-[24px] font-bold tracking-[-0.03em] text-text-primary">Responses</h1>
+              <p className="text-[14px] text-text-secondary mt-[4px]">{campaign.title}</p>
             </div>
             {totalResponses > 0 && (
               <ExportResponsesButton campaignId={id} hasExport={hasExport} />
@@ -179,43 +179,43 @@ export default async function CampaignResponsesPage({
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] hover:border-[#CBD5E1] transition-all duration-200 relative overflow-hidden">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px] font-semibold">
+        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
+          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
             Total
           </span>
           <div className="mt-[4px]">
-            <span className="font-mono text-[22px] font-bold text-[#111111]">
+            <span className="font-mono text-[22px] font-bold text-text-primary">
               {totalResponses}
             </span>
-            <span className="text-[13px] text-[#94A3B8]">
+            <span className="text-[13px] text-slate">
               /{campaign.target_responses}
             </span>
           </div>
-          <div className="h-[4px] rounded-full bg-[#F3F4F6] overflow-hidden mt-[8px]">
+          <div className="h-[4px] rounded-full bg-bg-muted overflow-hidden mt-[8px]">
             <div
-              className="h-full rounded-full bg-[#34D399]"
+              className="h-full rounded-full bg-success-mid"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] hover:border-[#CBD5E1] transition-all duration-200 relative overflow-hidden">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px] font-semibold">
+        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
+          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
             Ranked
           </span>
-          <div className="font-mono text-[22px] font-bold text-[#111111] mt-[4px]">
+          <div className="font-mono text-[22px] font-bold text-text-primary mt-[4px]">
             {rankedResponses.length}
-            <span className="text-[13px] text-[#94A3B8] font-normal">
+            <span className="text-[13px] text-slate font-normal">
               /{totalResponses}
             </span>
           </div>
         </div>
 
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] hover:border-[#CBD5E1] transition-all duration-200 relative overflow-hidden">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px] font-semibold">
+        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
+          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
             Avg Score
           </span>
           <div
@@ -235,9 +235,9 @@ export default async function CampaignResponsesPage({
           </div>
         </div>
 
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[16px] hover:border-[#CBD5E1] transition-all duration-200 relative overflow-hidden">
-          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-[#E8C1B0]/20 to-transparent" />
-          <span className="text-[11px] text-[#94A3B8] uppercase tracking-[1px] font-semibold">
+        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+          <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
+          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
             Top Score
           </span>
           <div
@@ -273,7 +273,7 @@ export default async function CampaignResponsesPage({
       <ResponseSection
         campaignId={id}
         rewardAmount={safeNumber(campaign.reward_amount)}
-        distributableAmount={safeNumber(campaign.distributable_amount, safeNumber(campaign.reward_amount) * 0.80)}
+        distributableAmount={safeNumber(campaign.distributable_amount, safeNumber(campaign.reward_amount) * (1 - PLATFORM_FEE_RATE))}
         payoutStatus={campaign.payout_status || "none"}
         rankedCount={rankedResponses.length}
         showAllocator={rankedResponses.length > 0 && safeNumber(campaign.reward_amount) > 0}

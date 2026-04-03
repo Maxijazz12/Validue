@@ -64,16 +64,10 @@ export default async function ResponsesPage() {
       {hasCampaigns ? (
         <ResponsesOverviewList campaigns={campaignsWithStats} />
       ) : (
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-[48px] text-center">
-          <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-[#E8C1B0]/10 to-[#E5654E]/5 flex items-center justify-center mx-auto mb-[16px]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-            </svg>
-          </div>
-          <h2 className="text-[20px] font-bold text-[#111111] mb-[8px]">
-            No responses yet
-          </h2>
-          <p className="text-[14px] text-[#64748B] max-w-[360px] mx-auto">
+        <div className="py-[120px] text-center border border-dashed border-border-light rounded-[32px] bg-white/90">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4 block">Inbox Empty</span>
+          <p className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">No responses yet</p>
+          <p className="text-[14px] text-text-secondary mt-[4px] max-w-[360px] mx-auto">
             Once respondents start answering your campaigns, their feedback will
             appear here.
           </p>

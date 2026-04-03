@@ -53,21 +53,21 @@ export default function BaselineQuestionPicker({
       />
 
       {/* Modal */}
-      <div className="relative bg-white/60 backdrop-blur-3xl rounded-[32px] border border-white/80 shadow-[0_40px_80px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)] max-w-[560px] w-full max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white rounded-[32px] border border-border-light shadow-[0_24px_48px_rgba(0,0,0,0.1)] max-w-[560px] w-full max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="p-[32px] pb-[24px] border-b border-white/40 border-dashed">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-mono text-[14px] font-bold uppercase tracking-widest text-[#1C1917] mb-[8px]">
+              <h2 className="font-mono text-[14px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">
                 [ SWAP BASELINE NODE ]
               </h2>
-              <p className="font-mono text-[10px] text-[#A8A29E] uppercase tracking-wider">
+              <p className="font-mono text-[11px] text-text-muted uppercase tracking-wider">
                 Select replacement from standardized library.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[#94A3B8] hover:bg-[#F3F4F6] hover:text-[#64748B] transition-all cursor-pointer border-none bg-transparent"
+              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary transition-all cursor-pointer border-none bg-transparent"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -97,10 +97,10 @@ export default function BaselineQuestionPicker({
                 disabled={isUsed}
                 className={`text-left p-[20px] rounded-[20px] border transition-all duration-300 cursor-pointer shadow-sm relative overflow-hidden ${
                   isCurrent
-                    ? "border-[#E5654E] bg-[#E5654E]/10 backdrop-blur-md shadow-[0_8px_24px_rgba(229,101,78,0.1)]"
+                    ? "border-brand bg-brand/10 shadow-[0_8px_24px_rgba(229,101,78,0.1)]"
                     : isUsed
                       ? "border-white/40 bg-white/20 opacity-50 cursor-not-allowed"
-                      : "border-white/60 bg-white/40 hover:border-white/80 hover:bg-white/60 hover:shadow-[0_8px_32px_rgba(0,0,0,0.05)]"
+                      : "border-border-light bg-white/40 hover:border-border-light hover:bg-white/60 hover:shadow-[0_8px_32px_rgba(0,0,0,0.05)]"
                 }`}
               >
                 <div className="flex items-center gap-[12px] mb-[12px]">
@@ -112,30 +112,30 @@ export default function BaselineQuestionPicker({
                     [ {CATEGORY_LABELS[bq.category]} ]
                   </span>
                   {isCurrent && (
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#E5654E]">
+                    <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-brand">
                       {"// "}CURRENTLY BOUND
                     </span>
                   )}
                   {isUsed && !isCurrent && (
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+                    <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
                       {"// "}ACTIVE IN POOL
                     </span>
                   )}
                 </div>
-                <p className="text-[15px] font-medium tracking-tight text-[#1C1917] leading-[1.4] mb-[12px]">
+                <p className="text-[15px] font-medium tracking-tight text-text-primary leading-[1.4] mb-[12px]">
                   {bq.text}
                 </p>
                 <div className="flex flex-wrap gap-[6px]">
                   {bq.options.map((opt) => (
                     <span
                       key={opt}
-                      className="font-mono text-[9px] font-bold uppercase tracking-widest px-[10px] py-[4px] rounded-full border border-black/5 bg-black/5 text-[#1C1917]"
+                      className="font-mono text-[11px] font-medium uppercase tracking-wide px-[10px] py-[4px] rounded-full border border-black/5 bg-black/5 text-text-primary"
                     >
                       {opt}
                     </span>
                   ))}
                 </div>
-                <p className="font-mono text-[10px] text-[#A8A29E] mt-[12px]">
+                <p className="font-mono text-[10px] text-text-muted mt-[12px]">
                   {"// "}{bq.description}
                 </p>
               </button>

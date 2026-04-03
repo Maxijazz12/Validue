@@ -63,9 +63,9 @@ function TrendIndicator({ direction, label }: { direction: "up" | "down" | "flat
 
 export default function StatCard({ label, value, detail, valueColor, progress, children, trend, sparkline }: StatCardProps) {
   return (
-    <div className="flex flex-col w-full bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[20px] transition-all duration-400 relative overflow-hidden group hover:shadow-[0_12px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)]">
+    <div className="flex flex-col w-full bg-white border border-border-light shadow-card-interactive rounded-[24px] p-[20px] transition-all duration-400 relative overflow-hidden group">
       <div className="flex items-start justify-between gap-[8px]">
-        <span className="text-[10px] font-semibold text-[#1A1A1A]/35 uppercase tracking-[0.05em]">
+        <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide">
           {label}
         </span>
         {sparkline && sparkline.length >= 2 && (
@@ -75,7 +75,7 @@ export default function StatCard({ label, value, detail, valueColor, progress, c
       <div className="flex items-baseline gap-[6px] mt-[6px]">
         <span
           className="font-mono text-[28px] font-bold tracking-tight"
-          style={valueColor ? { color: valueColor } : { color: "#1C1917" }}
+          style={valueColor ? { color: valueColor } : { color: "var(--color-text-primary)" }}
         >
           {value}
         </span>
@@ -83,18 +83,18 @@ export default function StatCard({ label, value, detail, valueColor, progress, c
       </div>
       {children}
       {progress !== undefined && (
-        <div className="h-[2px] rounded-full bg-[#1A1A1A]/[0.04] overflow-hidden mt-[8px]">
+        <div className="h-[2px] rounded-full bg-accent/[0.04] overflow-hidden mt-[8px]">
           <div
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{
               width: `${Math.min(progress, 100)}%`,
-              background: progress >= 80 ? "#22c55e" : "#E8C1B0",
+              background: progress >= 80 ? "var(--color-success)" : "var(--color-accent-warm-muted)",
             }}
           />
         </div>
       )}
       {detail && (
-        <div className="text-[11px] text-[#1A1A1A]/35 mt-[4px]">{detail}</div>
+        <div className="font-mono text-[10px] text-text-muted tracking-wide mt-[4px]">{detail}</div>
       )}
     </div>
   );

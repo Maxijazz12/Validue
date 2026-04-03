@@ -15,7 +15,7 @@ type WallOnboardingProps = {
 function CheckIcon({ done }: { done: boolean }) {
   if (done) {
     return (
-      <div className="w-[24px] h-[24px] rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0">
+      <div className="w-[24px] h-[24px] rounded-full bg-accent flex items-center justify-center shrink-0">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
@@ -46,20 +46,20 @@ function ActionCard({
     <div
       className={`flex gap-[12px] p-[16px] rounded-xl transition-all ${
         done
-          ? "bg-[#FAFAFA] border border-[#F0F0F0]"
-          : "bg-white border border-[#F0F0F0] hover:border-[#E5E5E5]"
+          ? "bg-bg-muted border border-bg-muted"
+          : "bg-white border border-bg-muted hover:border-border-light"
       }`}
     >
       <CheckIcon done={done} />
       <div className="flex-1 min-w-0">
-        <div className={`text-[14px] font-semibold mb-[2px] ${done ? "text-[#A1A1AA]" : "text-[#1A1A1A]"}`}>
+        <div className={`text-[14px] font-semibold mb-[2px] ${done ? "text-text-muted" : "text-text-primary"}`}>
           {title}
         </div>
-        <div className="text-[12px] text-[#A1A1AA] mb-[8px]">
+        <div className="text-[12px] text-text-muted mb-[8px]">
           {description}
         </div>
         {!done && (
-          <span className="text-[12px] font-semibold text-[#1A1A1A] inline-flex items-center gap-[4px]">
+          <span className="text-[12px] font-semibold text-text-primary inline-flex items-center gap-[4px]">
             {cta}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
@@ -67,7 +67,7 @@ function ActionCard({
           </span>
         )}
         {done && (
-          <span className="text-[12px] font-medium text-[#A1A1AA]">Done</span>
+          <span className="text-[12px] font-medium text-text-muted">Done</span>
         )}
       </div>
     </div>
@@ -133,11 +133,11 @@ export default function WallOnboarding({
   if (!mounted || dismissed) return null;
 
   return (
-    <div className="bg-white border border-[#F0F0F0] rounded-xl p-[24px] mb-[24px] relative">
+    <div className="bg-white border border-bg-muted rounded-xl p-[24px] mb-[24px] relative">
       {/* Dismiss button */}
       <button
         onClick={handleDismiss}
-        className="absolute top-[16px] right-[16px] p-[4px] text-[#A1A1AA] hover:text-[#71717A] bg-transparent border-none cursor-pointer transition-colors"
+        className="absolute top-[16px] right-[16px] p-[4px] text-text-muted hover:text-text-secondary bg-transparent border-none cursor-pointer transition-colors"
         aria-label="Dismiss onboarding"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -147,14 +147,14 @@ export default function WallOnboarding({
 
       {/* Header */}
       <div className="mb-[20px] pr-[32px]">
-        <h2 className="text-[20px] font-bold text-[#1A1A1A] tracking-[-0.02em] mb-[4px]">
+        <h2 className="text-[20px] font-bold text-text-primary tracking-[-0.02em] mb-[4px]">
           Welcome to the Wall, {firstName}
         </h2>
-        <p className="text-[14px] text-[#71717A]">
+        <p className="text-[14px] text-text-secondary">
           {ideaCount > 0 ? (
             <>
               There {ideaCount === 1 ? "is" : "are"}{" "}
-              <span className="font-semibold text-[#1A1A1A]">{ideaCount}</span>{" "}
+              <span className="font-semibold text-text-primary">{ideaCount}</span>{" "}
               {ideaCount === 1 ? "idea" : "ideas"} being tested right now.
               {userRole === "respondent"
                 ? " See ideas matched to your background. Earn for qualified feedback."
@@ -173,13 +173,13 @@ export default function WallOnboarding({
 
       {/* Progress indicator */}
       <div className="flex items-center gap-[8px] mb-[16px]">
-        <div className="flex-1 h-[3px] rounded-full bg-[#F0F0F0] overflow-hidden">
+        <div className="flex-1 h-[3px] rounded-full bg-bg-muted overflow-hidden">
           <div
-            className="h-full rounded-full bg-[#1A1A1A] transition-all duration-500"
+            className="h-full rounded-full bg-accent transition-all duration-500"
             style={{ width: `${(completedCount / 3) * 100}%` }}
           />
         </div>
-        <span className="text-[11px] text-[#A1A1AA] font-medium shrink-0">
+        <span className="text-[11px] text-text-muted font-medium shrink-0">
           {completedCount}/3
         </span>
       </div>

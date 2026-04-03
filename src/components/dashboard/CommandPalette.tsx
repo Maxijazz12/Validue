@@ -62,17 +62,17 @@ const QUICK_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    label: "Settings",
+    label: "Profile",
     href: "/dashboard/settings",
     section: "Navigate",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="17" x2="20" y2="17" /><circle cx="8" cy="7" r="2.5" /><circle cx="16" cy="17" r="2.5" />
+        <circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 0 0-16 0" />
       </svg>
     ),
   },
   {
-    label: "Create New Idea",
+    label: "New Idea",
     href: "/dashboard/ideas/new",
     section: "Create",
     icon: (
@@ -161,9 +161,9 @@ export default function CommandPalette() {
       />
 
       {/* Palette */}
-      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 z-[101] w-full max-w-[520px] bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_24px_48px_rgba(0,0,0,0.15)] overflow-hidden" style={{ animation: "slideUp 0.15s ease-out" }}>
+      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 z-[101] w-full max-w-[520px] bg-white rounded-2xl border border-border-light shadow-[0_24px_48px_rgba(0,0,0,0.15)] overflow-hidden" style={{ animation: "slideUp 0.15s ease-out" }}>
         {/* Search input */}
-        <div className="flex items-center gap-[10px] px-[20px] py-[14px] border-b border-[#E2E8F0]">
+        <div className="flex items-center gap-[10px] px-[20px] py-[14px] border-b border-border-light">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -174,24 +174,21 @@ export default function CommandPalette() {
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
             placeholder="Search actions, pages..."
-            className="flex-1 text-[15px] text-[#111111] placeholder:text-[#94A3B8] outline-none bg-transparent"
+            className="flex-1 text-[15px] text-text-primary placeholder:text-slate outline-none bg-transparent"
           />
-          <kbd className="text-[11px] font-mono text-[#94A3B8] bg-[#F3F4F6] px-[6px] py-[2px] rounded-md border border-[#E2E8F0]">
-            esc
-          </kbd>
         </div>
 
         {/* Results */}
         <div className="max-h-[320px] overflow-y-auto py-[8px]">
           {filtered.length === 0 && (
-            <p className="text-[13px] text-[#94A3B8] text-center py-[24px]">
+            <p className="text-[13px] text-slate text-center py-[24px]">
               No results found
             </p>
           )}
 
           {Array.from(sections.entries()).map(([section, items]) => (
             <div key={section}>
-              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8] px-[20px] py-[6px]">
+              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-slate px-[20px] py-[6px]">
                 {section}
               </p>
               {items.map((item) => {
@@ -204,19 +201,14 @@ export default function CommandPalette() {
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`w-full flex items-center gap-[12px] px-[20px] py-[10px] text-left transition-colors duration-100 cursor-pointer bg-transparent border-none ${
                       idx === selectedIndex
-                        ? "bg-[#F3F4F6] text-[#111111]"
-                        : "text-[#64748B] hover:bg-[#F8FAFC]"
+                        ? "bg-bg-muted text-text-primary"
+                        : "text-text-secondary hover:bg-bg-muted"
                     }`}
                   >
                     <span className="w-[20px] h-[20px] flex items-center justify-center shrink-0 opacity-70">
                       {item.icon}
                     </span>
                     <span className="text-[14px] font-medium">{item.label}</span>
-                    {idx === selectedIndex && (
-                      <span className="ml-auto text-[11px] text-[#94A3B8] font-mono">
-                        enter
-                      </span>
-                    )}
                   </button>
                 );
               })}

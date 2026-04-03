@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, DM_Sans, Instrument_Serif, Playfair_Display, Inter } from "next/font/google";
-import Script from "next/script";
-import ThemeProvider from "@/components/ThemeProvider";
+import { JetBrains_Mono, DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -24,18 +22,6 @@ const instrumentSerif = Instrument_Serif({
   style: ["normal", "italic"],
 });
 
-const playfairDisplay = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
 export const metadata: Metadata = {
   title: "Validue — Targeted Idea Validation Marketplace",
   description:
@@ -52,12 +38,11 @@ export default function RootLayout({
       lang="en"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${dmSans.variable} ${instrumentSerif.variable} ${playfairDisplay.variable} ${inter.variable} antialiased`}
+      className={`${jetbrainsMono.variable} ${dmSans.variable} ${instrumentSerif.variable} antialiased`}
     >
       <head />
       <body className={`${dmSans.className} font-sans`} suppressHydrationWarning>
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );

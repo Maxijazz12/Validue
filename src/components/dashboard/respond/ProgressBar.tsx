@@ -32,17 +32,17 @@ export default function ProgressBar({
       {/* Header row */}
       <div className="flex items-center justify-between mb-[16px]">
         <div className="flex items-center gap-[8px]">
-          <span className="font-mono text-[11px] font-bold tracking-widest uppercase text-[#1C1917]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary">
             [ NODE_{currentIndex + 1} / {total} ]
           </span>
           {questionLabel && (
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[1px] px-[8px] py-[3px] rounded-md border border-black/10 bg-black/5 text-[#A8A29E]">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[1px] px-[8px] py-[3px] rounded-md border border-black/10 bg-black/5 text-text-muted">
               {questionLabel}
             </span>
           )}
         </div>
         {elapsedMs > 0 && (
-          <span className="text-[10px] text-[#A8A29E] font-mono tracking-widest uppercase">
+          <span className="text-[11px] text-text-muted font-mono tracking-widest uppercase">
             {formatTime(elapsedMs)} ELAPSED
           </span>
         )}
@@ -56,9 +56,9 @@ export default function ProgressBar({
             <div
               className={`h-[4px] flex-1 rounded-sm transition-all duration-400 ${
                 i < currentIndex
-                  ? "bg-[#A8A29E]"
+                  ? "bg-text-muted"
                   : i === currentIndex
-                    ? "bg-[#1C1917] animate-pulse"
+                    ? "bg-accent animate-pulse"
                     : "bg-black/5"
               }`}
             />
@@ -67,7 +67,7 @@ export default function ProgressBar({
       </div>
 
       {/* System state microcopy */}
-      <p className="font-mono text-[9px] font-bold text-[#A8A29E] mt-[12px] uppercase tracking-widest">
+      <p className="font-mono text-[11px] font-medium text-text-muted mt-[12px] uppercase tracking-wide">
         {getEncouragement(currentIndex, total)}
       </p>
     </div>

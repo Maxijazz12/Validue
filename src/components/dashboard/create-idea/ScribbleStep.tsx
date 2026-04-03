@@ -63,18 +63,18 @@ export default function ScribbleStep({
     <div className="w-full flex flex-col h-full min-h-[75vh]">
       {/* Header */}
       <div className="mb-[32px] flex flex-col gap-2">
-        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-[#1C1917] font-mono uppercase">
+        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-text-primary font-mono uppercase">
           [ SYS.INITIALIZE_NODE ]
         </h1>
-        <p className="font-mono text-[11px] font-bold tracking-widest text-[#A8A29E] uppercase">
+        <p className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase">
           Awaiting raw input variables for validation synthesis.
         </p>
       </div>
 
       {/* Scribble Glass Pane */}
-      <div className="flex-1 flex flex-col bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[32px] p-[40px] md:p-[56px] relative overflow-hidden group transition-all duration-700 hover:shadow-[0_16px_48px_rgba(229,101,78,0.03),inset_0_1px_0_rgba(255,255,255,1)]">
+      <div className="flex-1 flex flex-col bg-white border border-border-light shadow-card rounded-[32px] p-[40px] md:p-[56px] relative overflow-hidden group transition-all duration-700 hover:shadow-card-hover">
         {/* Glowing top line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E5654E]/30 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand/30 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-1000" />
 
         <div className="flex flex-col gap-[16px]">
           <textarea
@@ -83,13 +83,13 @@ export default function ScribbleStep({
             onChange={(e) => setText(e.target.value)}
             placeholder="[ ENTER RAW CONCEPT ] — describe the problem, target demographic, and validation metrics."
             disabled={isGenerating}
-            className="w-full flex-1 min-h-[240px] text-[16px] md:text-[18px] leading-[1.7] text-[#1C1917] font-sans font-normal tracking-[0.01em] placeholder:text-[#A8A29E]/60 outline-none resize-none bg-transparent disabled:opacity-50"
+            className="w-full flex-1 min-h-[240px] text-[16px] md:text-[18px] leading-[1.7] text-text-primary font-sans font-normal tracking-[0.01em] placeholder:text-text-muted/60 outline-none resize-none bg-transparent disabled:opacity-50"
           />
 
           {/* Example ideas carousel */}
           {text.trim().length < 10 && (
             <div className="mt-8">
-              <p className="font-mono text-[10px] font-bold tracking-widest text-[#A8A29E] uppercase mb-[12px]">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted mb-[12px]">
                 Or load pre-configured template:
               </p>
               <div className="flex gap-[16px] overflow-x-auto pb-[16px] hide-scrollbar" style={{ scrollSnapType: "x mandatory" }}>
@@ -97,16 +97,16 @@ export default function ScribbleStep({
                   <button
                     key={example.title}
                     onClick={() => setText(example.scribble)}
-                    className="flex-shrink-0 w-[240px] text-left p-[20px] rounded-[20px] border border-white/60 bg-white/40 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:bg-white/70 backdrop-blur-md transition-all duration-300 cursor-pointer group"
+                    className="flex-shrink-0 w-[240px] text-left p-[20px] rounded-[20px] border border-border-light bg-white/40 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:bg-white/70 transition-all duration-300 cursor-pointer group"
                     style={{ scrollSnapAlign: "start" }}
                   >
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#1C1917] bg-white opacity-90 px-[8px] py-[4px] border border-black/5 rounded-md shadow-sm">
+                    <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary bg-white opacity-90 px-[8px] py-[4px] border border-black/5 rounded-md shadow-sm">
                       {example.category}
                     </span>
-                    <p className="text-[15px] font-semibold tracking-tight text-[#1C1917] mt-[12px] leading-[1.3] group-hover:opacity-70 transition-opacity">
+                    <p className="text-[15px] font-semibold tracking-tight text-text-primary mt-[12px] leading-[1.3] group-hover:opacity-70 transition-opacity">
                       {example.title}
                     </p>
-                    <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E] mt-[16px]">
+                    <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted mt-[16px]">
                       {example.responses} EXECUTIONS
                     </p>
                   </button>
@@ -118,10 +118,10 @@ export default function ScribbleStep({
           <div className="flex items-center justify-between pt-[24px] mt-auto border-t border-white/40">
             {/* Character count */}
             <span
-              className={`font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
+              className={`font-mono text-[11px] font-medium uppercase tracking-wide transition-colors ${
                 text.trim().length >= 50
-                  ? "text-[#2ca05a]"
-                  : "text-[#A8A29E]"
+                  ? "text-success"
+                  : "text-text-muted"
               }`}
             >
               {text.trim().length < 50
@@ -132,7 +132,7 @@ export default function ScribbleStep({
             <button
               onClick={() => onSubmit(text.trim())}
               disabled={!canSubmit}
-              className="inline-flex items-center gap-[12px] px-[32px] py-[16px] rounded-full text-[12px] font-bold uppercase tracking-widest bg-[#1C1917] text-white hover:bg-white hover:text-[#1C1917] hover:shadow-[0_0_32px_rgba(229,101,78,0.2)] hover:border-[#E5654E]/30 transition-all duration-500 cursor-pointer border border-[#1C1917] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#1C1917] disabled:hover:text-white"
+              className="inline-flex items-center gap-[12px] px-[32px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide bg-accent text-white hover:bg-white hover:text-text-primary hover:shadow-[0_0_32px_rgba(229,101,78,0.2)] hover:border-brand/30 transition-all duration-500 cursor-pointer border border-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-accent disabled:hover:text-white"
             >
               [ INITIATE _SYNTHESIS ]
             </button>

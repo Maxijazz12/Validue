@@ -86,7 +86,7 @@ function ScoringSourcePill({ source, confidence }: { source?: string; confidence
 
   if (source === "ai" && confidence !== undefined && confidence < 0.7) {
     return (
-      <span className="text-[10px] px-[6px] py-[1px] rounded-full bg-[#F3F4F6] text-[#64748B] font-medium font-mono">
+      <span className="text-[10px] px-[6px] py-[1px] rounded-full bg-bg-muted text-text-secondary font-medium font-mono">
         {confidence.toFixed(1)}
       </span>
     );
@@ -127,23 +127,23 @@ export default function ResponseCard({
     <div
       id={`response-${responseId}`}
       className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
-        highlighted ? "ring-2 ring-[#E5654E]/40 ring-offset-2" : ""
+        highlighted ? "ring-2 ring-brand/40 ring-offset-2" : ""
       } ${
-        isTop ? "border-[#E8C1B0]/40 shadow-[0_2px_12px_rgba(232,193,176,0.08)]" : "border-[#E2E8F0] hover:border-[#CBD5E1]"
+        isTop ? "border-accent-warm-muted/40 shadow-[0_2px_12px_rgba(232,193,176,0.08)]" : "border-border-light hover:border-border-muted"
       }`}
     >
       {/* Header — always visible */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-[12px] p-[16px] text-left cursor-pointer hover:bg-[#FCFCFD] transition-colors duration-200"
+        className="w-full flex items-center gap-[12px] p-[16px] text-left cursor-pointer hover:bg-bg-muted transition-colors duration-200"
       >
         {/* Rank */}
         <div
           className={`w-[32px] h-[32px] rounded-full flex items-center justify-center shrink-0 ${
             isTop
-              ? "bg-[#E5654E]/8 text-[#E5654E]"
-              : "bg-[#F3F4F6] text-[#64748B]"
+              ? "bg-brand/8 text-brand"
+              : "bg-bg-muted text-text-secondary"
           }`}
         >
           <span className="text-[13px] font-bold">#{rank}</span>
@@ -154,12 +154,12 @@ export default function ResponseCard({
           <Avatar name={respondentName} imageUrl={respondentAvatar} size={20} />
           <div className="min-w-0">
             <span className="flex items-center gap-[6px]">
-              <span className="text-[14px] font-medium text-[#111111] truncate">
+              <span className="text-[14px] font-medium text-text-primary truncate">
                 {respondentName}
               </span>
               {respondentTier && <ReputationBadge tier={respondentTier} />}
             </span>
-            <span className="text-[11px] text-[#94A3B8]">
+            <span className="text-[11px] text-slate">
               {formatDate(submittedAt)}
             </span>
           </div>
@@ -167,7 +167,7 @@ export default function ResponseCard({
 
         {/* AI feedback */}
         {aiFeedback && (
-          <p className="text-[12px] text-[#64748B] flex-1 hidden md:block truncate">
+          <p className="text-[12px] text-text-secondary flex-1 hidden md:block truncate">
             {aiFeedback}
           </p>
         )}
@@ -186,7 +186,7 @@ export default function ResponseCard({
               {qualityScore}
             </div>
           ) : (
-            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-[#3b82f6]/10 text-[#3b82f6]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[8px] py-[3px] rounded-full bg-info/10 text-info">
               {status}
             </span>
           )}
@@ -210,31 +210,31 @@ export default function ResponseCard({
 
       {/* Expanded — dimensions + answers */}
       {expanded && (
-        <div className="border-t border-[#E2E8F0] p-[16px]">
+        <div className="border-t border-border-light p-[16px]">
           {/* Mobile feedback */}
           {aiFeedback && (
-            <p className="text-[12px] text-[#64748B] mb-[12px] md:hidden italic">
+            <p className="text-[12px] text-text-secondary mb-[12px] md:hidden italic">
               {aiFeedback}
             </p>
           )}
 
           {/* Dimension bars */}
           {dimensions && (
-            <div className="grid grid-cols-2 gap-[8px] mb-[16px] p-[12px] rounded-xl bg-[#F8FAFC]">
+            <div className="grid grid-cols-2 gap-[8px] mb-[16px] p-[12px] rounded-xl bg-bg-muted">
               {DIMENSION_CONFIG.map((d) => {
                 const value = dimensions[d.key];
                 return (
                   <div key={d.key}>
                     <div className="flex items-center justify-between mb-[2px]">
-                      <span className="text-[11px] text-[#64748B]">
+                      <span className="text-[11px] text-text-secondary">
                         {d.label}
-                        <span className="text-[#CBD5E1] ml-[3px]">{d.weight}</span>
+                        <span className="text-border-muted ml-[3px]">{d.weight}</span>
                       </span>
-                      <span className="text-[11px] font-mono font-semibold text-[#111111]">
+                      <span className="text-[11px] font-mono font-semibold text-text-primary">
                         {value}/10
                       </span>
                     </div>
-                    <div className="h-[4px] rounded-full bg-[#E2E8F0] overflow-hidden">
+                    <div className="h-[4px] rounded-full bg-border-light overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-300"
                         style={{
@@ -253,22 +253,22 @@ export default function ResponseCard({
             {answers.map((answer, i) => (
               <div key={i}>
                 <div className="flex items-center gap-[6px] mb-[4px]">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[6px] py-[1px] rounded-full bg-[#F3F4F6] text-[#64748B]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[6px] py-[1px] rounded-full bg-bg-muted text-text-secondary">
                     Q{i + 1}
                   </span>
-                  <span className="text-[11px] text-[#94A3B8]">
+                  <span className="text-[11px] text-slate">
                     {answer.questionType === "open" ? "Open-ended" : "Multiple choice"}
                   </span>
                   {answer.timeSpentMs > 0 && (
-                    <span className="text-[10px] text-[#94A3B8]">
+                    <span className="text-[10px] text-slate">
                       · {formatTime(answer.timeSpentMs)}
                     </span>
                   )}
                 </div>
-                <p className="text-[13px] font-medium text-[#64748B] mb-[4px]">
+                <p className="text-[13px] font-medium text-text-secondary mb-[4px]">
                   {answer.questionText}
                 </p>
-                <p className="text-[14px] text-[#111111] leading-[1.5] whitespace-pre-wrap">
+                <p className="text-[14px] text-text-primary leading-[1.5] whitespace-pre-wrap">
                   {answer.answerText || "(no answer)"}
                 </p>
               </div>

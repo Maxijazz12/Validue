@@ -16,13 +16,13 @@ function DimensionBar({
   score: number;
 }) {
   let color: string;
-  if (score >= 70) color = "#2ca05a";
+  if (score >= 70) color = "#22c55e";
   else if (score >= 40) color = "#E5654E";
   else color = "#ef4444";
 
   return (
     <div className="flex items-center gap-[12px]">
-      <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E] w-[90px] shrink-0">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted w-[90px] shrink-0">
         {"// "}{label}
       </span>
       <div className="flex-1 h-[2px] bg-black/5 overflow-hidden">
@@ -51,28 +51,28 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
   const hiddenCount = (allWarnings.length - warnings.length) + (allInfos.length - infos.length);
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] rounded-[24px] p-[24px] relative overflow-hidden">
+    <div className="bg-white border border-border-light shadow-card rounded-[24px] p-[24px] relative overflow-hidden">
       <div className="absolute top-0 right-0 p-[24px] pointer-events-none opacity-10">
         <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
       </div>
 
-      <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#1C1917] mb-[20px]">
+      <h3 className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary mb-[20px]">
         [ SIGNAL STRENGTH ]
       </h3>
 
       {/* Overall score bar */}
       <div className="mb-[24px]">
         <div className="flex items-center justify-between mb-[8px]">
-          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">ESTIMATED INTEGRITY</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">ESTIMATED INTEGRITY</span>
           <div className="flex items-center gap-[6px]">
             <span
                className="w-[6px] h-[6px] rounded-full animate-pulse"
                style={{ background: result.color, boxShadow: `0 0 8px ${result.color}` }}
             />
             <span
-              className="font-mono text-[11px] font-bold tracking-widest uppercase"
+              className="font-mono text-[11px] font-medium uppercase tracking-wide"
               style={{ color: result.color }}
             >
               {result.score}/100 — {result.label}
@@ -93,7 +93,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Dimension breakdown */}
       {result.dimensions && (
         <div className="flex flex-col gap-[6px] mb-[16px]">
-          <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#94A3B8] mb-[2px]">
+          <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-slate mb-[2px]">
             Breakdown
           </span>
           <DimensionBar label="Audience" score={result.dimensions.audienceClarity} />
@@ -106,26 +106,26 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Quick stats */}
       <div className="grid grid-cols-2 gap-[12px] mb-[20px]">
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}ACTIVE NODES</span>
-          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}ACTIVE NODES</span>
+          <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.questions.length}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}ASSUMPTIONS</span>
-          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}ASSUMPTIONS</span>
+          <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.assumptions.length}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}OPEN PROBES</span>
-          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}OPEN PROBES</span>
+          <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.questions.filter((q) => q.type === "open").length}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#A8A29E]">{"// "}QUANT METRICS</span>
-          <span className="font-mono text-[14px] font-bold text-[#1C1917]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}QUANT METRICS</span>
+          <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.questions.filter((q) => q.type === "multiple_choice").length}
           </span>
         </div>
@@ -133,7 +133,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
 
       {/* Coaching tips */}
       <div className="border-t border-black/5 pt-[20px] flex flex-col gap-[12px]">
-        <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E]">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
           [ LOG_OUTPUT ]
         </span>
 
@@ -154,7 +154,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <span className="text-[11px] text-[#64748B] leading-[1.4]">
+            <span className="text-[11px] text-text-secondary leading-[1.4]">
               {tip.message}
             </span>
           </div>
@@ -177,7 +177,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               <line x1="12" y1="16" x2="12" y2="12" />
               <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
-            <span className="text-[11px] text-[#64748B] leading-[1.4]">
+            <span className="text-[11px] text-text-secondary leading-[1.4]">
               {tip.message}
             </span>
           </div>
@@ -199,20 +199,20 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
-            <span className="text-[11px] text-[#64748B] leading-[1.4]">
+            <span className="text-[11px] text-text-secondary leading-[1.4]">
               {tip.message}
             </span>
           </div>
         ))}
 
         {hiddenCount > 0 && (
-          <p className="text-[10px] text-[#94A3B8] mt-[2px]">
+          <p className="text-[10px] text-slate mt-[2px]">
             + {hiddenCount} more {hiddenCount === 1 ? "suggestion" : "suggestions"}
           </p>
         )}
 
         {result.tips.length === 0 && (
-          <p className="text-[11px] text-[#94A3B8]">
+          <p className="text-[11px] text-slate">
             Looking good. Small improvements to your questions can meaningfully increase response quality.
           </p>
         )}

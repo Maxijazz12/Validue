@@ -128,7 +128,7 @@ export default function PayoutAllocator({
 
   if (payoutStatus === "allocated" || success) {
     return (
-      <div className="bg-[#22c55e]/5 border border-[#22c55e]/20 rounded-2xl p-[24px]">
+      <div className="bg-success/5 border border-success/20 rounded-2xl p-[24px]">
         <div className="flex items-center gap-[8px] mb-[8px]">
           <svg
             width="20"
@@ -142,11 +142,11 @@ export default function PayoutAllocator({
           >
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <h3 className="text-[16px] font-semibold text-[#111111]">
+          <h3 className="text-[16px] font-semibold text-text-primary">
             Payouts Allocated
           </h3>
         </div>
-        <p className="text-[13px] text-[#64748B]">
+        <p className="text-[13px] text-text-secondary">
           {success
             ? `${success.count} respondent${success.count !== 1 ? "s" : ""} will receive payouts.`
             : "Payouts have been allocated for this campaign."}
@@ -162,20 +162,20 @@ export default function PayoutAllocator({
   const recipientCount = getAllocations().filter((a) => a.amount >= 0.5).length;
 
   return (
-    <div className="bg-white border border-[#E5654E]/30 rounded-2xl p-[24px] relative">
-      <h3 className="text-[16px] font-semibold text-[#111111] mb-[4px]">
+    <div className="bg-white border border-brand/30 rounded-2xl p-[24px] relative">
+      <h3 className="text-[16px] font-semibold text-text-primary mb-[4px]">
         Allocate Rewards
       </h3>
-      <p className="text-[13px] text-[#64748B] mb-[16px]">
+      <p className="text-[13px] text-text-secondary mb-[16px]">
         Distribute ${distributableAmount.toFixed(2)} among your best
         respondents.
-        <span className="text-[#94A3B8]">
+        <span className="text-slate">
           {" "}(${rewardAmount.toFixed(2)} pool minus 20% platform fee)
         </span>
       </p>
 
       {/* Mode tabs */}
-      <div className="flex gap-[4px] mb-[20px] p-[4px] rounded-lg bg-[#F3F4F6]">
+      <div className="flex gap-[4px] mb-[20px] p-[4px] rounded-lg bg-bg-muted">
         {(
           [
             { key: "ai", label: "AI Recommended" },
@@ -189,8 +189,8 @@ export default function PayoutAllocator({
             onClick={() => setMode(tab.key)}
             className={`flex-1 text-[12px] font-semibold py-[8px] px-[12px] rounded-md transition-all cursor-pointer border-none ${
               mode === tab.key
-                ? "bg-white text-[#111111] shadow-sm"
-                : "bg-transparent text-[#64748B] hover:text-[#111111]"
+                ? "bg-white text-text-primary shadow-sm"
+                : "bg-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
             {tab.label}
@@ -201,18 +201,18 @@ export default function PayoutAllocator({
       {isLoading ? (
         <div className="flex flex-col items-center py-[24px]">
           <div className="flex gap-[4px] justify-center">
-            <span className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-[loadDot_1.4s_ease_infinite]" />
-            <span className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
-            <span className="w-[5px] h-[5px] bg-[#CBD5E1]/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
+            <span className="w-[5px] h-[5px] bg-border-muted/50 rounded-full animate-[loadDot_1.4s_ease_infinite]" />
+            <span className="w-[5px] h-[5px] bg-border-muted/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
+            <span className="w-[5px] h-[5px] bg-border-muted/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
           </div>
-          <p className="text-[12px] text-[#94A3B8] mt-[8px]">Calculating distribution</p>
+          <p className="text-[12px] text-slate mt-[8px]">Calculating distribution</p>
         </div>
       ) : (
         <>
           {/* Top N slider */}
           {mode === "topn" && (
             <div className="mb-[16px]">
-              <label className="text-[13px] font-medium text-[#64748B] block mb-[6px]">
+              <label className="text-[13px] font-medium text-text-secondary block mb-[6px]">
                 Reward top {topN} response{topN !== 1 ? "s" : ""}
               </label>
               <input
@@ -221,7 +221,7 @@ export default function PayoutAllocator({
                 max={Math.min(suggestions.length, 10)}
                 value={topN}
                 onChange={(e) => setTopN(Number(e.target.value))}
-                className="w-full accent-[#111111]"
+                className="w-full accent-accent"
               />
             </div>
           )}
@@ -244,11 +244,11 @@ export default function PayoutAllocator({
                   key={s.responseId}
                   className={`flex items-center gap-[12px] p-[12px] rounded-xl border transition-all ${
                     isIncluded
-                      ? "border-[#22c55e]/20 bg-[#22c55e]/3"
-                      : "border-[#E2E8F0] bg-white opacity-60"
+                      ? "border-success/20 bg-success/3"
+                      : "border-border-light bg-white opacity-60"
                   }`}
                 >
-                  <span className="text-[12px] font-bold text-[#64748B] w-[24px] shrink-0">
+                  <span className="text-[12px] font-bold text-text-secondary w-[24px] shrink-0">
                     #{i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -256,16 +256,16 @@ export default function PayoutAllocator({
                       <button
                         type="button"
                         onClick={() => onScrollToResponse(s.responseId)}
-                        className="text-[13px] font-medium text-[#111111] hover:text-[#E5654E] underline-offset-2 hover:underline truncate text-left block max-w-full cursor-pointer bg-transparent border-none p-0"
+                        className="text-[13px] font-medium text-text-primary hover:text-brand underline-offset-2 hover:underline truncate text-left block max-w-full cursor-pointer bg-transparent border-none p-0"
                       >
                         {s.respondentName}
                       </button>
                     ) : (
-                      <span className="text-[13px] font-medium text-[#111111] block truncate">
+                      <span className="text-[13px] font-medium text-text-primary block truncate">
                         {s.respondentName}
                       </span>
                     )}
-                    <span className="text-[11px] text-[#94A3B8] flex items-center gap-[4px]">
+                    <span className="text-[11px] text-slate flex items-center gap-[4px]">
                       Score: {s.qualityScore}
                       {isLowConf && (
                         <span className="text-[10px] px-[5px] py-[0.5px] rounded-full bg-[#FEF3C7] text-[#92400E] font-medium">
@@ -277,7 +277,7 @@ export default function PayoutAllocator({
 
                   {mode === "manual" ? (
                     <div className="relative w-[90px] shrink-0">
-                      <span className="absolute left-[8px] top-1/2 -translate-y-1/2 text-[12px] text-[#94A3B8]">
+                      <span className="absolute left-[8px] top-1/2 -translate-y-1/2 text-[12px] text-slate">
                         $
                       </span>
                       <input
@@ -293,13 +293,13 @@ export default function PayoutAllocator({
                           );
                           setManualAmounts(next);
                         }}
-                        className="w-full pl-[22px] pr-[8px] py-[6px] rounded-lg border border-[#E2E8F0] text-[13px] font-mono text-right outline-none focus:border-[#CBD5E1] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+                        className="w-full pl-[22px] pr-[8px] py-[6px] rounded-lg border border-border-light text-[13px] font-mono text-right outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
                       />
                     </div>
                   ) : (
                     <span
                       className={`text-[14px] font-mono font-semibold shrink-0 ${
-                        isIncluded ? "text-[#22c55e]" : "text-[#94A3B8]"
+                        isIncluded ? "text-success" : "text-slate"
                       }`}
                     >
                       ${amount.toFixed(2)}
@@ -311,21 +311,21 @@ export default function PayoutAllocator({
           </div>
 
           {/* Totals */}
-          <div className="flex items-center justify-between p-[12px] rounded-xl bg-[#F3F4F6] mb-[16px]">
-            <span className="text-[13px] text-[#64748B]">Total allocated</span>
+          <div className="flex items-center justify-between p-[12px] rounded-xl bg-bg-muted mb-[16px]">
+            <span className="text-[13px] text-text-secondary">Total allocated</span>
             <div className="text-right">
               <span
                 className={`text-[16px] font-mono font-bold ${
-                  remaining < -0.01 ? "text-[#ef4444]" : "text-[#111111]"
+                  remaining < -0.01 ? "text-error" : "text-text-primary"
                 }`}
               >
                 ${totalAllocated.toFixed(2)}
               </span>
-              <span className="text-[12px] text-[#94A3B8] ml-[4px]">
+              <span className="text-[12px] text-slate ml-[4px]">
                 / ${distributableAmount.toFixed(2)}
               </span>
               {remaining > 0.01 && (
-                <span className="block text-[11px] text-[#E5654E]">
+                <span className="block text-[11px] text-brand">
                   ${remaining.toFixed(2)} unallocated
                 </span>
               )}
@@ -338,7 +338,7 @@ export default function PayoutAllocator({
               <button
                 type="button"
                 onClick={handleDistributeRemaining}
-                className="text-[12px] text-[#E5654E] font-medium cursor-pointer bg-transparent border-none p-0 hover:underline"
+                className="text-[12px] text-brand font-medium cursor-pointer bg-transparent border-none p-0 hover:underline"
               >
                 Distribute remaining ${remaining.toFixed(2)}
               </button>
@@ -347,29 +347,29 @@ export default function PayoutAllocator({
 
           {/* Error */}
           {error && (
-            <div className="text-[12px] text-[#ef4444] mb-[12px] p-[10px] rounded-xl bg-[#ef4444]/5">
+            <div className="text-[12px] text-error mb-[12px] p-[10px] rounded-xl bg-error/5">
               {error}
             </div>
           )}
 
           {/* Confirm button or confirmation panel */}
           {showConfirm ? (
-            <div className="border border-[#E5654E]/20 rounded-xl p-[16px] bg-[#FFF7ED]">
-              <h4 className="text-[14px] font-semibold text-[#111111] mb-[8px]">
+            <div className="border border-brand/20 rounded-xl p-[16px] bg-[#FFF7ED]">
+              <h4 className="text-[14px] font-semibold text-text-primary mb-[8px]">
                 Confirm Payout Allocation
               </h4>
-              <div className="text-[13px] text-[#64748B] mb-[12px] space-y-[4px]">
+              <div className="text-[13px] text-text-secondary mb-[12px] space-y-[4px]">
                 <p>
-                  <span className="font-mono font-semibold text-[#111111]">
+                  <span className="font-mono font-semibold text-text-primary">
                     ${totalAllocated.toFixed(2)}
                   </span>{" "}
                   to{" "}
-                  <span className="font-semibold text-[#111111]">
+                  <span className="font-semibold text-text-primary">
                     {recipientCount} respondent{recipientCount !== 1 ? "s" : ""}
                   </span>
                 </p>
                 {/* Top 3 preview */}
-                <div className="text-[12px] text-[#94A3B8] pl-[8px] border-l-2 border-[#E2E8F0]">
+                <div className="text-[12px] text-slate pl-[8px] border-l-2 border-border-light">
                   {getAllocations()
                     .filter((a) => a.amount >= 0.5)
                     .slice(0, 3)
@@ -388,14 +388,14 @@ export default function PayoutAllocator({
                   )}
                 </div>
               </div>
-              <p className="text-[11px] text-[#E5654E] mb-[12px]">
+              <p className="text-[11px] text-brand mb-[12px]">
                 This action is irreversible. Respondents will be notified.
               </p>
               <div className="flex gap-[8px]">
                 <button
                   type="button"
                   onClick={() => setShowConfirm(false)}
-                  className="flex-1 py-[10px] text-[13px] font-semibold text-[#64748B] bg-white border border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-[#F9FAFB] transition-colors"
+                  className="flex-1 py-[10px] text-[13px] font-semibold text-text-secondary bg-white border border-border-light rounded-lg cursor-pointer hover:bg-bg-muted transition-colors"
                 >
                   Cancel
                 </button>
@@ -403,7 +403,7 @@ export default function PayoutAllocator({
                   type="button"
                   onClick={handleConfirm}
                   disabled={isPending}
-                  className={`flex-1 py-[10px] text-[13px] font-medium text-white bg-[#E5654E] rounded-xl cursor-pointer hover:bg-[#D4544D] transition-all duration-200 border-none ${
+                  className={`flex-1 py-[10px] text-[13px] font-medium text-white bg-brand rounded-xl cursor-pointer hover:bg-[#D4544D] transition-all duration-200 border-none ${
                     isPending ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
