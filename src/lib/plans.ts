@@ -1,6 +1,10 @@
+import { env } from "@/lib/env";
+
 /* ─── Plan Tier Config ─── */
 
-export type PlanTier = "free" | "starter" | "pro";
+export const PLAN_TIERS = ["free", "pro"] as const;
+
+export type PlanTier = (typeof PLAN_TIERS)[number];
 
 export type PlanConfig = {
   price: number;
@@ -22,10 +26,10 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
   free: {
     price: 0,
     campaignsPerMonth: 1,
-    baselineReachUnits: 100,
+    baselineReachUnits: 150,
     reachPerDollar: 12,
     efficientZone: 15,
-    minFundingAmount: 5,
+    minFundingAmount: 3,
     matchPriority: 1,
     maxAiQuestions: 5,
     hasInsightSummary: false,
@@ -33,33 +37,19 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     hasPriorityMatching: false,
     stripePriceId: null,
   },
-  starter: {
-    price: 19,
-    campaignsPerMonth: 3,
-    baselineReachUnits: 250,
-    reachPerDollar: 18,
-    efficientZone: 30,
-    minFundingAmount: 5,
-    matchPriority: 2,
-    maxAiQuestions: 5,
-    hasInsightSummary: "basic",
-    hasExport: false,
-    hasPriorityMatching: false,
-    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID ?? null,
-  },
   pro: {
-    price: 39,
-    campaignsPerMonth: 10,
-    baselineReachUnits: 600,
-    reachPerDollar: 24,
-    efficientZone: 75,
+    price: 29,
+    campaignsPerMonth: 5,
+    baselineReachUnits: 300,
+    reachPerDollar: 20,
+    efficientZone: 50,
     minFundingAmount: 3,
     matchPriority: 3,
     maxAiQuestions: 10,
     hasInsightSummary: "full",
     hasExport: "csv",
     hasPriorityMatching: true,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? null,
+    stripePriceId: null,
   },
 };
 
@@ -67,7 +57,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
 
 export const WELCOME_BONUS = {
   campaignsFirstMonth: 1, // same as normal free limit — one great experience
-  firstCampaignReachMultiplier: 1.5, // 1.5x baseline on first campaign (113 RU)
+  firstCampaignReachMultiplier: 1.0, // disabled — baseline 150 RU is the welcome experience now
   fundingCreditCents: 200, // $2 credit on first campaign
   expiryDays: 14, // bonus expires after 14 days (not 30)
 } as const;
@@ -80,9 +70,19 @@ export const STRENGTH_THRESHOLDS = [0, 50, 100, 200, 400, 700, 1100, 1600, 2200,
 
 /* ─── Helpers ─── */
 
-export const PLAN_TIERS: PlanTier[] = ["free", "starter", "pro"];
+const LEGACY_TIER_MAP = {
+  starter: "pro",
+  scale: "pro",
+} as const satisfies Record<string, PlanTier>;
 
 export function getPlanConfig(tier: PlanTier): PlanConfig {
+  if (tier === "pro") {
+    return {
+      ...PLAN_CONFIG.pro,
+      stripePriceId: env().STRIPE_PRO_PRICE_ID ?? null,
+    };
+  }
+
   return PLAN_CONFIG[tier];
 }
 
@@ -90,5 +90,14 @@ export function isValidTier(tier: string): tier is PlanTier {
   return PLAN_TIERS.includes(tier as PlanTier);
 }
 
-/** Platform fee rate applied to campaign reward pools */
-export const PLATFORM_FEE_RATE = 0.20;
+export function normalizeTier(tier: string | null | undefined): PlanTier | null {
+  if (!tier) return null;
+  if (isValidTier(tier)) return tier;
+  if (tier in LEGACY_TIER_MAP) {
+    return LEGACY_TIER_MAP[tier as keyof typeof LEGACY_TIER_MAP];
+  }
+  return null;
+}
+
+/** Platform fee rate applied to campaign reward pools — 15% to maximize respondent payouts; subscriptions are the revenue engine */
+export const PLATFORM_FEE_RATE = 0.15;

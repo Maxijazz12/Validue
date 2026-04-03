@@ -1,32 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { questionId, type DraftQuestion, type DraftAudience } from "@/lib/ai/types";
+import {
+  questionId,
+  type DraftQuestion,
+  type DraftAudience,
+  type EvidenceCategory,
+} from "@/lib/ai/types";
 import { regenerateQuestion as regenerateQuestionAPI } from "@/lib/ai/generate-question";
-
-/* ─── Deterministic question templates (free, instant) ─── */
-
-const TEMPLATE_OPEN: string[] = [
-  "What would make you stop using your current solution and switch to something new?",
-  "Describe the last time this problem really got in your way. What happened?",
-  "If you could redesign how this works from scratch, what would you change first?",
-  "What's the one thing about this problem that nobody talks about but everyone deals with?",
-  "Walk me through a situation where this problem cost you time, money, or energy.",
-  "How often do you run into this problem, and what do you usually do when it happens?",
-  "What have you spent time or money on to try to solve this, even partially?",
-];
-
-const TEMPLATE_FOLLOWUP: string[] = [
-  "What would your ideal solution look like? Be as specific as possible.",
-  "Who else in your life or work is affected by this problem?",
-  "What's the minimum this would need to do for you to give it a real shot?",
-  "How would you describe this problem to a friend in one sentence?",
-  "What's the biggest risk you see with a solution like this?",
-  "If you had to choose between this and your current approach, what would tip the decision?",
-  "What's the biggest reason you might NOT try something like this, even if it worked well?",
-];
-
-let _templateIdx = 0;
+import { buildSyntheticQuestion } from "@/lib/ai/repair-campaign-draft";
 
 /* ─── Props ─── */
 
@@ -302,11 +284,28 @@ export default function SurveyEditor({
   function handleRegenerate(id: string) {
     const q = questions.find((qn) => qn.id === id);
     if (!q || q.isBaseline) return;
-    const pool = q.section === "followup" ? TEMPLATE_FOLLOWUP : TEMPLATE_OPEN;
-    _templateIdx = (_templateIdx + 1) % pool.length;
+    const assumptionIndex = q.assumptionIndex ?? 0;
+    const fallbackCategory: EvidenceCategory =
+      q.category ?? (q.section === "followup" ? "willingness" : "behavior");
+    const replacement = buildSyntheticQuestion(
+      assumptions?.[assumptionIndex] ?? campaignSummary ?? scribbleText,
+      campaignSummary ?? scribbleText,
+      fallbackCategory,
+      assumptionIndex
+    );
+
     onChange(
       questions.map((qn) =>
-        qn.id === id ? { ...qn, text: pool[_templateIdx] } : qn
+        qn.id === id
+          ? {
+              ...qn,
+              text: replacement.text,
+              type: replacement.type,
+              options: replacement.options,
+              anchors: replacement.anchors,
+              category: replacement.category,
+            }
+          : qn
       )
     );
   }
@@ -331,7 +330,16 @@ export default function SurveyEditor({
       );
       onChange(
         questions.map((qn) =>
-          qn.id === id ? { ...qn, text: replacement.text } : qn
+          qn.id === id
+            ? {
+                ...qn,
+                text: replacement.text,
+                type: replacement.type,
+                options: replacement.options,
+                anchors: replacement.anchors,
+                category: replacement.category,
+              }
+            : qn
         )
       );
     } catch {

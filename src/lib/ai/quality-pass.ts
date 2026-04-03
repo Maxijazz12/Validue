@@ -57,6 +57,9 @@ const BROAD_EXPLORATION_PATTERNS =
 const DISCONFIRMATION_KEYWORDS =
   /wouldn't|would.*not|main reason.*not|why.*not|what.*stop|what.*prevent|be honest/i;
 
+const DISCONFIRMATION_OPTION_PATTERNS =
+  /not (a |interested|a problem)|never|0 (times|—)|don't|doesn't apply|none of|i already|already works|works (fine|well enough)|not relevant|happy|satisfied|nothing needs to change|would(?:\s+)?not|wouldn't|too minor|too much (effort|friction)|built[- ]in is enough|provided by my company|company already provides|would never expense|won't budget|not worth fixing|not worth paying|isn't a pain point/i;
+
 /** Behavioral frequency/recency patterns — high signal for assumption testing */
 const FREQUENCY_KEYWORDS =
   /how many times|how often|in the past (week|month|year)|per (week|month|day)|last time you/i;
@@ -67,13 +70,18 @@ function scoreAudienceClarity(draft: CampaignDraft): { score: number; warnings: 
   const warnings: QualityWarning[] = [];
   const { audience } = draft;
   let score = 0;
+  const hasAudienceSpecificity =
+    audience.expertise.length >= 1 ||
+    audience.occupation.trim().length > 0 ||
+    audience.nicheQualifier.trim().length > 0;
 
   // Core targeting fields
   if (audience.interests.length >= 1) score += 20;
   else warnings.push({ severity: "high", dimension: "audience", message: "No target interests selected — your campaign won't reach the right people." });
 
   if (audience.expertise.length >= 1) score += 20;
-  else warnings.push({ severity: "medium", dimension: "audience", message: "No target expertise set — consider who can give you the most useful feedback." });
+  else if (audience.occupation.trim() || audience.nicheQualifier.trim()) score += 12;
+  else warnings.push({ severity: "low", dimension: "audience", message: "No target expertise set — that can be fine for broad consumer ideas, but add an occupation or niche qualifier if you can." });
 
   if (audience.ageRanges.length >= 1) score += 10;
 
@@ -94,6 +102,11 @@ function scoreAudienceClarity(draft: CampaignDraft): { score: number; warnings: 
     warnings.push({ severity: "low", dimension: "audience", message: "Consider narrowing expertise to your ideal respondent profile." });
   }
 
+  if (audience.interests.length > 3 && !hasAudienceSpecificity) {
+    score -= 5;
+    warnings.push({ severity: "low", dimension: "audience", message: "Broad interests with little audience specificity — narrow to your best 2–3 segments." });
+  }
+
   return { score: Math.min(Math.max(score, 0), 100), warnings };
 }
 
@@ -101,6 +114,8 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   const warnings: QualityWarning[] = [];
   const questions = draft.questions;
   let score = 100; // start full, deduct for issues
+  const preferredQuestionLimit = draft.format === "standard" ? 12 : 10;
+  const hardQuestionLimit = draft.format === "standard" ? 14 : 12;
 
   const total = questions.length;
   if (total < 3) {
@@ -109,12 +124,26 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   } else if (total < 5) {
     score -= 10;
     warnings.push({ severity: "medium", dimension: "questions", message: "Consider adding 1–2 more questions for stronger signal." });
-  } else if (total > 12) {
+  } else if (total > hardQuestionLimit) {
     score -= 15;
-    warnings.push({ severity: "high", dimension: "questions", message: "Survey is too long — respondent quality drops sharply past 12 questions." });
-  } else if (total > 10) {
+    warnings.push({
+      severity: "high",
+      dimension: "questions",
+      message:
+        draft.format === "standard"
+          ? "Survey is too long for a standard run — respondent quality drops sharply past 14 questions."
+          : "Survey is too long — respondent quality drops sharply past 12 questions.",
+    });
+  } else if (total > preferredQuestionLimit) {
     score -= 5;
-    warnings.push({ severity: "low", dimension: "questions", message: "More than 10 questions risks respondent fatigue — consider trimming." });
+    warnings.push({
+      severity: "low",
+      dimension: "questions",
+      message:
+        draft.format === "standard"
+          ? "More than 12 questions risks respondent fatigue even in a standard run — consider trimming."
+          : "More than 10 questions risks respondent fatigue — consider trimming.",
+    });
   }
 
   // Leading questions
@@ -208,8 +237,7 @@ function scoreQuestionQuality(draft: CampaignDraft): { score: number; warnings: 
   for (const q of customMcqs) {
     const opts = (q.options ?? []).map((o) => o.toLowerCase());
     const hasDisconfirmation = opts.some(
-      (o) =>
-        /not (a |interested|a problem)|never|0 (times|—)|don't|doesn't apply|none of|i already|not relevant|i'm (happy|satisfied)|no —/i.test(o)
+      (o) => DISCONFIRMATION_OPTION_PATTERNS.test(o)
     );
     if (!hasDisconfirmation) {
       score -= 5;

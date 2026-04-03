@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import type { CampaignDraft, DraftQuestion, DraftAudience } from "@/lib/ai/types";
+import type {
+  CampaignDraft,
+  CampaignDraftGeneration,
+  DraftQuestion,
+  DraftAudience,
+  QualityWarning,
+} from "@/lib/ai/types";
 import type { BaselineQuestion } from "@/lib/baseline-questions";
 import SurveyEditor from "./SurveyEditor";
 import BaselineQuestionPicker from "./BaselineQuestionPicker";
@@ -19,8 +25,11 @@ const selectClass =
 
 interface DraftReviewStepProps {
   draft: CampaignDraft;
+  generationInfo?: CampaignDraftGeneration | null;
   onChange: (draft: CampaignDraft) => void;
   onBack: () => void;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
   onPublish: () => void;
   isPublishing: boolean;
   onSaveDraft?: () => void;
@@ -29,10 +38,23 @@ interface DraftReviewStepProps {
   qualityScore?: number;
 }
 
+function dedupeWarnings(warnings: QualityWarning[]): QualityWarning[] {
+  const seen = new Set<string>();
+  return warnings.filter((warning) => {
+    const key = `${warning.severity}:${warning.dimension}:${warning.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default function DraftReviewStep({
   draft,
+  generationInfo,
   onChange,
   onBack,
+  onRegenerate,
+  isRegenerating = false,
   onPublish,
   isPublishing,
   onSaveDraft,
@@ -42,11 +64,50 @@ export default function DraftReviewStep({
 }: DraftReviewStepProps) {
   const [swappingQuestionId, setSwappingQuestionId] = useState<string | null>(null);
   const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const assumptionInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const resolvedQualityScore = draft.qualityScores?.overall ?? qualityScore;
+  const qualityWarnings = dedupeWarnings(draft.qualityScores?.warnings ?? []);
+  const highPriorityWarnings = qualityWarnings.filter(
+    (warning) => warning.severity === "high" || warning.severity === "medium"
+  );
+  const polishWarnings = qualityWarnings.filter((warning) => warning.severity === "low");
 
   // Compute reach estimate and presets based on current funding + tier
-  const reachEstimate = calculateReach(tier, draft.rewardPool ?? 0, { qualityScore });
-  const fundingPresets = getFundingPresets(tier, qualityScore);
+  const reachEstimate = calculateReach(tier, draft.rewardPool ?? 0, {
+    qualityScore: resolvedQualityScore,
+  });
+  const fundingPresets = getFundingPresets(tier, resolvedQualityScore);
   const fillSpeed = estimateFillSpeed(reachEstimate.effectiveReach);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      assumptionInputRefs.current.forEach((input) => {
+        if (!input || document.activeElement === input) return;
+        input.scrollLeft = 0;
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [draft.assumptions]);
+
+  const generationBanner = generationInfo
+    ? generationInfo.source === "ai"
+      ? {
+          tone: "border-success/20 bg-success/10 text-success",
+          label: "[ LIVE_AI_DRAFT ]",
+          copy: "This draft came from the live model, then passed through the quality pass.",
+        }
+      : {
+          tone: "border-amber-500/20 bg-amber-500/10 text-amber-700",
+          label: "[ BACKUP_DRAFT ]",
+          copy:
+            generationInfo.fallbackReason === "no_api_key"
+              ? "AI is not configured in this environment, so this draft used the backup generator."
+              : generationInfo.fallbackReason === "validation_failed"
+                ? "The AI returned malformed draft data, so this version came from the backup generator."
+                : "The AI call failed during generation, so this version came from the backup generator.",
+        }
+    : null;
 
   const updateField = useCallback(
     <K extends keyof CampaignDraft>(key: K, value: CampaignDraft[K]) => {
@@ -136,21 +197,121 @@ export default function DraftReviewStep({
   }
 
   function addTag() {
-    const tag = prompt("Enter a new tag:");
-    if (tag?.trim()) {
-      updateField("tags", [...draft.tags, tag.trim()]);
+    const nextTag = tagInput.trim();
+    if (!nextTag) return;
+    if (draft.tags.includes(nextTag)) {
+      setTagInput("");
+      return;
     }
+    if (draft.tags.length >= 5) return;
+    updateField("tags", [...draft.tags, nextTag]);
+    setTagInput("");
   }
+
+  const audienceHighlights = [
+    { label: "Interests", values: draft.audience.interests },
+    { label: "Expertise", values: draft.audience.expertise },
+    { label: "Age", values: draft.audience.ageRanges },
+  ].filter((group) => group.values.length > 0);
+
+  const audienceDetails = [
+    draft.audience.occupation
+      ? { label: "Role", value: draft.audience.occupation }
+      : null,
+    draft.audience.industry
+      ? { label: "Industry", value: draft.audience.industry }
+      : null,
+    draft.audience.location
+      ? { label: "Location", value: draft.audience.location }
+      : null,
+    draft.audience.nicheQualifier
+      ? { label: "Niche", value: draft.audience.nicheQualifier }
+      : null,
+  ].filter((detail): detail is { label: string; value: string } => Boolean(detail));
 
   return (
     <>
       <div className="mb-[40px] flex flex-col gap-2">
-        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-text-primary font-mono uppercase">
-          [ SYNTHESIS COMPLETE. AWAITING REVIEW ]
-        </h1>
-        <p className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase">
-          Verify and modify campaign nodes before execution.
-        </p>
+        <div className="flex flex-col gap-[16px] md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-text-primary font-mono uppercase">
+              [ SYNTHESIS COMPLETE. AWAITING REVIEW ]
+            </h1>
+            <p className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase">
+              Verify and modify campaign nodes before execution.
+            </p>
+          </div>
+          {onRegenerate && (
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={isPublishing || isSaving || isRegenerating}
+              className="inline-flex items-center justify-center rounded-full border border-border-light bg-white px-[18px] py-[10px] font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary transition-all duration-300 hover:border-accent hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isRegenerating ? "[ REGENERATING... ]" : "[ REGENERATE FROM SCRIBBLE ]"}
+            </button>
+          )}
+        </div>
+        {generationBanner && (
+          <div className={`mt-[8px] rounded-[16px] border px-[16px] py-[12px] ${generationBanner.tone}`}>
+            <p className="font-mono text-[11px] font-medium uppercase tracking-wide">
+              {generationBanner.label}
+            </p>
+            <p className="mt-[6px] text-[13px] leading-[1.5] text-text-primary">
+              {generationBanner.copy}
+            </p>
+          </div>
+        )}
+        <div
+          className={`mt-[8px] rounded-[18px] border px-[18px] py-[16px] ${
+            highPriorityWarnings.length > 0
+              ? "border-warning/30 bg-warning/5"
+              : "border-success/20 bg-success/10"
+          }`}
+        >
+          <div className="flex flex-col gap-[10px] md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary">
+                {highPriorityWarnings.length > 0
+                  ? "[ REVIEW BEFORE PUBLISH ]"
+                  : "[ READY FOR RESPONDENTS ]"}
+              </p>
+              <p className="mt-[6px] text-[13px] leading-[1.5] text-text-secondary">
+                {highPriorityWarnings.length > 0
+                  ? "A few things still look risky. Tightening these before publish should improve response quality and targeting."
+                  : "The draft is in a healthy range. Publish now, or keep polishing the audience and payout plan if you want a stronger launch."}
+              </p>
+            </div>
+            <div className="rounded-[14px] border border-black/5 bg-white/80 px-[14px] py-[10px] text-right">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-text-muted">
+                Live quality
+              </p>
+              <p className="font-mono text-[18px] font-bold text-text-primary">
+                {resolvedQualityScore}/100
+              </p>
+            </div>
+          </div>
+          {highPriorityWarnings.length > 0 && (
+            <div className="mt-[14px] grid gap-[8px]">
+              {highPriorityWarnings.slice(0, 3).map((warning) => (
+                <div
+                  key={`${warning.dimension}-${warning.message}`}
+                  className="rounded-[12px] border border-warning/20 bg-white/80 px-[14px] py-[10px] text-[12px] text-text-secondary"
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-wide text-[#92400E]">
+                    {warning.dimension}
+                  </span>
+                  <p className="mt-[4px] leading-[1.5]">{warning.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {highPriorityWarnings.length === 0 && polishWarnings.length > 0 && (
+            <p className="mt-[12px] text-[12px] text-text-secondary">
+              Small polish left: {polishWarnings[0].message}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-[1fr_280px] gap-[24px] max-lg:grid-cols-1">
@@ -242,14 +403,89 @@ export default function DraftReviewStep({
                         </button>
                       </span>
                     ))}
-                    <button
-                      onClick={addTag}
-                      className="text-[12px] text-slate hover:text-text-secondary transition-colors cursor-pointer border-none bg-transparent p-0"
-                    >
-                      + add
-                    </button>
+                  </div>
+                  <div className="flex flex-col gap-[8px] rounded-[16px] border border-border-light/70 bg-bg-muted/40 p-[12px]">
+                    <div className="flex gap-[8px] max-sm:flex-col">
+                      <input
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addTag();
+                          }
+                        }}
+                        placeholder="Add a precise audience tag"
+                        className="flex-1 rounded-xl border border-border-light bg-white px-[14px] py-[10px] text-[13px] text-text-primary outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={addTag}
+                        disabled={!tagInput.trim() || draft.tags.length >= 5}
+                        className="rounded-xl border border-border-light bg-white px-[14px] py-[10px] text-[12px] font-medium text-text-primary transition-all duration-200 hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Add tag
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-text-muted">
+                      Keep tags sharp and respondent-facing. 2–5 tags works best for Wall presentation and matching.
+                    </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="grid gap-[12px] rounded-[24px] border border-border-light/70 bg-bg-muted/30 p-[18px]">
+                <div>
+                  <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary">
+                    Audience Snapshot
+                  </p>
+                  <p className="mt-[4px] text-[12px] text-text-secondary">
+                    This is the targeting summary respondents will feel through matching and Wall placement.
+                  </p>
+                </div>
+                {audienceHighlights.length > 0 && (
+                  <div className="grid gap-[10px]">
+                    {audienceHighlights.map((group) => (
+                      <div key={group.label}>
+                        <p className="mb-[6px] text-[11px] font-medium uppercase tracking-wide text-text-muted">
+                          {group.label}
+                        </p>
+                        <div className="flex flex-wrap gap-[6px]">
+                          {group.values.map((value) => (
+                            <span
+                              key={`${group.label}-${value}`}
+                              className="inline-flex rounded-full border border-border-light bg-white px-[10px] py-[5px] text-[12px] text-text-secondary"
+                            >
+                              {value}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {audienceDetails.length > 0 && (
+                  <div className="grid gap-[8px] md:grid-cols-2">
+                    {audienceDetails.map((detail) => (
+                      <div
+                        key={detail.label}
+                        className="rounded-[16px] border border-border-light bg-white px-[14px] py-[12px]"
+                      >
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
+                          {detail.label}
+                        </p>
+                        <p className="mt-[4px] text-[13px] leading-[1.5] text-text-primary">
+                          {detail.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {audienceHighlights.length === 0 && audienceDetails.length === 0 && (
+                  <p className="text-[12px] text-text-secondary">
+                    Add a little audience detail here so matching does not have to guess who this campaign is really for.
+                  </p>
+                )}
               </div>
 
               {/* Assumptions */}
@@ -263,6 +499,9 @@ export default function DraftReviewStep({
                       {i + 1}.
                     </span>
                     <input
+                      ref={(node) => {
+                        assumptionInputRefs.current[i] = node;
+                      }}
                       value={a}
                       onChange={(e) => updateAssumption(i, e.target.value)}
                       className="flex-1 px-[12px] py-[8px] rounded-xl border border-border-light bg-white text-[13px] text-text-primary font-sans outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200"
@@ -516,15 +755,17 @@ export default function DraftReviewStep({
                 effectiveReach={reachEstimate.effectiveReach}
                 fillSpeedLabel={fillSpeed}
                 qualityModifier={reachEstimate.qualityModifier}
-                qualityScore={qualityScore}
+                qualityScore={resolvedQualityScore}
               />
 
-              {/* Tier upgrade nudge for free/starter */}
-              {(tier === "free" || tier === "starter") && (draft.rewardPool ?? 0) > 0 && (
+              {/* Tier upgrade nudge for free */}
+              {tier === "free" && (draft.rewardPool ?? 0) > 0 && (
                 <div className="px-[14px] py-[10px] rounded-lg bg-bg-muted border border-border-light/50 text-[12px] text-text-secondary">
                   With a Pro plan, this same ${draft.rewardPool} would reach significantly more people — Strength{" "}
                   <strong>
-                    {calculateReach("pro", draft.rewardPool ?? 0, { qualityScore }).campaignStrength}
+                    {calculateReach("pro", draft.rewardPool ?? 0, {
+                      qualityScore: resolvedQualityScore,
+                    }).campaignStrength}
                   </strong>{" "}
                   vs {reachEstimate.campaignStrength}.{" "}
                   <Link href="/#pricing" className="text-text-primary font-semibold underline">
@@ -545,7 +786,7 @@ export default function DraftReviewStep({
                       Respondents who write higher-quality answers earn additional bonus.
                     </p>
                     <p>
-                      Your budget &rarr; 20% platform fee &rarr; remaining pool split equally among qualifying respondents
+                      Your budget &rarr; {Math.round(PLATFORM_FEE_RATE * 100)}% platform fee &rarr; remaining pool split equally among qualifying respondents
                     </p>
                   </div>
                 </details>
@@ -564,7 +805,7 @@ export default function DraftReviewStep({
           <div className="flex items-center gap-[12px] pt-[16px]">
             <button
               onClick={onPublish}
-              disabled={isPublishing || isSaving}
+              disabled={isPublishing || isSaving || isRegenerating}
               className="inline-flex items-center justify-center px-[32px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide bg-accent text-white hover:bg-white hover:text-text-primary hover:shadow-[0_0_24px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer border border-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPublishing
@@ -576,7 +817,7 @@ export default function DraftReviewStep({
             {onSaveDraft && (
               <button
                 onClick={onSaveDraft}
-                disabled={isPublishing || isSaving}
+                disabled={isPublishing || isSaving || isRegenerating}
                 className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide text-text-primary bg-white border border-white hover:border-accent hover:shadow-sm transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? "[ SAVING CACHE... ]" : "[ SUSPEND TO CACHE ]"}
@@ -584,7 +825,7 @@ export default function DraftReviewStep({
             )}
             <button
               onClick={onBack}
-              disabled={isPublishing || isSaving}
+              disabled={isPublishing || isSaving || isRegenerating}
               className="inline-flex items-center justify-center px-[24px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide text-text-muted hover:text-text-primary transition-all cursor-pointer border-none bg-transparent disabled:opacity-50"
             >
               [ ABORT TO RAW ]

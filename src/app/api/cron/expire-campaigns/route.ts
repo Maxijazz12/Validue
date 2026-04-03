@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { DEFAULTS } from "@/lib/defaults";
+import { env } from "@/lib/env";
 import {
   qualifyResponse,
   distributePayoutsV2,
@@ -30,7 +31,7 @@ import { logOps } from "@/lib/ops-logger";
 export async function GET(request: Request) {
   // Verify cron secret
   const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = env().CRON_SECRET;
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
