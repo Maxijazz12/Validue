@@ -101,10 +101,11 @@ export async function createFundingSession(
         FROM profiles WHERE id = ${user.id}
         FOR UPDATE
       `;
-      if (creditRow && creditRow.platform_credit_cents > 0) {
+      const rawCredit = Math.max(0, Math.floor(Number(creditRow?.platform_credit_cents) || 0));
+      if (rawCredit > 0) {
         const expires = creditRow.platform_credit_expires_at ? new Date(creditRow.platform_credit_expires_at) : null;
         if (!expires || expires > new Date()) {
-          platformCreditCents = creditRow.platform_credit_cents;
+          platformCreditCents = rawCredit;
           await tx`
             UPDATE profiles
             SET platform_credit_cents = 0,
@@ -153,26 +154,32 @@ export async function createFundingSession(
       cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
     });
   } catch (err) {
-    // Restore platform credit that was eagerly deducted
+    // Restore platform credit that was eagerly deducted (retry once on failure)
     if (platformCreditCents > 0) {
-      try {
-        await sql`
-          UPDATE profiles
-          SET platform_credit_cents = platform_credit_cents + ${platformCreditCents},
-              platform_credit_expires_at = NOW() + INTERVAL '90 days'
-          WHERE id = ${user.id}
-        `;
-      } catch (refundErr) {
-        // Critical: credit deducted but neither checkout nor refund succeeded.
-        // Log as fatal so ops can reconcile manually.
-        console.error("[createFundingSession] CRITICAL — platform credit refund failed:", refundErr);
-        captureError(refundErr, {
-          userId: user.id,
-          campaignId,
-          platformCreditCents,
-          operation: "platform_credit.restore",
-        }, "fatal");
-        return { error: "A billing error occurred. Our team has been notified and will resolve it shortly." };
+      let refunded = false;
+      for (let attempt = 0; attempt < 2 && !refunded; attempt++) {
+        try {
+          await sql`
+            UPDATE profiles
+            SET platform_credit_cents = platform_credit_cents + ${platformCreditCents},
+                platform_credit_expires_at = NOW() + INTERVAL '90 days'
+            WHERE id = ${user.id}
+          `;
+          refunded = true;
+        } catch (refundErr) {
+          if (attempt === 1) {
+            // Critical: credit deducted but neither checkout nor refund succeeded.
+            // Log as fatal so ops can reconcile manually.
+            console.error("[createFundingSession] CRITICAL — platform credit refund failed after retry:", refundErr);
+            captureError(refundErr, {
+              userId: user.id,
+              campaignId,
+              platformCreditCents,
+              operation: "platform_credit.restore",
+            }, "fatal");
+            return { error: "A billing error occurred. Our team has been notified and will resolve it shortly." };
+          }
+        }
       }
     }
     console.error("[createFundingSession] Stripe error:", err);

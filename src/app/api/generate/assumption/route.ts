@@ -37,8 +37,11 @@ export async function POST(request: Request) {
     audienceSummary: string;
   };
 
-  if (!scribbleText || !currentAssumption) {
+  if (!scribbleText || typeof scribbleText !== "string" || !currentAssumption || typeof currentAssumption !== "string") {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+  if (scribbleText.length > 10_000 || currentAssumption.length > 2_000) {
+    return NextResponse.json({ error: "Input too long" }, { status: 400 });
   }
 
   // ─── Fallback if no API key ───

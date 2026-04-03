@@ -290,10 +290,10 @@ export async function requestCashout(): Promise<
     return { error: "Transfer failed. Your balance has been restored." };
   }
 
-  // Mark cashout as completed (Stripe Express transfers are instant to platform → Connect)
+  // Mark cashout as completed — only if still in processing state (idempotent)
   await sql`
     UPDATE cashouts SET status = 'completed', completed_at = NOW()
-    WHERE id = ${cashoutId}
+    WHERE id = ${cashoutId} AND status = 'processing'
   `;
 
   revalidatePath("/dashboard/earnings");
@@ -381,7 +381,7 @@ export async function retryCashout(
     await sql`
       UPDATE cashouts
       SET stripe_transfer_id = ${transfer.id}, status = 'completed', completed_at = NOW()
-      WHERE id = ${cashoutId}
+      WHERE id = ${cashoutId} AND status = 'processing'
     `;
 
     await sql`

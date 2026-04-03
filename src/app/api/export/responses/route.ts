@@ -33,10 +33,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Rate limit: 10 exports per user per minute
-  const limit = rateLimit(`export:${user.id}`, 60000, 10);
-  if (!limit.allowed) {
+  // Rate limit: 10 exports per user per minute, 3 per campaign per minute
+  const userLimit = rateLimit(`export:${user.id}`, 60000, 10);
+  if (!userLimit.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+  const campaignLimit = rateLimit(`export:campaign:${campaignId}`, 60000, 3);
+  if (!campaignLimit.allowed) {
+    return NextResponse.json({ error: "Too many exports for this campaign" }, { status: 429 });
   }
 
   // Check plan tier allows export

@@ -19,6 +19,7 @@ import { isValidUuid } from "@/lib/validate-uuid";
  * Body: { campaignId: string }
  */
 export async function POST(request: Request) {
+  let parsedBody: { campaignId?: string } = {};
   try {
     const supabase = await createClient();
     const {
@@ -35,8 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true }); // Silent 200 — don't reveal rate limiting to client
     }
 
-    const body = await request.json();
-    const { campaignId } = body;
+    parsedBody = await request.json();
+    const { campaignId } = parsedBody;
 
     if (!campaignId || typeof campaignId !== "string" || !isValidUuid(campaignId)) {
       return NextResponse.json(
@@ -73,15 +74,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const body = await request.clone().json().catch(() => ({}));
     const errMsg = (err as Error).message;
     logOps({
       event: "reach.error",
-      campaignId: body?.campaignId ?? "unknown",
+      campaignId: parsedBody?.campaignId ?? "unknown",
       userId: "unknown",
       error: errMsg,
     });
-    captureWarning(`Reach impression error: ${errMsg}`, { campaignId: body?.campaignId, operation: "reach.impression" });
+    captureWarning(`Reach impression error: ${errMsg}`, { campaignId: parsedBody?.campaignId, operation: "reach.impression" });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

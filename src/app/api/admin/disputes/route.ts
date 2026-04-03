@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAdminAuthorized } from "@/lib/admin-auth";
+import { isValidUuid } from "@/lib/validate-uuid";
 
 /**
  * GET /api/admin/disputes?status=open
@@ -54,8 +55,8 @@ export async function PATCH(request: Request) {
 
   const { disputeId, status, adminNotes } = await request.json();
 
-  if (!disputeId || !status) {
-    return NextResponse.json({ error: "Missing disputeId or status" }, { status: 400 });
+  if (!disputeId || !status || !isValidUuid(disputeId)) {
+    return NextResponse.json({ error: "Missing or invalid disputeId or status" }, { status: 400 });
   }
 
   if (!["under_review", "resolved_upheld", "resolved_overturned"].includes(status)) {

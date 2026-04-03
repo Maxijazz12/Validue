@@ -33,8 +33,11 @@ export async function POST(request: Request) {
   const body: ImproveAudienceRequest = await request.json();
   const { scribbleText, currentAudience, assumptions, questions } = body;
 
-  if (!scribbleText || !currentAudience) {
+  if (!scribbleText || typeof scribbleText !== "string" || !currentAudience || typeof currentAudience !== "object") {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+  if (scribbleText.length > 10_000) {
+    return NextResponse.json({ error: "Input too long" }, { status: 400 });
   }
 
   // ─── Fallback if no API key ───

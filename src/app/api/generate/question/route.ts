@@ -33,8 +33,11 @@ export async function POST(request: Request) {
   const body: RegenerateQuestionRequest = await request.json();
   const { scribbleText, campaignSummary, assumptions, audience, currentQuestion, allQuestions } = body;
 
-  if (!scribbleText || !currentQuestion) {
+  if (!scribbleText || typeof scribbleText !== "string" || !currentQuestion || typeof currentQuestion !== "object") {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+  if (scribbleText.length > 10_000) {
+    return NextResponse.json({ error: "Input too long" }, { status: 400 });
   }
 
   // ─── Fallback if no API key ───

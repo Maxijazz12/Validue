@@ -62,8 +62,11 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const scribbleText: string = body.scribbleText;
-  if (!scribbleText || scribbleText.trim().length < 50) {
+  if (!scribbleText || typeof scribbleText !== "string" || scribbleText.trim().length < 50) {
     return NextResponse.json({ error: "Scribble text must be at least 50 characters" }, { status: 400 });
+  }
+  if (scribbleText.length > 10_000) {
+    return NextResponse.json({ error: "Scribble text must be under 10,000 characters" }, { status: 400 });
   }
 
   logGeneration({ event: "generation.started", scribbleLength: scribbleText.length, userId: user.id });

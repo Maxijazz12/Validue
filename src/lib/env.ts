@@ -53,6 +53,9 @@ export function env(): z.infer<typeof serverSchema> & z.infer<typeof clientSchem
     if (!_env.ADMIN_API_KEY) {
       console.warn("[env] ADMIN_API_KEY is not set — admin endpoints will reject all requests");
     }
+    if (!_env.STRIPE_CONNECT_WEBHOOK_SECRET) {
+      console.warn("[env] STRIPE_CONNECT_WEBHOOK_SECRET is not set — Connect webhooks will return 500");
+    }
   }
 
   return _env;
