@@ -152,7 +152,7 @@ export const howItWorksSteps = [
 export const qualityBullets = [
   "AI-resistant question design",
   "Behavioral verification (keystroke + timing)",
-  "Reputation-weighted payouts",
+  "Qualification-based payouts",
 ];
 
 export const mockResponses = [

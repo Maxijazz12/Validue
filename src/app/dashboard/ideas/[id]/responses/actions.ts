@@ -1,10 +1,17 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  getRankingStatusAfterRun,
+} from "@/lib/campaign-ranking";
 import type { Json } from "@/lib/supabase/database.types";
 import { revalidatePath } from "next/cache";
 import { scoreResponse } from "@/lib/ai/rank-responses";
 import type { AnswerWithMeta } from "@/lib/ai/types";
+import {
+  createNotification,
+  createNotifications,
+} from "@/lib/notifications";
 import { updateRespondentReputation } from "@/lib/reputation";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
@@ -58,9 +65,19 @@ export async function rankCampaignResponses(campaignId: string) {
       .eq("status", "submitted");
 
     if (!responses || responses.length === 0) {
+      const { count: remainingSubmittedCount } = await supabase
+        .from("responses")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", campaignId)
+        .eq("status", "submitted");
+
       await supabase
         .from("campaigns")
-        .update({ ranking_status: "ranked" })
+        .update({
+          ranking_status: getRankingStatusAfterRun(
+            (remainingSubmittedCount ?? 0) > 0
+          ),
+        })
         .eq("id", campaignId);
       return { ranked: 0 };
     }
@@ -93,7 +110,13 @@ export async function rankCampaignResponses(campaignId: string) {
     }
 
     // Score each response sequentially (AI calls must be sequential for rate limits)
-    const rankingNotifications: { user_id: string; type: string; title: string; body: string; campaign_id: string }[] = [];
+    const rankingNotifications: {
+      userId: string;
+      type: "quality_feedback";
+      title: string;
+      body: string;
+      campaignId: string;
+    }[] = [];
     let aiCount = 0;
     let fallbackCount = 0;
     let lowConfCount = 0;
@@ -161,11 +184,11 @@ export async function rankCampaignResponses(campaignId: string) {
         : bestDim ? `Tip: Focus on improving ${Object.entries(dims || {}).sort(([, a], [, b]) => (a as number) - (b as number))[0]?.[0] || "depth"} for higher scores.` : "";
 
       rankingNotifications.push({
-        user_id: response.respondent_id,
+        userId: response.respondent_id,
         type: "quality_feedback",
         title: `Your response scored ${clampedScore}/100`,
         body: `"${campaign.title}" — ${tipText}`,
-        campaign_id: campaignId,
+        campaignId,
       });
 
       rankedCount++;
@@ -177,7 +200,7 @@ export async function rankCampaignResponses(campaignId: string) {
 
     // Batch insert all ranking notifications
     if (rankingNotifications.length > 0) {
-      await supabase.from("notifications").insert(rankingNotifications);
+      await createNotifications(rankingNotifications);
     }
 
     logOps({
@@ -193,10 +216,20 @@ export async function rankCampaignResponses(campaignId: string) {
       latencyMs: Date.now() - rankingStart,
     });
 
-    // Mark campaign as ranked
+    const { count: remainingSubmittedCount } = await supabase
+      .from("responses")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId)
+      .eq("status", "submitted");
+
+    // Mark campaign as ranked only if no new responses landed during the run.
     await supabase
       .from("campaigns")
-      .update({ ranking_status: "ranked" })
+      .update({
+        ranking_status: getRankingStatusAfterRun(
+          (remainingSubmittedCount ?? 0) > 0
+        ),
+      })
       .eq("id", campaignId);
 
     // Update reputation for all ranked respondents in parallel
@@ -206,12 +239,12 @@ export async function rankCampaignResponses(campaignId: string) {
     );
 
     // Notify founder that ranking is complete
-    await supabase.from("notifications").insert({
-      user_id: user.id,
+    await createNotification({
+      userId: user.id,
       type: "ranking_complete",
       title: "Ranking complete",
       body: `${rankedCount} response${rankedCount !== 1 ? "s" : ""} ranked for "${campaign.title}"`,
-      campaign_id: campaignId,
+      campaignId,
       link: `/dashboard/ideas/${campaignId}/responses`,
     });
 

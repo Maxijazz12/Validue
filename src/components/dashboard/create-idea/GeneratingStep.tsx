@@ -272,6 +272,7 @@ function ReciprocalFlow({
   const [mounted, setMounted] = useState(false);
   const [completedAssignments, setCompletedAssignments] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const questionStartTime = useRef(0);
 
   useEffect(() => {
@@ -292,16 +293,18 @@ function ReciprocalFlow({
     async (answerText: string) => {
       if (!current || saving) return;
       setSaving(true);
+      setError(null);
 
       const timeSpentMs = Date.now() - questionStartTime.current;
       const result = await saveReciprocalAnswer(
-        current.campaignId,
+        current.responseId,
         current.question.id,
         answerText,
         { timeSpentMs }
       );
 
       if (!result.success) {
+        setError(result.error ?? "We couldn't save that answer. Please try again.");
         setSaving(false);
         return;
       }
@@ -358,6 +361,12 @@ function ReciprocalFlow({
           This unlocks your campaign.
         </p>
       </div>
+
+      {error && (
+        <div className="w-full max-w-[560px] mb-[20px] rounded-[14px] border border-[#ef4444]/20 bg-[#ef4444]/8 px-[14px] py-[10px] text-[13px] text-[#991b1b]">
+          {error}
+        </div>
+      )}
 
       {/* Progress dots */}
       <div className="flex items-center gap-[8px] mb-[32px]">

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { DEFAULTS } from "@/lib/defaults";
 import { logOps } from "@/lib/ops-logger";
+import { createNotification } from "@/lib/notifications";
 import { rateLimit } from "@/lib/rate-limit";
 import sql from "@/lib/db";
 import {
@@ -498,7 +499,11 @@ export async function submitResponse(responseId: string) {
       RETURNING campaign_id
     )
     UPDATE campaigns
-    SET current_responses = current_responses + 1
+    SET current_responses = current_responses + 1,
+        ranking_status = CASE
+          WHEN ranking_status = 'ranking' THEN 'ranking'
+          ELSE 'unranked'
+        END
     WHERE id = (SELECT campaign_id FROM cas)
     RETURNING id
   `;
@@ -521,12 +526,12 @@ export async function submitResponse(responseId: string) {
   if (campaignForNotif) {
     const count = campaignForNotif.current_responses;
     const target = campaignForNotif.target_responses;
-    await supabase.from("notifications").insert({
-      user_id: campaignForNotif.creator_id,
+    await createNotification({
+      userId: campaignForNotif.creator_id,
       type: "new_response",
       title: "New response received",
       body: `"${campaignForNotif.title}" — ${count}/${target} responses`,
-      campaign_id: response.campaign_id,
+      campaignId: response.campaign_id,
       link: `/dashboard/ideas/${response.campaign_id}/responses`,
     });
   }

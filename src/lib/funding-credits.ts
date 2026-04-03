@@ -5,6 +5,11 @@ export type FundingCreditResolution = {
   platformSubsidyCents: number;
 };
 
+export type ReservedPlatformCreditResolution = {
+  nextReservedPlatformCreditCents: number;
+  profileCreditDeltaCents: number;
+};
+
 type ResolveFundingCreditsInput = {
   fullAmountCents: number;
   welcomeCreditEligible: boolean;
@@ -57,5 +62,18 @@ export function resolveFundingCredits(
     appliedPlatformCreditCents,
     chargeAmountCents: uncoveredAmountCents,
     platformSubsidyCents: 0,
+  };
+}
+
+export function reconcileReservedPlatformCredit(
+  desiredAppliedPlatformCreditCents: number,
+  existingReservedPlatformCreditCents: number
+): ReservedPlatformCreditResolution {
+  const desired = Math.max(0, Math.floor(desiredAppliedPlatformCreditCents));
+  const existing = Math.max(0, Math.floor(existingReservedPlatformCreditCents));
+
+  return {
+    nextReservedPlatformCreditCents: desired,
+    profileCreditDeltaCents: desired - existing,
   };
 }

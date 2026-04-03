@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 export const metadata = {
   title: "Earn Money | VALIDUE",
   description:
-    "Get paid to give honest feedback on startup ideas. Quality-scored, reputation-weighted payouts. Top respondents earn $200+/month.",
+    "Get paid to give honest feedback on startup ideas. Quality-scored, qualification-based payouts. Top respondents earn $200+/month.",
 };
 
 const steps = [
@@ -27,7 +27,7 @@ const steps = [
     step: "03",
     title: "Get Paid for Quality",
     description:
-      "Your payout is weighted by response quality. Thoughtful, behavioral answers with real detail earn more. Top respondents earn $200+/month.",
+      "Thoughtful, behavioral answers help you qualify for payout. Once qualified, respondents share the funded pool evenly. Top respondents earn $200+/month.",
   },
 ];
 

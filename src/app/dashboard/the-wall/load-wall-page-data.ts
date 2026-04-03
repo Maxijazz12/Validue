@@ -8,7 +8,10 @@ import {
   type WallCampaign,
 } from "@/lib/wall-ranking";
 import { DEFAULTS, safeNumber } from "@/lib/defaults";
-import { isCampaignOpenForResponses } from "@/lib/campaign-availability";
+import {
+  hasRemainingReachBudget,
+  isCampaignOpenForResponses,
+} from "@/lib/campaign-availability";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -115,16 +118,6 @@ function buildRespondentProfile(profile: ProfileRow | null): RespondentProfile {
     reputation_score: safeNumber(profile?.reputation_score),
     total_responses_completed: safeNumber(profile?.total_responses_completed),
   };
-}
-
-function hasRemainingReachBudget(campaign: CampaignRow): boolean {
-  const totalReachUnits = safeNumber(
-    campaign.effective_reach_units,
-    safeNumber(campaign.total_reach_units, 0) // 0 fallback: campaigns without reach config don't appear
-  );
-  if (totalReachUnits <= 0) return false; // No reach configured — hide from wall
-  const served = campaign.reach_served ?? 0;
-  return served < totalReachUnits;
 }
 
 function buildFirstQuestionMap(rows: FirstQuestionRow[]): Map<string, FirstQuestionMapValue> {

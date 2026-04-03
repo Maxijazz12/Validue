@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveFundingCredits } from "../funding-credits";
+import {
+  reconcileReservedPlatformCredit,
+  resolveFundingCredits,
+} from "../funding-credits";
 
 describe("resolveFundingCredits", () => {
   it("caps platform credit at the campaign remainder", () => {
@@ -63,6 +66,22 @@ describe("resolveFundingCredits", () => {
       appliedPlatformCreditCents: 260,
       chargeAmountCents: 0,
       platformSubsidyCents: 40,
+    });
+  });
+});
+
+describe("reconcileReservedPlatformCredit", () => {
+  it("returns a positive delta when more profile credit needs to be reserved", () => {
+    expect(reconcileReservedPlatformCredit(300, 100)).toEqual({
+      nextReservedPlatformCreditCents: 300,
+      profileCreditDeltaCents: 200,
+    });
+  });
+
+  it("returns a negative delta when part of the reservation should be refunded", () => {
+    expect(reconcileReservedPlatformCredit(100, 260)).toEqual({
+      nextReservedPlatformCreditCents: 100,
+      profileCreditDeltaCents: -160,
     });
   });
 });

@@ -81,6 +81,9 @@ export async function POST(request: Request) {
             UPDATE campaigns
             SET funded_at = NOW(),
                 stripe_payment_intent_id = ${(session.payment_intent as string) || null},
+                reserved_platform_credit_cents = 0,
+                reserved_platform_credit_expires_at = NULL,
+                reserved_checkout_session_id = NULL,
                 status = ${nextStatus},
                 expires_at = CASE
                   WHEN economics_version = 2 AND ${nextStatus} = 'active'
@@ -138,6 +141,82 @@ export async function POST(request: Request) {
       } catch (err) {
         console.error("[stripe-webhook] Failed to activate campaign:", err);
         captureError(err, { campaignId: campaignId!, stripeEventId: event.id, operation: "stripe.campaign.activate" });
+        return Response.json({ error: "DB update failed" }, { status: 500 });
+      }
+      break;
+    }
+
+    case "checkout.session.expired":
+    case "checkout.session.async_payment_failed": {
+      const session = event.data.object;
+
+      if (session.mode === "subscription") break;
+
+      const campaignId = session.metadata?.campaignId;
+      if (!campaignId) break;
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+        const restoredCreditCents = await sql.begin(async (tx: any) => {
+          const [campaign] = await tx`
+            SELECT
+              creator_id,
+              reserved_platform_credit_cents,
+              reserved_platform_credit_expires_at
+            FROM campaigns
+            WHERE id = ${campaignId}
+              AND status = 'pending_funding'
+              AND reserved_checkout_session_id = ${session.id}
+            FOR UPDATE
+          `;
+
+          if (!campaign) return null;
+
+          const reservedCreditCents = Math.max(
+            0,
+            Math.floor(Number(campaign.reserved_platform_credit_cents) || 0)
+          );
+
+          if (reservedCreditCents > 0) {
+            await tx`
+              UPDATE profiles
+              SET platform_credit_cents = platform_credit_cents + ${reservedCreditCents},
+                  platform_credit_expires_at = COALESCE(
+                    platform_credit_expires_at,
+                    ${campaign.reserved_platform_credit_expires_at ?? null}
+                  )
+              WHERE id = ${campaign.creator_id}
+            `;
+          }
+
+          await tx`
+            UPDATE campaigns
+            SET reserved_platform_credit_cents = 0,
+                reserved_platform_credit_expires_at = NULL,
+                reserved_checkout_session_id = NULL
+            WHERE id = ${campaignId}
+          `;
+
+          return reservedCreditCents;
+        });
+
+        logOps({
+          event: "webhook.processed",
+          stripeEventId: event.id,
+          eventType: event.type,
+          result: restoredCreditCents === null ? "no_op" : "success",
+          detail:
+            restoredCreditCents === null
+              ? `No reservation to release for campaign ${campaignId}`
+              : `Released ${restoredCreditCents} reserved credit cents for campaign ${campaignId}`,
+        });
+      } catch (err) {
+        console.error("[stripe-webhook] Failed to release reserved credit:", err);
+        captureError(err, {
+          campaignId,
+          stripeEventId: event.id,
+          operation: "stripe.campaign.release_reserved_credit",
+        });
         return Response.json({ error: "DB update failed" }, { status: 500 });
       }
       break;

@@ -5,6 +5,7 @@ import sql from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { logOps } from "@/lib/ops-logger";
+import { createNotification } from "@/lib/notifications";
 import { captureWarning } from "@/lib/sentry";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -38,12 +39,12 @@ export async function completeCampaign(
       .single();
 
     if (campaign) {
-      await supabase.from("notifications").insert({
-        user_id: user.id,
+      await createNotification({
+        userId: user.id,
         type: "campaign_completed",
         title: "Campaign complete!",
         body: `"${campaign.title}" has reached its response target.`,
-        campaign_id: campaignId,
+        campaignId,
         link: `/dashboard/ideas/${campaignId}/responses`,
       });
     }

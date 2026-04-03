@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasRemainingReachBudget,
   hasReachedResponseTarget,
   isCampaignExpired,
   isCampaignOpenForResponses,
@@ -80,6 +81,32 @@ describe("campaign availability helpers", () => {
         },
         now
       )
+    ).toBe(false);
+  });
+
+  it("hides campaigns that have exhausted their reach budget", () => {
+    expect(
+      hasRemainingReachBudget({
+        reach_served: 12,
+        effective_reach_units: 20,
+        total_reach_units: 20,
+      })
+    ).toBe(true);
+
+    expect(
+      hasRemainingReachBudget({
+        reach_served: 20,
+        effective_reach_units: 20,
+        total_reach_units: 20,
+      })
+    ).toBe(false);
+
+    expect(
+      hasRemainingReachBudget({
+        reach_served: 0,
+        effective_reach_units: null,
+        total_reach_units: null,
+      })
     ).toBe(false);
   });
 });

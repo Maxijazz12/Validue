@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { updateRespondentReputation } from "@/lib/reputation";
 import { DEFAULTS, safeNumber, safePositive } from "@/lib/defaults";
+import { createNotifications } from "@/lib/notifications";
 import { PLATFORM_FEE_RATE } from "@/lib/plans";
 import {
   qualifyResponse,
@@ -329,16 +330,16 @@ export async function allocatePayouts(
   const payoutNotifications = allocations
     .filter((a) => a.amount >= DEFAULTS.MIN_PAYOUT && respondentMap.get(a.responseId))
     .map((a) => ({
-      user_id: respondentMap.get(a.responseId)!,
+      userId: respondentMap.get(a.responseId)!,
       type: "payout_earned",
       title: "You earned money!",
       body: `$${a.amount} from "${campaignForNotif?.title || "a campaign"}"`,
-      campaign_id: campaignId,
+      campaignId,
       amount: a.amount,
       link: "/dashboard/earnings",
     }));
   if (payoutNotifications.length > 0) {
-    await supabase.from("notifications").insert(payoutNotifications);
+    await createNotifications(payoutNotifications);
   }
 
   // Update reputation for all paid respondents
@@ -661,16 +662,16 @@ export async function allocatePayoutsV2(
   const v2Notifications = allocations
     .filter((a) => a.qualified && a.amount > 0 && respondentMap.get(a.responseId))
     .map((a) => ({
-      user_id: respondentMap.get(a.responseId)!,
+      userId: respondentMap.get(a.responseId)!,
       type: "payout_earned",
       title: "You earned money!",
       body: `$${a.amount.toFixed(2)} from "${campaignForNotif?.title || "a campaign"}"`,
-      campaign_id: campaignId,
+      campaignId,
       amount: a.amount,
       link: "/dashboard/earnings",
     }));
   if (v2Notifications.length > 0) {
-    await supabase.from("notifications").insert(v2Notifications);
+    await createNotifications(v2Notifications);
   }
 
   // Update reputation for qualified respondents

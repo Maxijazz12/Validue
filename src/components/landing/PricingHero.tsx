@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     q: "How do respondents get paid?",
-    a: "Respondents earn from the campaign\u2019s funding pool. Payouts are weighted by response quality \u2014 thoughtful, detailed, behavioral answers earn more. Top respondents can earn $200+/month.",
+    a: "Respondents earn from the campaign\u2019s funding pool. Responses must clear the quality checks to qualify, and qualified respondents share the pool. Top respondents can earn $200+/month.",
   },
   {
     q: "Do you offer annual billing?",

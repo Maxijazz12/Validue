@@ -8,9 +8,80 @@ import { validateFunding } from "@/lib/reach";
 import { WELCOME_BONUS, getPlanConfig } from "@/lib/plans";
 import { env } from "@/lib/env";
 import { captureError } from "@/lib/sentry";
-import { resolveFundingCredits } from "@/lib/funding-credits";
+import {
+  reconcileReservedPlatformCredit,
+  resolveFundingCredits,
+} from "@/lib/funding-credits";
 import { getStatusAfterFunding, type GateStatus } from "@/lib/reciprocal-gate";
 import { DEFAULTS } from "@/lib/defaults";
+
+async function restoreReservedPlatformCreditForCampaign(
+  campaignId: string,
+  userId: string
+): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+      await sql.begin(async (tx: any) => {
+        const [campaign] = await tx`
+          SELECT reserved_platform_credit_cents, reserved_platform_credit_expires_at
+          FROM campaigns
+          WHERE id = ${campaignId}
+            AND creator_id = ${userId}
+          FOR UPDATE
+        `;
+
+        if (!campaign) return;
+
+        const reservedCreditCents = Math.max(
+          0,
+          Math.floor(Number(campaign.reserved_platform_credit_cents) || 0)
+        );
+
+        if (reservedCreditCents > 0) {
+          await tx`
+            UPDATE profiles
+            SET platform_credit_cents = platform_credit_cents + ${reservedCreditCents},
+                platform_credit_expires_at = COALESCE(
+                  platform_credit_expires_at,
+                  ${campaign.reserved_platform_credit_expires_at ?? null}
+                )
+            WHERE id = ${userId}
+          `;
+        }
+
+        await tx`
+          UPDATE campaigns
+          SET reserved_platform_credit_cents = 0,
+              reserved_platform_credit_expires_at = NULL,
+              reserved_checkout_session_id = NULL
+          WHERE id = ${campaignId}
+        `;
+      });
+
+      return true;
+    } catch (refundErr) {
+      if (attempt === 1) {
+        console.error(
+          "[createFundingSession] CRITICAL — platform credit refund failed after retry:",
+          refundErr
+        );
+        captureError(
+          refundErr,
+          {
+            userId,
+            campaignId,
+            operation: "platform_credit.restore",
+          },
+          "fatal"
+        );
+        return false;
+      }
+    }
+  }
+
+  return false;
+}
 
 export async function createFundingSession(
   campaignId: string
@@ -73,34 +144,53 @@ export async function createFundingSession(
   let appliedPlatformCreditCents = 0;
   let chargeAmountCents = 0;
   let platformSubsidyCents = 0;
-  let originalPlatformCreditExpiresAt: string | null = null;
 
-  // Eagerly deduct only the platform credit actually applied so concurrent
-  // funding attempts cannot spend the same balance twice.
-  {
+  try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
     await sql.begin(async (tx: any) => {
-      const [creditRow] = await tx`
-        SELECT platform_credit_cents, platform_credit_expires_at
-        FROM profiles WHERE id = ${user.id}
+      const [lockedCampaign] = await tx`
+        SELECT reserved_platform_credit_cents, reserved_platform_credit_expires_at
+        FROM campaigns
+        WHERE id = ${campaign.id}
+          AND creator_id = ${user.id}
+          AND status = 'pending_funding'
         FOR UPDATE
       `;
-      originalPlatformCreditExpiresAt = creditRow?.platform_credit_expires_at ?? null;
 
-      const rawCredit = Math.max(
+      if (!lockedCampaign) {
+        throw new Error("Campaign does not need funding.");
+      }
+
+      const [creditRow] = await tx`
+        SELECT platform_credit_cents, platform_credit_expires_at
+        FROM profiles
+        WHERE id = ${user.id}
+        FOR UPDATE
+      `;
+
+      const existingReservedPlatformCreditCents = Math.max(
+        0,
+        Math.floor(Number(lockedCampaign.reserved_platform_credit_cents) || 0)
+      );
+      const rawProfileCreditCents = Math.max(
         0,
         Math.floor(Number(creditRow?.platform_credit_cents) || 0)
       );
-      const expires = creditRow?.platform_credit_expires_at
+      const profileCreditExpiresAt = creditRow?.platform_credit_expires_at
         ? new Date(creditRow.platform_credit_expires_at)
         : null;
-      const availablePlatformCreditCents =
-        rawCredit > 0 && (!expires || expires > new Date()) ? rawCredit : 0;
+      const availableProfileCreditCents =
+        rawProfileCreditCents > 0 &&
+        (!profileCreditExpiresAt || profileCreditExpiresAt > new Date())
+          ? rawProfileCreditCents
+          : 0;
+
       const resolution = resolveFundingCredits({
         fullAmountCents,
         welcomeCreditEligible: useWelcomeCredit,
         welcomeCreditCents: WELCOME_BONUS.fundingCreditCents,
-        platformCreditAvailableCents: availablePlatformCreditCents,
+        platformCreditAvailableCents:
+          availableProfileCreditCents + existingReservedPlatformCreditCents,
       });
 
       appliedWelcomeCreditCents = resolution.appliedWelcomeCreditCents;
@@ -108,48 +198,59 @@ export async function createFundingSession(
       chargeAmountCents = resolution.chargeAmountCents;
       platformSubsidyCents = resolution.platformSubsidyCents;
 
-      if (appliedPlatformCreditCents > 0) {
+      const reservation = reconcileReservedPlatformCredit(
+        appliedPlatformCreditCents,
+        existingReservedPlatformCreditCents
+      );
+      const reservedCreditExpiresAt =
+        lockedCampaign.reserved_platform_credit_expires_at ??
+        creditRow?.platform_credit_expires_at ??
+        null;
+
+      if (reservation.profileCreditDeltaCents > 0) {
         await tx`
           UPDATE profiles
-          SET platform_credit_cents = GREATEST(0, platform_credit_cents - ${appliedPlatformCreditCents}),
+          SET platform_credit_cents = GREATEST(
+                0,
+                platform_credit_cents - ${reservation.profileCreditDeltaCents}
+              ),
               platform_credit_expires_at = CASE
-                WHEN platform_credit_cents - ${appliedPlatformCreditCents} <= 0 THEN NULL
+                WHEN platform_credit_cents - ${reservation.profileCreditDeltaCents} <= 0
+                  THEN NULL
                 ELSE platform_credit_expires_at
               END
           WHERE id = ${user.id}
         `;
-      }
-    });
-  }
-
-  const restorePlatformCredit = async () => {
-    if (appliedPlatformCreditCents <= 0) return true;
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        await sql`
+      } else if (reservation.profileCreditDeltaCents < 0) {
+        await tx`
           UPDATE profiles
-          SET platform_credit_cents = platform_credit_cents + ${appliedPlatformCreditCents},
-              platform_credit_expires_at = ${originalPlatformCreditExpiresAt}
+          SET platform_credit_cents = platform_credit_cents + ${Math.abs(
+            reservation.profileCreditDeltaCents
+          )},
+              platform_credit_expires_at = COALESCE(
+                platform_credit_expires_at,
+                ${reservedCreditExpiresAt}
+              )
           WHERE id = ${user.id}
         `;
-        return true;
-      } catch (refundErr) {
-        if (attempt === 1) {
-          console.error("[createFundingSession] CRITICAL — platform credit refund failed after retry:", refundErr);
-          captureError(refundErr, {
-            userId: user.id,
-            campaignId,
-            platformCreditCents: appliedPlatformCreditCents,
-            operation: "platform_credit.restore",
-          }, "fatal");
-          return false;
-        }
       }
-    }
 
-    return false;
-  };
+      await tx`
+        UPDATE campaigns
+        SET reserved_platform_credit_cents = ${reservation.nextReservedPlatformCreditCents},
+            reserved_platform_credit_expires_at = ${
+              reservation.nextReservedPlatformCreditCents > 0
+                ? reservedCreditExpiresAt
+                : null
+            },
+            reserved_checkout_session_id = NULL
+        WHERE id = ${campaign.id}
+      `;
+    });
+  } catch (err) {
+    console.error("[createFundingSession] Reservation error:", err);
+    return { error: "Failed to prepare campaign funding. Please try again." };
+  }
 
   if (chargeAmountCents === 0) {
     const expiryInterval = `${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} days`;
@@ -178,6 +279,9 @@ export async function createFundingSession(
           UPDATE campaigns
           SET funded_at = NOW(),
               status = ${fundedStatus},
+              reserved_platform_credit_cents = 0,
+              reserved_platform_credit_expires_at = NULL,
+              reserved_checkout_session_id = NULL,
               expires_at = CASE
                 WHEN ${fundedStatus} = 'active'
                   THEN NOW() + ${expiryInterval}::interval
@@ -198,7 +302,10 @@ export async function createFundingSession(
         }
       });
     } catch (err) {
-      const restored = await restorePlatformCredit();
+      const restored = await restoreReservedPlatformCreditForCampaign(
+        campaignId,
+        user.id
+      );
       if (!restored) {
         return { error: "A billing error occurred. Our team has been notified and will resolve it shortly." };
       }
@@ -270,8 +377,19 @@ export async function createFundingSession(
       success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
       cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
     });
+
+    await sql`
+      UPDATE campaigns
+      SET reserved_checkout_session_id = ${session.id}
+      WHERE id = ${campaign.id}
+        AND creator_id = ${user.id}
+        AND status = 'pending_funding'
+    `;
   } catch (err) {
-    const restored = await restorePlatformCredit();
+    const restored = await restoreReservedPlatformCreditForCampaign(
+      campaignId,
+      user.id
+    );
     if (!restored) {
       return { error: "A billing error occurred. Our team has been notified and will resolve it shortly." };
     }

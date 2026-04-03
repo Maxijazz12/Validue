@@ -1,6 +1,11 @@
 "use server";
 
+import { submitResponse } from "@/app/dashboard/the-wall/[id]/actions";
 import { createClient } from "@/lib/supabase/server";
+import {
+  hasRemainingReachBudget,
+  isCampaignOpenForResponses,
+} from "@/lib/campaign-availability";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
 import { checkGate, RECIPROCAL_REQUIRED, RECIPROCAL_QUESTIONS_PER_RESPONSE, type GateStatus } from "@/lib/reciprocal-gate";
@@ -45,6 +50,152 @@ export type ReciprocalAssignment = {
   }[];
 };
 
+type ReciprocalCampaignRow = {
+  id: string;
+  title: string;
+  status: string;
+  current_responses: number | null;
+  target_responses: number | null;
+  expires_at: string | null;
+  reach_served: number | null;
+  effective_reach_units: number | null;
+  total_reach_units: number | null;
+  economics_version: number | null;
+  target_interests: string[] | null;
+  target_expertise: string[] | null;
+  target_age_ranges: string[] | null;
+  tags: string[] | null;
+};
+
+type ReciprocalQuestionRow = {
+  id: string;
+  text: string;
+  type: string;
+  sort_order: number;
+  options: string[] | null;
+  is_baseline: boolean | null;
+  category: string | null;
+  assumption_index: number | null;
+};
+
+async function loadRespondentProfile(userId: string): Promise<RespondentProfile> {
+  const [profile] = await sql`
+    SELECT interests, expertise, age_range, reputation_score, total_responses_completed
+    FROM profiles
+    WHERE id = ${userId}
+  `;
+
+  return {
+    interests: (profile?.interests as string[]) ?? [],
+    expertise: (profile?.expertise as string[]) ?? [],
+    age_range: (profile?.age_range as string | null) ?? null,
+    profile_completed: Array.isArray(profile?.interests) && profile.interests.length > 0,
+    reputation_score: Number(profile?.reputation_score ?? 0),
+    total_responses_completed: Number(profile?.total_responses_completed ?? 0),
+  };
+}
+
+async function getEligibleReciprocalCampaigns(
+  userId: string
+): Promise<ReciprocalCampaignRow[]> {
+  const campaigns = await sql`
+    SELECT
+      c.id,
+      c.title,
+      c.status,
+      c.current_responses,
+      c.target_responses,
+      c.expires_at,
+      c.reach_served,
+      c.effective_reach_units,
+      c.total_reach_units,
+      c.economics_version,
+      c.target_interests,
+      c.target_expertise,
+      c.target_age_ranges,
+      c.tags
+    FROM campaigns c
+    WHERE c.status = 'active'
+      AND c.creator_id <> ${userId}
+      AND NOT EXISTS (
+        SELECT 1
+        FROM responses r
+        WHERE r.campaign_id = c.id
+          AND r.respondent_id = ${userId}
+          AND r.status IN ('in_progress', 'submitted', 'ranked', 'abandoned')
+      )
+    ORDER BY c.current_responses ASC NULLS FIRST
+    LIMIT 30
+  `;
+
+  return campaigns.filter(
+    (campaign) =>
+      isCampaignOpenForResponses(campaign) &&
+      hasRemainingReachBudget(campaign)
+  );
+}
+
+async function getCoverageCounts(
+  campaignId: string
+): Promise<AssumptionCoverageCount> {
+  const coverageRows = await sql`
+    SELECT q.assumption_index, COUNT(*)::int AS count
+    FROM answers a
+    JOIN questions q ON q.id = a.question_id
+    JOIN responses r ON r.id = a.response_id
+    WHERE r.campaign_id = ${campaignId}
+      AND r.status IN ('submitted', 'ranked')
+      AND q.assumption_index IS NOT NULL
+    GROUP BY q.assumption_index
+  `;
+
+  const coverageCounts: AssumptionCoverageCount = {};
+  for (const row of coverageRows) {
+    coverageCounts[row.assumption_index as number] = row.count as number;
+  }
+
+  return coverageCounts;
+}
+
+async function reserveReciprocalResponse(
+  campaign: ReciprocalCampaignRow,
+  userId: string,
+  assignedQuestionIds: string[]
+): Promise<string | null> {
+  const moneyState =
+    campaign.economics_version === 2 ? "pending_qualification" : null;
+
+  const [response] = await sql`
+    INSERT INTO responses (
+      campaign_id,
+      respondent_id,
+      status,
+      money_state,
+      assigned_question_ids,
+      is_partial
+    )
+    SELECT
+      ${campaign.id},
+      ${userId},
+      'in_progress',
+      ${moneyState},
+      ${assignedQuestionIds}::uuid[],
+      true
+    FROM campaigns c
+    WHERE c.id = ${campaign.id}
+      AND c.status = 'active'
+      AND COALESCE(c.target_responses, 0) > 0
+      AND COALESCE(c.current_responses, 0) < COALESCE(c.target_responses, 0)
+      AND (c.expires_at IS NULL OR c.expires_at > NOW())
+      AND COALESCE(c.effective_reach_units, c.total_reach_units, 0) > 0
+      AND COALESCE(c.reach_served, 0) < COALESCE(c.effective_reach_units, c.total_reach_units)
+    ON CONFLICT DO NOTHING
+    RETURNING id
+  `;
+
+  return response?.id ?? null;
+}
+
 /**
  * Server-side check: are there any campaigns available for the reciprocal gate?
  * Used at publish time to verify cold-start exemption.
@@ -56,29 +207,8 @@ export async function hasReciprocalCampaigns(): Promise<boolean> {
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { data: userResponses } = await supabase
-    .from("responses")
-    .select("campaign_id")
-    .eq("respondent_id", user.id)
-    .in("status", ["in_progress", "submitted", "ranked", "abandoned"]);
-
-  const respondedCampaignIds = new Set(
-    (userResponses || []).map((r) => r.campaign_id)
-  );
-
-  let query = supabase
-    .from("campaigns")
-    .select("id")
-    .eq("status", "active")
-    .neq("creator_id", user.id)
-    .limit(1);
-
-  if (respondedCampaignIds.size > 0) {
-    query = query.not("id", "in", `(${[...respondedCampaignIds].join(",")})`);
-  }
-
-  const { data } = await query;
-  return !!data && data.length > 0;
+  const campaigns = await getEligibleReciprocalCampaigns(user.id);
+  return campaigns.length > 0;
 }
 
 /**
@@ -97,60 +227,22 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
 
   if (!user) return [];
 
-  // Get campaigns the user has already responded to
-  const { data: userResponses } = await supabase
-    .from("responses")
-    .select("campaign_id")
-    .eq("respondent_id", user.id)
-    .in("status", ["in_progress", "submitted", "ranked", "abandoned"]);
+  const campaigns = await getEligibleReciprocalCampaigns(user.id);
+  if (campaigns.length === 0) return [];
 
-  const respondedCampaignIds = new Set(
-    (userResponses || []).map((r) => r.campaign_id)
-  );
-
-  // Find active campaigns the user didn't create and hasn't responded to
-  let query = supabase
-    .from("campaigns")
-    .select("id, title, target_interests, target_expertise, target_age_ranges, tags")
-    .eq("status", "active")
-    .neq("creator_id", user.id)
-    .order("current_responses", { ascending: true }) // prefer under-served
-    .limit(30);
-
-  if (respondedCampaignIds.size > 0) {
-    query = query.not("id", "in", `(${[...respondedCampaignIds].join(",")})`);
-  }
-
-  const { data: campaigns } = await query;
-  if (!campaigns || campaigns.length === 0) return [];
-
-  // Fetch respondent profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("interests, expertise, age_range, reputation_score, total_responses_completed")
-    .eq("id", user.id)
-    .single();
-
-  const respondentProfile: RespondentProfile = {
-    interests: (profile?.interests as string[]) ?? [],
-    expertise: (profile?.expertise as string[]) ?? [],
-    age_range: (profile?.age_range as string | null) ?? null,
-    profile_completed: !!profile?.interests?.length,
-    reputation_score: Number(profile?.reputation_score ?? 0),
-    total_responses_completed: Number(profile?.total_responses_completed ?? 0),
-  };
+  const respondentProfile = await loadRespondentProfile(user.id);
 
   const assignments: ReciprocalAssignment[] = [];
 
   for (const campaign of campaigns) {
     if (assignments.length >= RECIPROCAL_REQUIRED) break;
 
-    // Fetch questions for this campaign
-    const { data: campaignQuestions } = await supabase
-      .from("questions")
-      .select("id, text, type, sort_order, options, is_baseline, category, assumption_index")
-      .eq("campaign_id", campaign.id)
-      .order("sort_order", { ascending: true });
+    const campaignQuestions = await sql`
+      SELECT id, text, type, sort_order, options, is_baseline, category, assumption_index
+      FROM questions
+      WHERE campaign_id = ${campaign.id}
+      ORDER BY sort_order ASC
+    ` as ReciprocalQuestionRow[];
 
     if (!campaignQuestions || campaignQuestions.length < 3) continue;
 
@@ -164,21 +256,7 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
       sortOrder: q.sort_order,
     }));
 
-    // Get assumption coverage for smart assignment
-    const coverageRows = await sql`
-      SELECT q.assumption_index, COUNT(*)::int AS count
-      FROM answers a
-      JOIN questions q ON q.id = a.question_id
-      JOIN responses r ON r.id = a.response_id
-      WHERE r.campaign_id = ${campaign.id}
-        AND r.status IN ('submitted', 'ranked')
-        AND q.assumption_index IS NOT NULL
-      GROUP BY q.assumption_index
-    `;
-    const coverageCounts: AssumptionCoverageCount = {};
-    for (const row of coverageRows) {
-      coverageCounts[row.assumption_index as number] = row.count as number;
-    }
+    const coverageCounts = await getCoverageCounts(campaign.id);
 
     // Run assignment
     const assignment = assignQuestions(
@@ -196,20 +274,12 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
 
     if (!assignment) continue;
 
-    // Create partial response row
-    const { data: responseRow, error } = await supabase
-      .from("responses")
-      .insert({
-        campaign_id: campaign.id,
-        respondent_id: user.id,
-        status: "in_progress",
-        is_partial: true,
-        assigned_question_ids: assignment.questionIds,
-      })
-      .select("id")
-      .single();
-
-    if (error || !responseRow) continue;
+    const responseId = await reserveReciprocalResponse(
+      campaign,
+      user.id,
+      assignment.questionIds
+    );
+    if (!responseId) continue;
 
     // Build the question list in assigned order
     const assignedSet = new Set(assignment.questionIds);
@@ -225,7 +295,7 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
     assignments.push({
       campaignId: campaign.id,
       campaignTitle: campaign.title,
-      responseId: responseRow.id,
+      responseId,
       questions: assignedQuestions,
     });
   }
@@ -239,7 +309,7 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
  * assigned questions are answered.
  */
 export async function saveReciprocalAnswer(
-  campaignId: string,
+  responseId: string,
   questionId: string,
   text: string,
   metadata: { timeSpentMs: number }
@@ -266,43 +336,36 @@ export async function saveReciprocalAnswer(
     return { success: false, error: contentCheck.reason ?? "Content policy violation." };
   }
 
-  // Find existing response row (should have been created by fetchReciprocalAssignments)
-  const { data: existing } = await supabase
-    .from("responses")
-    .select("id, status, assigned_question_ids")
-    .eq("campaign_id", campaignId)
-    .eq("respondent_id", user.id)
-    .maybeSingle();
+  const [existing] = await sql`
+    SELECT id, status, assigned_question_ids
+    FROM responses
+    WHERE id = ${responseId}
+      AND respondent_id = ${user.id}
+    LIMIT 1
+  `;
 
-  let responseId: string;
-  let assignedIds: string[] | null = null;
+  if (!existing) {
+    return {
+      success: false,
+      error: "Reciprocal assignment not found. Please reload and try again.",
+    };
+  }
+  if (existing.status === "submitted" || existing.status === "ranked") {
+    return { success: true };
+  }
+  if (existing.status === "abandoned") {
+    return {
+      success: false,
+      error: "Your previous response to this campaign timed out.",
+    };
+  }
 
-  if (existing) {
-    if (existing.status === "submitted" || existing.status === "ranked") {
-      return { success: true };
-    }
-    if (existing.status === "abandoned") {
-      return { success: false, error: "Your previous response to this campaign timed out." };
-    }
-    responseId = existing.id;
-    assignedIds = existing.assigned_question_ids;
-  } else {
-    // Fallback: create response row if fetch wasn't called first
-    const { data: newResponse, error } = await supabase
-      .from("responses")
-      .insert({
-        campaign_id: campaignId,
-        respondent_id: user.id,
-        status: "in_progress",
-        is_partial: true,
-      })
-      .select("id")
-      .single();
-
-    if (error || !newResponse) {
-      return { success: false, error: "Failed to create response" };
-    }
-    responseId = newResponse.id;
+  const assignedIds = existing.assigned_question_ids as string[] | null;
+  if (!assignedIds || assignedIds.length === 0) {
+    return {
+      success: false,
+      error: "Reciprocal assignment is missing its questions. Please reload.",
+    };
   }
 
   // Upsert answer
@@ -314,99 +377,52 @@ export async function saveReciprocalAnswer(
     reciprocal: true,
   };
 
-  const { data: existingAnswer } = await supabase
-    .from("answers")
-    .select("id")
-    .eq("response_id", responseId)
-    .eq("question_id", questionId)
-    .maybeSingle();
-
-  if (existingAnswer) {
-    await supabase
-      .from("answers")
-      .update({ text: safeText, metadata: answerMetadata })
-      .eq("id", existingAnswer.id);
-  } else {
-    await supabase.from("answers").insert({
-      response_id: responseId,
-      question_id: questionId,
-      text: safeText,
-      metadata: answerMetadata,
-    });
+  try {
+    await sql`
+      INSERT INTO answers (response_id, question_id, text, metadata)
+      VALUES (
+        ${responseId},
+        ${questionId},
+        ${safeText},
+        ${sql.json(answerMetadata)}
+      )
+      ON CONFLICT (response_id, question_id)
+      DO UPDATE SET
+        text = EXCLUDED.text,
+        metadata = EXCLUDED.metadata
+    `;
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to save answer.",
+    };
   }
 
-  // Auto-submit: check if all assigned questions are now answered
-  let autoSubmitted = false;
-  if (assignedIds && assignedIds.length > 0) {
-    const { data: allAnswers } = await supabase
-      .from("answers")
-      .select("question_id, metadata")
-      .eq("response_id", responseId);
+  const answerRows = await sql`
+    SELECT question_id
+    FROM answers
+    WHERE response_id = ${responseId}
+  `;
 
-    const answeredSet = new Set((allAnswers || []).map((a) => a.question_id));
-    const allAnswered = assignedIds.every((id) => answeredSet.has(id));
+  const answeredSet = new Set(answerRows.map((a) => a.question_id as string));
+  const allAnswered = assignedIds.every((id) => answeredSet.has(id));
 
-    if (allAnswered) {
-      // Behavioral screening — same checks as regular submitResponse
-      let totalTimeMs = 0;
-      let pasteHeavyCount = 0;
-      for (const a of allAnswers || []) {
-        const meta = (a.metadata || {}) as Record<string, unknown>;
-        totalTimeMs += Math.max(0, Number(meta.timeSpentMs) || 0);
-        const pasteCount = Math.max(0, Number(meta.pasteCount) || 0);
-        if (pasteCount >= DEFAULTS.SPAM_MAX_PASTE_COUNT) pasteHeavyCount++;
-      }
-
-      // Minimum time: per-question floor for partial responses
-      const minTime = assignedIds.length * DEFAULTS.PARTIAL_MIN_TIME_PER_QUESTION_MS;
-      if (totalTimeMs < minTime) {
-        return {
-          success: false,
-          error: "Please take more time to provide thoughtful answers before submitting.",
-        };
-      }
-
-      // Paste-heavy screening
-      if (
-        allAnswers &&
-        allAnswers.length > 0 &&
-        pasteHeavyCount / allAnswers.length >= DEFAULTS.SPAM_PASTE_ANSWER_RATIO
-      ) {
-        logOps({
-          event: "content.flagged",
-          userId: user.id,
-          fieldName: "reciprocal_response",
-          action: "blocked",
-          reason: `paste_rejected: pasteHeavy=${pasteHeavyCount}/${allAnswers.length}`,
-          entryPoint: "saveReciprocalAnswer",
-        });
-        return {
-          success: false,
-          error: "Your response was flagged for excessive pasted content. Please provide original answers.",
-        };
-      }
-
-      // Atomic: only increment campaign count if this response wasn't already submitted
-      // (prevents double-count from concurrent saves)
-      const submitResult = await sql`
-        WITH submitted AS (
-          UPDATE responses
-          SET status = 'submitted'
-          WHERE id = ${responseId}
-            AND status = 'in_progress'
-          RETURNING campaign_id
-        )
-        UPDATE campaigns
-        SET current_responses = current_responses + 1
-        WHERE id = (SELECT campaign_id FROM submitted)
-        RETURNING id
-      `;
-
-      autoSubmitted = submitResult.length > 0;
-    }
+  if (!allAnswered) {
+    return { success: true, autoSubmitted: false };
   }
 
-  return { success: true, autoSubmitted };
+  try {
+    await submitResponse(responseId);
+    return { success: true, autoSubmitted: true };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to submit reciprocal response.",
+    };
+  }
 }
 
 /**
