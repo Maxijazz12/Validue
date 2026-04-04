@@ -7,7 +7,7 @@ import {
   isCampaignOpenForResponses,
 } from "@/lib/campaign-availability";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { logOps } from "@/lib/ops-logger";
 import { RECIPROCAL_REQUIRED, RECIPROCAL_QUESTIONS_PER_RESPONSE } from "@/lib/reciprocal-gate";
 import {
@@ -225,7 +225,7 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
 
   if (!user) return [];
 
-  const rl = rateLimit(`recip-fetch:${user.id}`, 60000, 5);
+  const rl = await durableRateLimit(`recip-fetch:${user.id}`, 60000, 5);
   if (!rl.allowed) return [];
 
   // Clean up stale reciprocal in_progress responses (> 30 min) to prevent orphan buildup
@@ -346,7 +346,7 @@ export async function saveReciprocalAnswer(
 
   if (!user) return { success: false, error: "Not authenticated" };
 
-  const rl = rateLimit(`recip-save:${user.id}`, 60000, 60);
+  const rl = await durableRateLimit(`recip-save:${user.id}`, 60000, 60);
   if (!rl.allowed) return { success: false, error: "Too many requests. Please slow down." };
 
   // Content moderation
@@ -465,4 +465,3 @@ export async function saveReciprocalAnswer(
     };
   }
 }
-

@@ -15,9 +15,31 @@ import {
 } from "@/lib/payout-math";
 import { logOps } from "@/lib/ops-logger";
 import { captureError, captureWarning } from "@/lib/sentry";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { isValidUuid } from "@/lib/validate-uuid";
+import { resolvePayoutAllocations } from "@/lib/payout-allocation";
 import sql from "@/lib/db";
+
+type RankedResponseRow = {
+  id: string;
+  respondent_id: string;
+  quality_score: number | null;
+  scoring_confidence: number | null;
+  submitted_duration_ms: number | null;
+  respondent_name: string | null;
+};
+
+type RankedAnswerRow = {
+  response_id: string;
+  text: string | null;
+  type: string | null;
+};
+
+type PayoutCampaignRecord = {
+  id: string;
+  format: string | null;
+  is_subsidized: boolean | null;
+};
 
 export type PayoutSuggestion = {
   responseId: string;
@@ -62,40 +84,22 @@ export async function suggestDistribution(campaignId: string) {
  * Payout distribution (V2 economics)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function suggestDistributionV2(_supabase: any, campaign: any, distributable: number) {
+function buildTrustedPayoutSuggestions(
+  campaign: PayoutCampaignRecord,
+  distributable: number,
+  responses: RankedResponseRow[],
+  answerRows: RankedAnswerRow[]
+): PayoutSuggestion[] {
   const format: CampaignFormat = campaign.format === "quick" ? "quick" : "standard";
   const isSubsidized = campaign.is_subsidized === true;
 
-  const responses = await sql`
-    SELECT
-      r.id,
-      r.respondent_id,
-      r.quality_score,
-      r.scoring_confidence,
-      r.submitted_duration_ms,
-      p.full_name AS respondent_name
-    FROM responses r
-    LEFT JOIN profiles p ON p.id = r.respondent_id
-    WHERE r.campaign_id = ${campaign.id}
-      AND r.status = 'ranked'
-    ORDER BY r.quality_score DESC NULLS LAST
-  `;
-
   if (responses.length === 0)
-    return { suggestions: [], distributable };
+    return [];
 
-  const responseIds = responses.map((response) => response.id);
-  const answerRows = responseIds.length === 0
-    ? []
-    : await sql`
-        SELECT a.response_id, a.text, q.type
-        FROM answers a
-        JOIN questions q ON q.id = a.question_id
-        WHERE a.response_id = ANY(${responseIds}::uuid[])
-      `;
-
-  const answersByResponse = new Map<string, { text: string | null; type: string | null }[]>();
+  const answersByResponse = new Map<
+    string,
+    { text: string | null; type: string | null }[]
+  >();
   for (const row of answerRows) {
     const existing = answersByResponse.get(row.response_id) ?? [];
     existing.push({ text: row.text, type: row.type });
@@ -170,6 +174,48 @@ async function suggestDistributionV2(_supabase: any, campaign: any, distributabl
     };
   });
 
+  return suggestions;
+}
+
+async function loadTrustedPayoutSuggestions(
+  campaign: PayoutCampaignRecord,
+  distributable: number
+) {
+  const responses = await sql<RankedResponseRow[]>`
+    SELECT
+      r.id,
+      r.respondent_id,
+      r.quality_score,
+      r.scoring_confidence,
+      r.submitted_duration_ms,
+      p.full_name AS respondent_name
+    FROM responses r
+    LEFT JOIN profiles p ON p.id = r.respondent_id
+    WHERE r.campaign_id = ${campaign.id}
+      AND r.status = 'ranked'
+    ORDER BY r.quality_score DESC NULLS LAST
+  `;
+
+  if (responses.length === 0) {
+    return [];
+  }
+
+  const responseIds = responses.map((response) => response.id);
+  const answerRows = responseIds.length === 0
+    ? []
+    : await sql<RankedAnswerRow[]>`
+        SELECT a.response_id, a.text, q.type
+        FROM answers a
+        JOIN questions q ON q.id = a.question_id
+        WHERE a.response_id = ANY(${responseIds}::uuid[])
+      `;
+
+  return buildTrustedPayoutSuggestions(campaign, distributable, responses, answerRows);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function suggestDistributionV2(_supabase: any, campaign: any, distributable: number) {
+  const suggestions = await loadTrustedPayoutSuggestions(campaign, distributable);
   return { suggestions, distributable };
 }
 
@@ -198,7 +244,7 @@ export async function allocatePayoutsV2(
   // Verify ownership and get campaign
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, creator_id, reward_amount, distributable_amount, payout_status, status")
+    .select("id, creator_id, distributable_amount, payout_status, status, format, is_subsidized")
     .eq("id", campaignId)
     .eq("creator_id", user.id)
     .single();
@@ -208,41 +254,41 @@ export async function allocatePayoutsV2(
     throw new Error("Payouts already allocated");
 
   // Rate limit
-  const rl = rateLimit(`payout:${user.id}`, 3600000, 5);
+  const rl = await durableRateLimit(`payout:${user.id}`, 3600000, 5);
   if (!rl.allowed) throw new Error("Too many payout attempts. Please wait.");
 
   const distributable = safePositive(campaign.distributable_amount);
 
-  // Validate
-  for (const a of allocations) {
-    if (!Number.isFinite(a.amount) || a.amount < 0)
-      throw new Error(`Invalid payout amount: ${a.amount}`);
-  }
-
-  const qualifiedAllocations = allocations.filter((a) => a.qualified && a.amount > 0);
-  // Use integer cents to avoid float accumulation errors
-  const totalAllocatedCents = qualifiedAllocations.reduce((s, a) => s + Math.round(a.amount * 100), 0);
-  const distributableCents = Math.round(distributable * 100);
-  const totalAllocated = totalAllocatedCents / 100; // Dollar value for logging
-
-  if (totalAllocatedCents > distributableCents + 1)
-    throw new Error(
-      `Total ($${totalAllocated.toFixed(2)}) exceeds distributable ($${distributable.toFixed(2)})`
-    );
-
   // Validate all response IDs are valid UUIDs
   const responseIds = allocations.map((a) => a.responseId);
   if (responseIds.some((id) => !isValidUuid(id))) throw new Error("Invalid response ID in allocations");
-  const { data: responses } = await supabase
-    .from("responses")
-    .select("id, respondent_id")
-    .eq("campaign_id", campaignId)
-    .in("id", responseIds);
 
-  if (!responses || responses.length !== responseIds.length) {
-    throw new Error("Some responses not found or don't belong to this campaign");
+  const trustedSuggestions = await loadTrustedPayoutSuggestions(campaign, distributable);
+  if (trustedSuggestions.length === 0) {
+    throw new Error("No ranked responses available for payout allocation");
   }
-  const respondentMap = new Map(responses.map((r: { id: string; respondent_id: string }) => [r.id, r.respondent_id]));
+
+  const resolvedAllocations = resolvePayoutAllocations(trustedSuggestions, allocations);
+  const qualifiedAllocations = resolvedAllocations.filter(
+    (allocation) => allocation.qualified && allocation.amount > 0
+  );
+  // Use integer cents to avoid float accumulation errors
+  const totalAllocatedCents = qualifiedAllocations.reduce(
+    (sum, allocation) => sum + Math.round(allocation.amount * 100),
+    0
+  );
+  const distributableCents = Math.round(distributable * 100);
+  const totalAllocated = totalAllocatedCents / 100; // Dollar value for logging
+
+  if (totalAllocatedCents > distributableCents + 1) {
+    throw new Error(
+      `Total ($${totalAllocated.toFixed(2)}) exceeds distributable ($${distributable.toFixed(2)})`
+    );
+  }
+
+  const respondentMap = new Map(
+    trustedSuggestions.map((suggestion) => [suggestion.responseId, suggestion.respondentId])
+  );
 
   let settledImmediately = false;
   try {
@@ -273,9 +319,9 @@ export async function allocatePayoutsV2(
         WHERE id = ${campaignId}
       `;
 
-      for (const allocation of allocations) {
-        const respondentId = respondentMap.get(allocation.responseId);
-        if (!respondentId) continue;
+	      for (const allocation of resolvedAllocations) {
+	        const respondentId = respondentMap.get(allocation.responseId);
+	        if (!respondentId) continue;
 
         if (allocation.qualified && allocation.amount > 0) {
           // Create payout record
@@ -370,7 +416,7 @@ export async function allocatePayoutsV2(
     .eq("id", campaignId)
     .single();
 
-  const v2Notifications = allocations
+  const v2Notifications = resolvedAllocations
     .filter((a) => a.qualified && a.amount > 0 && respondentMap.get(a.responseId))
     .map((a) => ({
       userId: respondentMap.get(a.responseId)!,

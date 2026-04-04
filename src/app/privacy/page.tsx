@@ -31,9 +31,11 @@ export default function PrivacyPage() {
             <Section title="2. Information We Collect">
               <h3>Account Information</h3>
               <p>
-                When you create an account, we collect your name, email address, and role
-                (founder or respondent). Respondents may optionally provide interests, expertise,
-                occupation, age range, and location to improve campaign matching.
+                When you create an account, we collect your name, email address, and
+                primary mode preference (founder-first or respondent-first). People
+                who use the feedback side of the product may optionally provide
+                interests, expertise, occupation, age range, and location to improve
+                campaign matching.
               </p>
               <h3>Campaign & Response Data</h3>
               <p>

@@ -1,12 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { env } from "@/lib/env";
+import { supabasePublicEnv } from "@/lib/env";
 
 /** API routes that must remain publicly accessible (no auth). */
 const PUBLIC_API_ROUTES = ["/api/webhooks/stripe", "/api/health", "/api/admin"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const supabaseEnv = supabasePublicEnv();
 
   // Skip auth entirely for public API routes
   if (PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route))) {
@@ -16,8 +17,8 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    env().NEXT_PUBLIC_SUPABASE_URL,
-    env().NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseEnv.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

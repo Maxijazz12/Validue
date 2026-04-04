@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import ResponseFlow from "@/components/dashboard/respond/ResponseFlow";
 import {
+  hasRemainingReachBudget,
   hasReachedResponseTarget,
   isCampaignOpenForResponses,
 } from "@/lib/campaign-availability";
@@ -66,7 +67,7 @@ export default async function RespondPage({
   // Fetch suggested next campaigns (for post-response suggestion cards)
   const { data: suggestedRaw } = await supabase
     .from("campaigns")
-    .select("id, title, reward_amount, category, estimated_minutes, current_responses, target_responses, expires_at, creator:profiles!creator_id(full_name)")
+    .select("id, title, reward_amount, category, estimated_minutes, current_responses, target_responses, expires_at, effective_reach_units, total_reach_units, reach_served, creator:profiles!creator_id(full_name)")
     .eq("status", "active")
     .neq("id", id)
     .neq("creator_id", user.id)
@@ -101,6 +102,13 @@ export default async function RespondPage({
         current_responses: c.current_responses,
         target_responses: c.target_responses,
         expires_at: c.expires_at,
+      })
+    )
+    .filter((c) =>
+      hasRemainingReachBudget({
+        reach_served: c.reach_served,
+        effective_reach_units: c.effective_reach_units,
+        total_reach_units: c.total_reach_units,
       })
     )
     .slice(0, 3)

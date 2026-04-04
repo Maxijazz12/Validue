@@ -6,7 +6,7 @@ import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { DEFAULTS } from "@/lib/defaults";
 import { logOps } from "@/lib/ops-logger";
 import { createNotification } from "@/lib/notifications";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import sql from "@/lib/db";
 import {
   assignQuestions,
@@ -38,7 +38,7 @@ export async function startResponse(campaignId: string): Promise<{
 
   if (!user) throw new Error("Not authenticated");
 
-  const rl = rateLimit(`start:${user.id}`, 60000, 10);
+  const rl = await durableRateLimit(`start:${user.id}`, 60000, 10);
   if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
 
   // Fetch campaign (include V2 + targeting fields for question assignment)
@@ -107,7 +107,10 @@ export async function startResponse(campaignId: string): Promise<{
     FROM responses
     WHERE respondent_id = ${user.id}
       AND status IN ('submitted', 'ranked')
-      AND created_at > NOW() - INTERVAL '24 hours'
+      AND COALESCE(
+            created_at + (submitted_duration_ms * INTERVAL '1 millisecond'),
+            created_at
+          ) > NOW() - INTERVAL '24 hours'
   `;
   if (todayCount >= DEFAULTS.MAX_DAILY_RESPONSES) {
     throw new Error("You've reached today's response limit. Come back tomorrow.");
@@ -172,7 +175,7 @@ export async function startResponse(campaignId: string): Promise<{
       JOIN questions q ON q.id = a.question_id
       JOIN responses r ON r.id = a.response_id
       WHERE r.campaign_id = ${campaignId}
-        AND r.status IN ('in_progress', 'submitted', 'ranked')
+        AND r.status IN ('submitted', 'ranked')
         AND q.assumption_index IS NOT NULL
       GROUP BY q.assumption_index
     `;
@@ -182,18 +185,18 @@ export async function startResponse(campaignId: string): Promise<{
     }
 
     // Check if respondent already answered some questions (e.g. from reciprocal)
-    const { data: priorAnswers } = await supabase
-      .from("answers")
-      .select("question_id")
-      .in(
-        "response_id",
-        (await supabase
-          .from("responses")
-          .select("id")
-          .eq("campaign_id", campaignId)
-          .eq("respondent_id", user.id)
-        ).data?.map((r) => r.id) ?? []
-      );
+    const { data: priorResponseRows } = await supabase
+      .from("responses")
+      .select("id")
+      .eq("campaign_id", campaignId)
+      .eq("respondent_id", user.id);
+    const priorResponseIds = (priorResponseRows || []).map((row) => row.id);
+    const { data: priorAnswers } = priorResponseIds.length > 0
+      ? await supabase
+          .from("answers")
+          .select("question_id")
+          .in("response_id", priorResponseIds)
+      : { data: [] };
     const excludeIds = new Set((priorAnswers || []).map((a) => a.question_id));
 
     const assignment = assignQuestions(
@@ -288,8 +291,8 @@ export async function saveAnswer(
     throw new Error("This question is not assigned to your response.");
   }
 
-  // Rate limit: 120 saves per hour (rapid typing/navigation is normal)
-  const rl = rateLimit(`save:${user.id}`, 3600000, 300);
+  // Rate limit: 300 saves per hour (rapid typing/navigation is normal)
+  const rl = await durableRateLimit(`save:${user.id}`, 3600000, 300);
   if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
 
   // Sanitize metadata + content moderation + length enforcement
@@ -342,7 +345,7 @@ export async function submitResponse(responseId: string) {
   if (!user) throw new Error("Not authenticated");
 
   // Rate limit: 10 submissions per hour
-  const rl = rateLimit(`submit:${user.id}`, 3600000, 10);
+  const rl = await durableRateLimit(`submit:${user.id}`, 3600000, 10);
   if (!rl.allowed) throw new Error("Too many submissions. Please wait before submitting again.");
 
   // Verify response belongs to user and is in_progress

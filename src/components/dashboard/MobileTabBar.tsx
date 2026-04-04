@@ -2,7 +2,6 @@
 
 import { useRouteActive } from "@/lib/hooks/use-route-active";
 import Avatar from "@/components/ui/Avatar";
-import { FEATURES, RESPONDENT_ACTIVITY_LABEL } from "@/lib/feature-flags";
 
 const tabs = [
   {
@@ -47,18 +46,6 @@ const tabs = [
       </svg>
     ),
   },
-  ...(FEATURES.EARNINGS_PAGE ? [{
-    label: RESPONDENT_ACTIVITY_LABEL,
-    href: "/dashboard/earnings",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 20h18" />
-        <rect x="5" y="13" width="3" height="7" rx="1" />
-        <rect x="10.5" y="9" width="3" height="11" rx="1" />
-        <rect x="16" y="5" width="3" height="15" rx="1" />
-      </svg>
-    ),
-  }] : []),
 ];
 
 export default function MobileTabBar({ userName, userAvatar }: { userName?: string; userAvatar?: string | null }) {

@@ -5,7 +5,7 @@ import { DEFAULTS } from "@/lib/defaults";
 import type Stripe from "stripe";
 import { logOps } from "@/lib/ops-logger";
 import { captureError, captureWarning } from "@/lib/sentry";
-import { env } from "@/lib/env";
+import { stripeWebhookEnv } from "@/lib/env";
 import { getStatusAfterFunding, type GateStatus } from "@/lib/reciprocal-gate";
 
 export async function POST(request: Request) {
@@ -18,10 +18,10 @@ export async function POST(request: Request) {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(
+      event = stripe.webhooks.constructEvent(
       body,
       signature,
-      env().STRIPE_WEBHOOK_SECRET
+      stripeWebhookEnv().STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

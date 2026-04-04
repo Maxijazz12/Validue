@@ -15,7 +15,8 @@ import {
 import { updateRespondentReputation } from "@/lib/reputation";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
+import sql from "@/lib/db";
 
 export async function rankCampaignResponses(campaignId: string) {
   const supabase = await createClient();
@@ -38,7 +39,7 @@ export async function rankCampaignResponses(campaignId: string) {
     throw new Error("Ranking already in progress");
 
   // Rate limit: 5 ranking runs per hour
-  const rl = rateLimit(`rank:${user.id}`, 3600000, 5);
+  const rl = await durableRateLimit(`rank:${user.id}`, 3600000, 5);
   if (!rl.allowed) throw new Error("Too many ranking requests. Please wait.");
 
   // Atomic lock: only transitions from 'unranked' to 'ranking'.
@@ -161,18 +162,22 @@ export async function rankCampaignResponses(campaignId: string) {
           }
         : null;
 
-      await supabase
-        .from("responses")
-        .update({
-          quality_score: clampedScore,
-          ai_feedback: result.feedback,
-          scoring_source: result.source,
-          scoring_confidence: clampedConfidence,
-          scoring_dimensions: scoringDimensions,
-          status: "ranked",
-          ranked_at: new Date().toISOString(),
-        })
-        .eq("id", response.id);
+      const updatedResponses = await sql`
+        UPDATE responses
+        SET quality_score = ${clampedScore},
+            ai_feedback = ${result.feedback},
+            scoring_source = ${result.source},
+            scoring_confidence = ${clampedConfidence},
+            scoring_dimensions = ${scoringDimensions},
+            status = 'ranked',
+            ranked_at = NOW()
+        WHERE id = ${response.id}
+        RETURNING id
+      `;
+
+      if (updatedResponses.length !== 1) {
+        throw new Error(`Failed to persist ranking for response ${response.id}`);
+      }
 
       // Collect notification for batch insert
       const dims = result.dimensions as { depth?: number; relevance?: number; authenticity?: number; consistency?: number } | null;

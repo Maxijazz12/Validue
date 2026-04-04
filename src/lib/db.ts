@@ -1,7 +1,7 @@
 import postgres from "postgres";
-import { env } from "@/lib/env";
+import { databaseEnv } from "@/lib/env";
 
-const sql = postgres(env().DATABASE_URL, {
+const sql = postgres(databaseEnv().DATABASE_URL, {
   max: 20,
   idle_timeout: 120,
   connect_timeout: 15,

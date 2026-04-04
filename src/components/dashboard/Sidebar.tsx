@@ -8,7 +8,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Avatar from "@/components/ui/Avatar";
 import { useImmersive } from "@/components/ImmersiveProvider";
-import { FEATURES, RESPONDENT_ACTIVITY_LABEL } from "@/lib/feature-flags";
+import { FEATURES } from "@/lib/feature-flags";
 
 type NavItem = { label: string; href: string; icon: string };
 
@@ -20,7 +20,6 @@ const primaryNav: NavItem[] = [
 
 const secondaryNav: NavItem[] = [
   { label: "My Responses", href: "/dashboard/my-responses", icon: "clipboard" },
-  ...(FEATURES.EARNINGS_PAGE ? [{ label: RESPONDENT_ACTIVITY_LABEL, href: "/dashboard/earnings", icon: "chart" }] : []),
   { label: "Profile", href: "/dashboard/settings", icon: "profile" },
 ];
 
@@ -115,7 +114,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
     const active = isActive(item.href);
     const showNewResponsesDot = item.icon === "lightbulb" && hasNewResponses;
     const showEarningsPill =
-      FEATURES.RESPONDENT_PAYOUTS && item.icon === "chart" && totalEarned > 0;
+      FEATURES.RESPONDENT_PAYOUTS && item.icon === "clipboard" && totalEarned > 0;
 
     return (
       <a

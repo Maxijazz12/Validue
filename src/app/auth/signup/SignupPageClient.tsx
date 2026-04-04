@@ -22,7 +22,9 @@ export default function SignupPageClient({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"founder" | "respondent">("founder");
+  const [primaryMode, setPrimaryMode] = useState<"founder" | "respondent">(
+    "founder"
+  );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const loginHref = buildAuthPageHref("/auth/login", rawNext);
@@ -43,7 +45,7 @@ export default function SignupPageClient({
       email,
       password,
       options: {
-        data: { full_name: fullName, role },
+        data: { full_name: fullName, role: primaryMode },
         emailRedirectTo: buildAuthCallbackUrl(window.location.origin, rawNext),
       },
     });
@@ -64,7 +66,8 @@ export default function SignupPageClient({
       provider: "google",
       options: {
         redirectTo: buildAuthCallbackUrl(window.location.origin, rawNext, {
-          signupRole: role === "respondent" ? role : null,
+          signupPrimaryMode:
+            primaryMode === "respondent" ? primaryMode : null,
         }),
       },
     });
@@ -137,14 +140,14 @@ export default function SignupPageClient({
               <div className="grid grid-cols-2 gap-[10px]">
                 <button
                   type="button"
-                  onClick={() => setRole("founder")}
+                  onClick={() => setPrimaryMode("founder")}
                   className={`px-[14px] py-[14px] rounded-xl border text-left transition-all cursor-pointer ${
-                    role === "founder"
+                    primaryMode === "founder"
                       ? "border-[#E5654E] bg-[#E5654E]/5"
                       : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1]"
                   }`}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={role === "founder" ? "#E5654E" : "#94A3B8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-[8px]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={primaryMode === "founder" ? "#E5654E" : "#94A3B8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-[8px]">
                     <path d="M9 18h6" /><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
                   </svg>
                   <div className="text-[13px] font-semibold text-[#111111]">Founder-first</div>
@@ -152,14 +155,14 @@ export default function SignupPageClient({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRole("respondent")}
+                  onClick={() => setPrimaryMode("respondent")}
                   className={`px-[14px] py-[14px] rounded-xl border text-left transition-all cursor-pointer ${
-                    role === "respondent"
+                    primaryMode === "respondent"
                       ? "border-[#E5654E] bg-[#E5654E]/5"
                       : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1]"
                   }`}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={role === "respondent" ? "#E5654E" : "#94A3B8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-[8px]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={primaryMode === "respondent" ? "#E5654E" : "#94A3B8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-[8px]">
                     <path d="M3 20h18" /><rect x="5" y="13" width="3" height="7" rx="1" /><rect x="10.5" y="9" width="3" height="11" rx="1" /><rect x="16" y="5" width="3" height="15" rx="1" />
                   </svg>
                   <div className="text-[13px] font-semibold text-[#111111]">{respondentPrimaryLabel}</div>

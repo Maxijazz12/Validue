@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import sql from "@/lib/db";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { logOps } from "@/lib/ops-logger";
 import { captureWarning } from "@/lib/sentry";
-import { rateLimit } from "@/lib/rate-limit";
 import { isValidUuid } from "@/lib/validate-uuid";
 
 /**
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     // Rate limit: 50 impressions per user per minute
-    const limit = rateLimit(`reach:${user.id}`, 60000, 50);
+    const limit = await durableRateLimit(`reach:${user.id}`, 60000, 50);
     if (!limit.allowed) {
       return NextResponse.json({ ok: true }); // Silent 200 — don't reveal rate limiting to client
     }

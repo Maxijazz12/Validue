@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import DisputeButton from "@/app/dashboard/my-responses/DisputeButton";
 
 const tabs = ["All", "In Progress", "Submitted", "Ranked"] as const;
 type Tab = (typeof tabs)[number];
@@ -24,6 +25,8 @@ export type ResponseItem = {
   status: string;
   quality_score: number | null;
   payout_amount: number | null;
+  money_state: string | null;
+  disqualification_reasons: unknown;
   ai_feedback: unknown;
   created_at: string;
   campaign: {
@@ -33,6 +36,7 @@ export type ResponseItem = {
     reward_amount: number;
     reward_type: string | null;
   } | null;
+  alreadyDisputed?: boolean;
 };
 
 function timeAgo(dateStr: string): string {
@@ -165,6 +169,25 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
             const isInProgress = response.status === "in_progress";
             const hasPayout = response.payout_amount != null && Number(response.payout_amount) > 0;
 
+            // Money state
+            const moneyState = response.money_state || "pending_qualification";
+            const reasons = Array.isArray(response.disqualification_reasons)
+              ? response.disqualification_reasons.filter((v): v is string => typeof v === "string")
+              : [];
+            const isUnpaid = reasons.includes("unpaid_campaign");
+            const isDisqualified = moneyState === "not_qualified" && !isUnpaid;
+
+            const moneyStateConfig: Record<string, { label: string; className: string }> = {
+              pending_qualification: { label: "PENDING", className: "bg-[#94A3B8]/10 text-text-secondary" },
+              locked: { label: "LOCKED", className: "bg-warning/10 text-[#D97706]" },
+              available: { label: "AVAILABLE", className: "bg-success/10 text-success" },
+              paid_out: { label: "PAID OUT", className: "bg-info/10 text-info" },
+              not_qualified: { label: "NOT QUALIFIED", className: "bg-error/10 text-error" },
+            };
+            const moneyConfig = isUnpaid
+              ? { label: "UNPAID", className: "bg-bg-muted text-text-secondary" }
+              : (moneyStateConfig[moneyState] || moneyStateConfig.pending_qualification);
+
             return (
               <div
                 key={response.id}
@@ -200,15 +223,25 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
 
                 {/* Footer */}
                 <div className="mt-auto pt-[16px] md:pt-[24px]">
-                  {/* Score ring + payout row — the twist */}
-                  {(hasScore || hasPayout) && (
+                  {/* Score ring + payout row */}
+                  {(hasScore || hasPayout || response.status === "ranked") && (
                     <div className="flex items-center justify-between mb-[12px] md:mb-[16px]">
                       {hasScore && <ScoreRing score={score} />}
-                      {hasPayout && (
-                        <span className="text-[13px] font-semibold tracking-tight text-success">
-                          +${Number(response.payout_amount).toFixed(2)}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-[8px] ml-auto">
+                        {hasPayout && (
+                          <span className="text-[13px] font-semibold tracking-tight text-success">
+                            +${Number(response.payout_amount).toFixed(2)}
+                          </span>
+                        )}
+                        {(isDisqualified || isUnpaid) && (
+                          <span className="text-[12px] text-text-muted font-medium">$0.00</span>
+                        )}
+                        {response.status === "ranked" && (
+                          <span className={`px-[8px] py-[3px] rounded-md text-[10px] font-medium uppercase tracking-tight ${moneyConfig.className}`}>
+                            {moneyConfig.label}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -219,6 +252,26 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
                         {response.ai_feedback as string}
                       </p>
                     </div>
+                  )}
+
+                  {/* Disqualification reason + dispute */}
+                  {isDisqualified && (
+                    <div className="mb-[12px]">
+                      {reasons.filter((r) => r !== "unpaid_campaign").length > 0 && (
+                        <p className="text-[12px] text-text-secondary mb-[4px]">
+                          Reason: {reasons.filter((r) => r !== "unpaid_campaign").join(", ")}
+                        </p>
+                      )}
+                      <DisputeButton
+                        responseId={response.id}
+                        alreadyDisputed={response.alreadyDisputed ?? false}
+                      />
+                    </div>
+                  )}
+                  {isUnpaid && (
+                    <p className="text-[12px] text-text-secondary mb-[12px]">
+                      This campaign did not offer monetary rewards.
+                    </p>
                   )}
 
                   {/* Action row */}

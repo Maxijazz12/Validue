@@ -18,7 +18,7 @@ import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { DEFAULTS } from "@/lib/defaults";
-import { env } from "@/lib/env";
+import { cronEnv } from "@/lib/env";
 import {
   qualifyResponse,
   distributePayoutsV2,
@@ -46,7 +46,7 @@ function verifyCronSecret(request: Request, secret: string): boolean {
 
 export async function GET(request: Request) {
   // Verify cron secret (timing-safe to prevent brute-force)
-  const cronSecret = env().CRON_SECRET;
+  const cronSecret = cronEnv().CRON_SECRET;
   if (!cronSecret || !verifyCronSecret(request, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

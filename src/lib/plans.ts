@@ -1,4 +1,4 @@
-import { env } from "@/lib/env";
+import { planEnv } from "@/lib/env";
 
 /* ─── Plan Tier Config ─── */
 
@@ -79,7 +79,7 @@ export function getPlanConfig(tier: PlanTier): PlanConfig {
   if (tier === "pro") {
     return {
       ...PLAN_CONFIG.pro,
-      stripePriceId: env().STRIPE_PRO_PRICE_ID ?? null,
+      stripePriceId: planEnv().STRIPE_PRO_PRICE_ID ?? null,
     };
   }
 

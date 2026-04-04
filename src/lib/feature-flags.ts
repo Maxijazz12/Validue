@@ -10,32 +10,17 @@
 
 export const FEATURES = {
   /** Stripe payout flow — respondents earning money per response */
-  RESPONDENT_PAYOUTS: false,
-
-  /** Response activity page and sidebar link */
-  EARNINGS_PAGE: true,
+  RESPONDENT_PAYOUTS: true,
 
   /** Reputation tiers and badges in respondent-facing UI */
-  REPUTATION_TIERS: false,
+  REPUTATION_TIERS: true,
 
   /** Cashout / withdrawal flow */
-  CASHOUT: false,
+  CASHOUT: true,
 
   /** Campaign funding via Stripe (founder pays for responses) */
-  CAMPAIGN_FUNDING: false,
+  CAMPAIGN_FUNDING: true,
 
   /** Weekly digest banner */
   WEEKLY_DIGEST: false,
 } as const;
-
-export const RESPONDENT_ACTIVITY_LABEL = FEATURES.RESPONDENT_PAYOUTS
-  ? "Earnings"
-  : "Activity";
-
-export const RESPONDENT_ACTIVITY_TITLE = FEATURES.RESPONDENT_PAYOUTS
-  ? "Earnings"
-  : "Response Activity";
-
-export const RESPONDENT_ACTIVITY_DESCRIPTION = FEATURES.RESPONDENT_PAYOUTS
-  ? "Track your earnings from responding to ideas"
-  : "Track your responses and any legacy payout history while new responses stay feedback-only.";

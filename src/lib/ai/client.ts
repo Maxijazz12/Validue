@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { env } from "@/lib/env";
+import { aiEnv } from "@/lib/env";
 
 /* ─── Model Configuration ─── */
 
@@ -50,7 +50,7 @@ let _client: Anthropic | null = null;
 export function getClient(): Anthropic {
   if (_client) return _client;
 
-  const apiKey = env().ANTHROPIC_API_KEY;
+  const apiKey = aiEnv().ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
       "ANTHROPIC_API_KEY is not set. AI generation will use the deterministic fallback."
@@ -66,5 +66,5 @@ export function getClient(): Anthropic {
  * Useful for deciding whether to attempt AI generation or skip to fallback.
  */
 export function isAIAvailable(): boolean {
-  return !!env().ANTHROPIC_API_KEY;
+  return !!aiEnv().ANTHROPIC_API_KEY;
 }

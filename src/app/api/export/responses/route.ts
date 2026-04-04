@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG } from "@/lib/plans";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { isValidUuid } from "@/lib/validate-uuid";
 
 function escapeCsv(value: string): string {
@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
   }
 
   // Rate limit: 10 exports per user per minute, 3 per campaign per minute
-  const userLimit = rateLimit(`export:${user.id}`, 60000, 10);
+  const userLimit = await durableRateLimit(`export:${user.id}`, 60000, 10);
   if (!userLimit.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
-  const campaignLimit = rateLimit(`export:campaign:${campaignId}`, 60000, 3);
+  const campaignLimit = await durableRateLimit(`export:campaign:${campaignId}`, 60000, 3);
   if (!campaignLimit.allowed) {
     return NextResponse.json({ error: "Too many exports for this campaign" }, { status: 429 });
   }

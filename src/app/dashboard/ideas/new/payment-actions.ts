@@ -6,7 +6,7 @@ import sql from "@/lib/db";
 import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard";
 import { validateFunding } from "@/lib/reach";
 import { WELCOME_BONUS, getPlanConfig } from "@/lib/plans";
-import { env } from "@/lib/env";
+import { appUrlEnv } from "@/lib/env";
 import { captureError, captureWarning } from "@/lib/sentry";
 import {
   reconcileReservedPlatformCredit,
@@ -274,6 +274,7 @@ export async function createFundingSession(
 
   if (chargeAmountCents === 0) {
     const expiryInterval = `${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} days`;
+    const appUrl = appUrlEnv().NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
@@ -334,7 +335,7 @@ export async function createFundingSession(
     }
 
     return {
-      url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
+      url: `${appUrl}/dashboard/ideas/${campaign.id}?funded=true`,
     };
   }
 
@@ -368,6 +369,7 @@ export async function createFundingSession(
   // Create Checkout Session — restore platform credit if Stripe call fails
   let session;
   try {
+    const appUrl = appUrlEnv().NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       mode: "payment",
@@ -394,8 +396,8 @@ export async function createFundingSession(
         platformCreditCents: appliedPlatformCreditCents > 0 ? String(appliedPlatformCreditCents) : "0",
         platformSubsidyCents: platformSubsidyCents > 0 ? String(platformSubsidyCents) : "0",
       },
-      success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=true`,
-      cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/ideas/${campaign.id}?funded=false`,
+      success_url: `${appUrl}/dashboard/ideas/${campaign.id}?funded=true`,
+      cancel_url: `${appUrl}/dashboard/ideas/${campaign.id}?funded=false`,
     });
 
     await sql`
@@ -465,6 +467,7 @@ export async function createSubscriptionSession(
     `;
   }
 
+  const appUrl = appUrlEnv().NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
     mode: "subscription",
@@ -474,8 +477,8 @@ export async function createSubscriptionSession(
       type: "subscription",
       tier,
     },
-    success_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?subscribed=${tier}`,
-    cancel_url: `${env().NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?subscribed=false`,
+    success_url: `${appUrl}/dashboard?subscribed=${tier}`,
+    cancel_url: `${appUrl}/dashboard?subscribed=false`,
   });
 
   if (!session.url) return { error: "Failed to create checkout session." };

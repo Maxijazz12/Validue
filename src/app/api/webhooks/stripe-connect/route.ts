@@ -1,7 +1,7 @@
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 import type Stripe from "stripe";
-import { env } from "@/lib/env";
+import { stripeConnectWebhookEnv } from "@/lib/env";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  const webhookSecret = env().STRIPE_CONNECT_WEBHOOK_SECRET;
+  const webhookSecret = stripeConnectWebhookEnv().STRIPE_CONNECT_WEBHOOK_SECRET;
   if (!webhookSecret) {
     console.error("[stripe-connect-webhook] STRIPE_CONNECT_WEBHOOK_SECRET not configured");
     return Response.json({ error: "Webhook not configured" }, { status: 500 });

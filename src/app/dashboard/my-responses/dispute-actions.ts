@@ -70,7 +70,7 @@ export async function fileDispute(
       return { error: "You've already filed a dispute for this response." };
     }
 
-    revalidatePath("/dashboard/earnings");
+    revalidatePath("/dashboard/my-responses");
     return { disputeId: dispute.id };
   } catch (err) {
     console.error("[dispute] Failed to file dispute:", err);

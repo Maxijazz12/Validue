@@ -185,17 +185,12 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
             for (let j = 0; j < idea.id.length; j++) idHash = idea.id.charCodeAt(j) + ((idHash << 5) - idHash);
             const isHero = Math.abs(idHash) % 10 === 0; // ~1 in 10
 
-            // Cascading staircase: left tallest → steps down to the right, with jitter
-            const col = index % 3;
-            const basePad = [0, 24, 48][col];
-            const jitter = ((Math.abs(idHash) % 3) - 1) * 8;
-            const extraPad = Math.max(0, basePad + jitter);
 
             return (
               <Link
                 key={idea.id}
                 href={ideaHref}
-                style={{ ...staggerDelay(index), ...(!isHero ? { paddingBottom: `${20 + extraPad}px` } : {}) }}
+                style={staggerDelay(index)}
                 className={`glow-hover relative flex flex-col justify-between bg-white border border-border-light shadow-card transition-all duration-400 no-underline overflow-hidden rounded-[20px] px-[14px] py-[20px] md:rounded-[28px] md:p-[28px] ${
                   isHero ? "col-span-2 lg:col-span-2" : "col-span-1"
                 }`}
@@ -259,7 +254,9 @@ export default function IdeasList({ ideas }: { ideas: IdeaItem[] }) {
                       {idea.current_responses} response{idea.current_responses !== 1 && "s"}
                     </span>
                     <span className="text-[11px] font-semibold tracking-tight text-text-muted">
-                      {idea.current_responses}/{idea.target_responses}
+                      {idea.target_responses > 0
+                        ? `${idea.current_responses}/${idea.target_responses}`
+                        : `${idea.current_responses}`}
                     </span>
                   </div>
 

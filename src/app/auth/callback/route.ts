@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import sql from "@/lib/db";
 import {
   sanitizeAuthRedirectPath,
-  sanitizeOAuthSignupRole,
-  shouldApplyOAuthSignupRole,
+  sanitizeOAuthSignupPrimaryMode,
+  shouldApplyOAuthSignupPrimaryMode,
 } from "@/lib/auth-redirect";
 
 export async function GET(request: Request) {
@@ -12,13 +12,15 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const type = searchParams.get("type");
   const next = sanitizeAuthRedirectPath(searchParams.get("next"));
-  const signupRole = sanitizeOAuthSignupRole(searchParams.get("signup_role"));
+  const signupPrimaryMode = sanitizeOAuthSignupPrimaryMode(
+    searchParams.get("signup_role")
+  );
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      if (signupRole) {
+      if (signupPrimaryMode) {
         try {
           const {
             data: { user },
@@ -32,8 +34,8 @@ export async function GET(request: Request) {
             `;
 
             if (
-              shouldApplyOAuthSignupRole(
-                signupRole,
+              shouldApplyOAuthSignupPrimaryMode(
+                signupPrimaryMode,
                 profile?.role,
                 profile?.created_at
               )
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
               await sql.begin(async (tx: any) => {
                 await tx`
                   UPDATE profiles
-                  SET role = ${signupRole}
+                  SET role = ${signupPrimaryMode}
                   WHERE id = ${user.id}
                     AND role = 'founder'
                     AND created_at >= NOW() - INTERVAL '10 minutes'
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
                 await tx`
                   UPDATE auth.users
                   SET raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb)
-                    || jsonb_build_object('role', ${signupRole})
+                    || jsonb_build_object('role', ${signupPrimaryMode})
                   WHERE id = ${user.id}
                     AND created_at >= NOW() - INTERVAL '10 minutes'
                 `;
@@ -59,7 +61,10 @@ export async function GET(request: Request) {
             }
           }
         } catch (roleSyncError) {
-          console.error("[auth/callback] Failed to sync OAuth signup role:", roleSyncError);
+          console.error(
+            "[auth/callback] Failed to sync OAuth signup primary mode:",
+            roleSyncError
+          );
         }
       }
 

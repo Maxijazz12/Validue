@@ -122,7 +122,7 @@ export default function NotificationPanel() {
             Notifications
           </h1>
           {unreadCount > 0 && (
-            <p className="text-[14px] text-text-secondary mt-[2px]">{unreadCount} unread</p>
+            <p className="text-[14px] text-text-secondary mt-[4px]">{unreadCount} unread</p>
           )}
         </div>
         {unreadCount > 0 && (

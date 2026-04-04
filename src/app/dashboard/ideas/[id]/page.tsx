@@ -61,7 +61,7 @@ function DimensionBar({ label, score, tooltip }: { label: string; score: number;
       <span className="text-[13px] text-text-secondary w-[120px] shrink-0" title={tooltip}>
         {label}
       </span>
-      <div className="flex-1 h-[6px] rounded-full bg-bg-muted overflow-hidden">
+      <div className="flex-1 h-[3px] rounded-full bg-bg-muted overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${score}%`, background: gradient }}
@@ -206,7 +206,7 @@ export default async function CampaignDetailPage({
   return (
     <>
       {/* ─── Header ─── */}
-      <div className="mb-[32px]">
+      <div className="mb-[24px]">
         <Link
           href="/dashboard/ideas"
           className="inline-flex items-center gap-[6px] text-[13px] text-text-muted hover:text-text-secondary transition-colors no-underline mb-[16px]"
@@ -226,28 +226,25 @@ export default async function CampaignDetailPage({
           Back to Ideas
         </Link>
 
-        <div className="bg-white rounded-[28px] border border-border-light p-[24px_32px] max-md:p-[20px] relative overflow-hidden shadow-card">
-          <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-accent-warm-muted/25 to-transparent" />
-          <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-            <h1 className="text-[24px] font-medium tracking-tight text-text-primary">{campaign.title}</h1>
-            <div className="flex items-center gap-[8px] shrink-0">
-              {campaign.status === "completed" && (
-                <RetestCampaignButton campaignId={campaign.id} />
-              )}
-              <CloneCampaignButton campaignId={campaign.id} />
-              {(campaign.round_number ?? 1) > 1 && (
-                <span className="px-[12px] py-[5px] rounded-full text-[12px] font-semibold bg-info/10 text-info">
-                  Round {campaign.round_number}
-                </span>
-              )}
-              <span
-                className={`px-[12px] py-[5px] rounded-full text-[12px] font-semibold uppercase tracking-[0.5px] ${
-                  statusColors[campaign.status] || statusColors.draft
-                }`}
-              >
-                {campaign.status === "pending_funding" ? "Pending Funding" : campaign.status === "pending_gate" ? "Pending Gate" : campaign.status}
+        <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
+          <h1 className="text-[24px] font-medium tracking-tight text-text-primary">{campaign.title}</h1>
+          <div className="flex items-center gap-[8px] shrink-0">
+            {campaign.status === "completed" && (
+              <RetestCampaignButton campaignId={campaign.id} />
+            )}
+            <CloneCampaignButton campaignId={campaign.id} />
+            {(campaign.round_number ?? 1) > 1 && (
+              <span className="px-[12px] py-[5px] rounded-full text-[12px] font-semibold bg-info/10 text-info">
+                Round {campaign.round_number}
               </span>
-            </div>
+            )}
+            <span
+              className={`px-[12px] py-[5px] rounded-full text-[12px] font-semibold uppercase tracking-[0.5px] ${
+                statusColors[campaign.status] || statusColors.draft
+              }`}
+            >
+              {campaign.status === "pending_funding" ? "Pending Funding" : campaign.status === "pending_gate" ? "Pending Gate" : campaign.status}
+            </span>
           </div>
         </div>
       </div>

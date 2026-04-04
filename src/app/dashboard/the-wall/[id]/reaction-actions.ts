@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 
 const VALID_TYPES = new Set(["fire", "lightbulb", "thumbsup", "thinking"]);
 
@@ -16,7 +16,7 @@ export async function toggleReaction(campaignId: string, reactionType: string) {
   if (!VALID_TYPES.has(reactionType)) throw new Error("Invalid reaction type");
 
   // Rate limit: 20 reactions per minute
-  const rl = rateLimit(`reaction:${user.id}`, 60_000, 20);
+  const rl = await durableRateLimit(`reaction:${user.id}`, 60_000, 20);
   if (!rl.allowed) throw new Error("Too many reactions. Try again later.");
 
   // Check if reaction exists (toggle pattern)
@@ -30,7 +30,11 @@ export async function toggleReaction(campaignId: string, reactionType: string) {
 
   if (existing) {
     // Toggle off
-    await supabase.from("campaign_reactions").delete().eq("id", existing.id);
+    const { error } = await supabase
+      .from("campaign_reactions")
+      .delete()
+      .eq("id", existing.id);
+    if (error) throw new Error("Failed to remove reaction");
   } else {
     // Toggle on
     const { error } = await supabase.from("campaign_reactions").insert({

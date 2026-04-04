@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import sql from "@/lib/db";
 
 /**
@@ -19,7 +19,7 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
 
   if (!user) return { error: "Not authenticated" };
 
-  const rl = rateLimit(`delete:${user.id}`, 600000, 1);
+  const rl = await durableRateLimit(`delete:${user.id}`, 600000, 1);
   if (!rl.allowed) return { error: "Too many requests. Please try again later." };
 
   const userId = user.id;

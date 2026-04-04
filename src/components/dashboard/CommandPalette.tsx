@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RESPONDENT_ACTIVITY_LABEL } from "@/lib/feature-flags";
 
 type QuickAction = {
   label: string;
@@ -39,16 +38,6 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" /><polyline points="9 14 11 16 15 11" />
-      </svg>
-    ),
-  },
-  {
-    label: RESPONDENT_ACTIVITY_LABEL,
-    href: "/dashboard/earnings",
-    section: "Navigate",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 20h18" /><rect x="5" y="13" width="3" height="7" rx="1" /><rect x="10.5" y="9" width="3" height="11" rx="1" /><rect x="16" y="5" width="3" height="15" rx="1" />
       </svg>
     ),
   },
