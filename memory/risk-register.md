@@ -164,6 +164,7 @@ It groups issues by root cause instead of tracking every symptom as a separate f
   - onboarding, nav, command palette, and submission confirmation copy now align with feedback-only mode
   - historical payout records remain intentionally visible instead of being hidden
 - `Fixed in`:
+  - `src/app/auth/signup/SignupPageClient.tsx`
   - `src/lib/feature-flags.ts`
   - `src/app/dashboard/earnings/page.tsx`
   - `src/app/dashboard/my-responses/page.tsx`

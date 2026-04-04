@@ -11,6 +11,7 @@ import {
   buildAuthCallbackUrl,
   buildAuthPageHref,
 } from "@/lib/auth-redirect";
+import { FEATURES } from "@/lib/feature-flags";
 
 export default function SignupPageClient({
   rawNext,
@@ -25,6 +26,12 @@ export default function SignupPageClient({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const loginHref = buildAuthPageHref("/auth/login", rawNext);
+  const respondentPrimaryLabel = FEATURES.RESPONDENT_PAYOUTS
+    ? "Respondent-first"
+    : "Feedback-first";
+  const respondentPrimaryDescription = FEATURES.RESPONDENT_PAYOUTS
+    ? "Share feedback, get paid"
+    : "Share feedback and help pressure-test ideas";
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -56,7 +63,9 @@ export default function SignupPageClient({
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: buildAuthCallbackUrl(window.location.origin, rawNext),
+        redirectTo: buildAuthCallbackUrl(window.location.origin, rawNext, {
+          signupRole: role === "respondent" ? role : null,
+        }),
       },
     });
   }
@@ -82,7 +91,7 @@ export default function SignupPageClient({
             Get started
           </h1>
           <p className="text-[14px] text-[#94A3B8] mb-[32px]">
-            Start validating ideas — or start earning
+            Choose your primary mode. You can still post ideas and respond from the same account.
           </p>
 
           {error && (
@@ -123,7 +132,7 @@ export default function SignupPageClient({
 
             <div className="flex flex-col gap-[6px]">
               <label className="text-[13px] font-medium text-[#64748B]">
-                I want to...
+                Start with...
               </label>
               <div className="grid grid-cols-2 gap-[10px]">
                 <button
@@ -138,8 +147,8 @@ export default function SignupPageClient({
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={role === "founder" ? "#E5654E" : "#94A3B8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-[8px]">
                     <path d="M9 18h6" /><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
                   </svg>
-                  <div className="text-[13px] font-semibold text-[#111111]">Validate ideas</div>
-                  <div className="text-[11px] text-[#94A3B8] mt-[2px]">Get real feedback fast</div>
+                  <div className="text-[13px] font-semibold text-[#111111]">Founder-first</div>
+                  <div className="text-[11px] text-[#94A3B8] mt-[2px]">Post ideas and review signal fast</div>
                 </button>
                 <button
                   type="button"
@@ -153,8 +162,8 @@ export default function SignupPageClient({
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={role === "respondent" ? "#E5654E" : "#94A3B8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-[8px]">
                     <path d="M3 20h18" /><rect x="5" y="13" width="3" height="7" rx="1" /><rect x="10.5" y="9" width="3" height="11" rx="1" /><rect x="16" y="5" width="3" height="15" rx="1" />
                   </svg>
-                  <div className="text-[13px] font-semibold text-[#111111]">Earn money</div>
-                  <div className="text-[11px] text-[#94A3B8] mt-[2px]">Share feedback, get paid</div>
+                  <div className="text-[13px] font-semibold text-[#111111]">{respondentPrimaryLabel}</div>
+                  <div className="text-[11px] text-[#94A3B8] mt-[2px]">{respondentPrimaryDescription}</div>
                 </button>
               </div>
             </div>
