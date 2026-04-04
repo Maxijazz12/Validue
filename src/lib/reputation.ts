@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import sql from "@/lib/db";
 import { calculateReputation } from "./reputation-config";
 import type { ReputationResult, ReputationStats, ReputationTier } from "./reputation-config";
 import { DEFAULTS, safeNumber } from "./defaults";
@@ -31,16 +31,14 @@ function smoothedQualityAverage(previousAvg: number, newAvg: number): number {
 export async function updateRespondentReputation(
   respondentId: string
 ): Promise<ReputationResult> {
-  const supabase = await createClient();
-
   // Fetch current profile for EMA baseline and tier hysteresis
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("average_quality_score, reputation_tier")
-    .eq("id", respondentId)
-    .single();
+  const [profile] = await sql`
+    SELECT average_quality_score, reputation_tier
+    FROM profiles
+    WHERE id = ${respondentId}
+  `;
 
-  if (profileError || !profile) {
+  if (!profile) {
     throw new Error(`Reputation update failed: profile ${respondentId} not found`);
   }
 
@@ -48,12 +46,11 @@ export async function updateRespondentReputation(
   const currentTier = (profile.reputation_tier as ReputationTier) ?? "new";
 
   // Aggregate response stats
-  const { data: responses } = await supabase
-    .from("responses")
-    .select("status, quality_score")
-    .eq("respondent_id", respondentId);
-
-  const allResponses = responses || [];
+  const allResponses = await sql`
+    SELECT status, quality_score
+    FROM responses
+    WHERE respondent_id = ${respondentId}
+  `;
   const submitted = allResponses.filter(
     (r) => r.status === "submitted" || r.status === "ranked"
   );
@@ -79,39 +76,38 @@ export async function updateRespondentReputation(
   // Count flagged responses (responses with paste detection)
   let flaggedCount = 0;
   if (ranked.length > 0) {
-    const { data: rankedResponses } = await supabase
-      .from("responses")
-      .select("id")
-      .eq("respondent_id", respondentId)
-      .eq("status", "ranked");
+    const rankedResponses = await sql`
+      SELECT id
+      FROM responses
+      WHERE respondent_id = ${respondentId}
+        AND status = 'ranked'
+    `;
 
-    if (rankedResponses && rankedResponses.length > 0) {
+    if (rankedResponses.length > 0) {
       const rIds = rankedResponses.map((r) => r.id);
-      const { data: answers } = await supabase
-        .from("answers")
-        .select("metadata")
-        .in("response_id", rIds);
+      const answers = await sql`
+        SELECT metadata
+        FROM answers
+        WHERE response_id = ANY(${rIds}::uuid[])
+      `;
 
       let flaggedAnswers = 0;
-      for (const answer of answers || []) {
+      for (const answer of answers) {
         const meta = answer.metadata as Record<string, unknown> | null;
         if (meta?.pasteDetected === true && (meta?.pasteCount as number) > 1) {
           flaggedAnswers++;
         }
       }
-      const totalAnswers = answers?.length || 1;
+      const totalAnswers = answers.length || 1;
       const flagRate = flaggedAnswers / totalAnswers;
       flaggedCount = Math.round(flagRate * totalCompleted);
     }
   }
 
-  // Get total earned
-  const { data: payouts } = await supabase
-    .from("payouts")
-    .select("amount")
-    .eq("respondent_id", respondentId);
+  // Get total earned — use raw SQL to bypass RLS so we see all payouts for the respondent
+  const payoutRows = await sql`SELECT amount FROM payouts WHERE respondent_id = ${respondentId}`;
 
-  const totalEarned = (payouts || []).reduce(
+  const totalEarned = payoutRows.reduce(
     (s, p) => s + safeNumber(p.amount),
     0
   );
@@ -142,22 +138,20 @@ export async function updateRespondentReputation(
     });
   }
 
-  // Update profile — check for errors to prevent silent failures
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      reputation_score: result.score,
-      reputation_tier: result.tier,
-      total_responses_completed: totalCompleted,
-      average_quality_score: Math.round(avgQualityScore * 100) / 100,
-      total_earned: Math.round(totalEarned * 100) / 100,
-      reputation_updated_at: new Date().toISOString(),
-    })
-    .eq("id", respondentId);
-
-  if (updateError) {
-    throw new Error(`Reputation update failed for ${respondentId}: ${updateError.message}`);
-  }
+  await sql`
+    UPDATE profiles
+    SET reputation_score = ${result.score},
+        reputation_tier = ${result.tier},
+        total_responses_completed = ${totalCompleted},
+        average_quality_score = ${
+          Number.isFinite(avgQualityScore)
+            ? Math.round(avgQualityScore * 100) / 100
+            : null
+        },
+        total_earned = ${Math.round(totalEarned * 100) / 100},
+        reputation_updated_at = NOW()
+    WHERE id = ${respondentId}
+  `;
 
   return result;
 }

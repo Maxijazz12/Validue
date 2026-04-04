@@ -3,6 +3,7 @@ import sql from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAdminAuthorized } from "@/lib/admin-auth";
 import { isValidUuid } from "@/lib/validate-uuid";
+import { logOps } from "@/lib/ops-logger";
 
 /**
  * GET /api/admin/disputes?status=open
@@ -73,7 +74,7 @@ export async function PATCH(request: Request) {
             resolved_at = ${status.startsWith("resolved_") ? tx`NOW()` : null}
         WHERE id = ${disputeId}
           AND NOT status LIKE 'resolved_%'
-        RETURNING response_id, respondent_id
+        RETURNING response_id, respondent_id, campaign_id
       `;
 
       if (!updatedDispute) {
@@ -90,10 +91,42 @@ export async function PATCH(request: Request) {
       }
 
       if (status === "resolved_overturned") {
+        const [payoutContext] = await tx`
+          SELECT
+            c.creator_id,
+            c.distributable_amount,
+            ROUND(AVG(p.amount)::numeric, 2) AS avg_payout
+          FROM campaigns c
+          LEFT JOIN payouts p
+            ON p.campaign_id = c.id
+           AND p.status != 'failed'
+          WHERE c.id = ${updatedDispute.campaign_id}
+          GROUP BY c.creator_id, c.distributable_amount
+        `;
+
         const [response] = await tx`
           UPDATE responses
           SET money_state = 'available',
               available_at = NOW(),
+              payout_amount = GREATEST(
+                COALESCE(
+                  NULLIF(base_payout, 0),
+                  NULLIF(payout_amount, 0),
+                  ${Number(payoutContext?.avg_payout) || 0},
+                  ${Number(payoutContext?.distributable_amount) || 0}
+                ),
+                0
+              ),
+              base_payout = GREATEST(
+                COALESCE(
+                  NULLIF(base_payout, 0),
+                  NULLIF(payout_amount, 0),
+                  ${Number(payoutContext?.avg_payout) || 0},
+                  ${Number(payoutContext?.distributable_amount) || 0}
+                ),
+                0
+              ),
+              bonus_payout = 0,
               is_qualified = true,
               disqualification_reasons = ARRAY[]::text[]
           WHERE id = ${updatedDispute.response_id}
@@ -102,16 +135,72 @@ export async function PATCH(request: Request) {
         `;
 
         if (response) {
-          const payoutAmount = Number(response.base_payout) || Number(response.payout_amount) || 0;
+          const payoutAmount = Math.max(
+            Number(response.base_payout) || Number(response.payout_amount) || 0,
+            0
+          );
           const payoutCents = Math.round(payoutAmount * 100);
 
           if (payoutCents > 0) {
+            const [existingPayout] = await tx`
+              SELECT id
+              FROM payouts
+              WHERE response_id = ${updatedDispute.response_id}
+                AND status != 'failed'
+              LIMIT 1
+            `;
+
+            if (existingPayout) {
+              await tx`
+                UPDATE payouts
+                SET amount = ${payoutAmount},
+                    base_amount = ${payoutAmount},
+                    bonus_amount = 0,
+                    status = 'processing'
+                WHERE id = ${existingPayout.id}
+              `;
+            } else if (payoutContext?.creator_id) {
+              await tx`
+                INSERT INTO payouts (
+                  response_id,
+                  campaign_id,
+                  founder_id,
+                  respondent_id,
+                  amount,
+                  base_amount,
+                  bonus_amount,
+                  platform_fee,
+                  status
+                )
+                VALUES (
+                  ${updatedDispute.response_id},
+                  ${updatedDispute.campaign_id},
+                  ${payoutContext.creator_id},
+                  ${updatedDispute.respondent_id},
+                  ${payoutAmount},
+                  ${payoutAmount},
+                  0,
+                  0,
+                  'processing'
+                )
+              `;
+            }
+
             await tx`
               UPDATE profiles
               SET available_balance_cents = available_balance_cents + ${payoutCents}
               WHERE id = ${updatedDispute.respondent_id}
             `;
           }
+
+          return {
+            ok: true,
+            overturned: true,
+            disputeId,
+            responseId: updatedDispute.response_id,
+            respondentId: updatedDispute.respondent_id,
+            amountCents: payoutCents,
+          } as const;
         }
       }
 
@@ -120,6 +209,16 @@ export async function PATCH(request: Request) {
 
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+
+    if ("overturned" in result && result.overturned) {
+      logOps({
+        event: "admin.dispute.overturned",
+        disputeId: result.disputeId,
+        responseId: result.responseId,
+        respondentId: result.respondentId,
+        amountCents: result.amountCents,
+      });
     }
 
     return NextResponse.json({ success: true });

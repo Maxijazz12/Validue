@@ -30,16 +30,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // Idempotency guard: skip events we've already processed.
-  // Uses INSERT ON CONFLICT DO NOTHING — if the event_id already exists, skip it.
-  const [inserted] = await sql`
-    INSERT INTO processed_stripe_events (event_id, event_type)
-    VALUES (${event.id}, ${event.type})
-    ON CONFLICT (event_id) DO NOTHING
-    RETURNING event_id
+  // Deduplication check. We only record success after the handler completes,
+  // so failed deliveries can retry cleanly.
+  const [existing] = await sql`
+    SELECT event_id
+    FROM processed_stripe_events
+    WHERE event_id = ${event.id}
   `;
-  if (!inserted) {
-    // Already processed this event — return 200 so Stripe stops retrying
+  if (existing) {
     return Response.json({ received: true, deduplicated: true });
   }
 
@@ -86,7 +84,7 @@ export async function POST(request: Request) {
                 reserved_checkout_session_id = NULL,
                 status = ${nextStatus},
                 expires_at = CASE
-                  WHEN economics_version = 2 AND ${nextStatus} = 'active'
+                  WHEN ${nextStatus} = 'active'
                     THEN NOW() + ${expiryInterval}::interval
                   ELSE expires_at
                 END
@@ -281,6 +279,8 @@ export async function POST(request: Request) {
       const status = subscription.status === "active" ? "active"
         : subscription.status === "past_due" ? "past_due"
         : subscription.status === "trialing" ? "trialing"
+        : subscription.status === "incomplete" ? "past_due"   // initial payment pending — don't prematurely cancel
+        : subscription.status === "unpaid" ? "past_due"       // invoice retries exhausted but not yet canceled
         : "canceled";
 
       const item = subscription.items.data[0];
@@ -354,6 +354,12 @@ export async function POST(request: Request) {
       // Unhandled event type — ignore
       break;
   }
+
+  await sql`
+    INSERT INTO processed_stripe_events (event_id, event_type)
+    VALUES (${event.id}, ${event.type})
+    ON CONFLICT (event_id) DO NOTHING
+  `;
 
   return Response.json({ received: true });
 }

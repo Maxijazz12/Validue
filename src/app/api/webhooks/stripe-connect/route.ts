@@ -29,14 +29,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // Idempotency guard: reuse the same dedup table as the main Stripe webhook.
-  const [inserted] = await sql`
-    INSERT INTO processed_stripe_events (event_id, event_type)
-    VALUES (${event.id}, ${event.type})
-    ON CONFLICT (event_id) DO NOTHING
-    RETURNING event_id
+  // Deduplication check. Record success only after the event has been handled
+  // so failed deliveries can retry.
+  const [existing] = await sql`
+    SELECT event_id
+    FROM processed_stripe_events
+    WHERE event_id = ${event.id}
   `;
-  if (!inserted) {
+  if (existing) {
     return Response.json({ received: true, deduplicated: true });
   }
 
@@ -80,6 +80,12 @@ export async function POST(request: Request) {
     default:
       break;
   }
+
+  await sql`
+    INSERT INTO processed_stripe_events (event_id, event_type)
+    VALUES (${event.id}, ${event.type})
+    ON CONFLICT (event_id) DO NOTHING
+  `;
 
   return Response.json({ received: true });
 }

@@ -84,9 +84,9 @@ export default async function EarningsPage({
     return { ...p, campaign };
   });
 
-  const totalEarned = allPayouts
-    .filter((p) => p.status === "completed")
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalPaidOut = (cashouts || [])
+    .filter((c) => c.status === "completed")
+    .reduce((sum, c) => sum + ((Number(c.amount_cents) || 0) / 100), 0);
 
   const totalPayouts = allPayouts.length;
   const hasEarnings = totalPayouts > 0;
@@ -112,7 +112,7 @@ export default async function EarningsPage({
       <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
         <StatCard label="Available Balance" value={`$${(availableBalanceCents / 100).toFixed(2)}`} valueColor="#22c55e" />
         <StatCard label="Locked Balance" value={`$${(pendingBalanceCents / 100).toFixed(2)}`} valueColor="#F59E0B" />
-        <StatCard label="Total Paid Out" value={`$${totalEarned.toFixed(2)}`} />
+        <StatCard label="Total Paid Out" value={`$${totalPaidOut.toFixed(2)}`} />
         <StatCard label="Reputation" value={repScore}>
           <div className="mt-[4px]">
             <ReputationBadge tier={repTier} size="md" />
@@ -154,17 +154,17 @@ export default async function EarningsPage({
                 { label: string; bg: string; text: string }
               > = {
                 pending: {
-                  label: "PENDING",
-                  bg: "bg-brand/10",
-                  text: "text-brand-dark",
+                  label: "LOCKED",
+                  bg: "bg-warning/10",
+                  text: "text-[#D97706]",
                 },
                 processing: {
-                  label: "PROCESSING",
-                  bg: "bg-info/10",
-                  text: "text-info",
+                  label: "AVAILABLE",
+                  bg: "bg-success/10",
+                  text: "text-success",
                 },
                 completed: {
-                  label: "COMPLETED",
+                  label: "PAID OUT",
                   bg: "bg-success/10",
                   text: "text-success",
                 },
@@ -250,10 +250,17 @@ export default async function EarningsPage({
                       </div>
                     </div>
                     {state === "not_qualified" && !isUnpaidResponse && (
-                      <DisputeButton
-                        responseId={r.id}
-                        alreadyDisputed={disputedResponseIds.has(r.id)}
-                      />
+                      <>
+                        {reasons.length > 0 && (
+                          <p className="text-[12px] text-text-secondary mt-[8px]">
+                            Reason: {reasons.filter((r) => r !== "unpaid_campaign").join(", ")}
+                          </p>
+                        )}
+                        <DisputeButton
+                          responseId={r.id}
+                          alreadyDisputed={disputedResponseIds.has(r.id)}
+                        />
+                      </>
                     )}
                     {isUnpaidResponse && (
                       <p className="text-[12px] text-text-secondary mt-[8px]">

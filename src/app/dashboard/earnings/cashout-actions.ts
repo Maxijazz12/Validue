@@ -18,11 +18,19 @@ async function markSnapshotResponsesPaidOut(
   snapshotAt: string | Date
 ) {
   await sql`
-    UPDATE responses
-    SET money_state = 'paid_out'
+    WITH paid_responses AS (
+      UPDATE responses
+      SET money_state = 'paid_out'
+      WHERE respondent_id = ${respondentId}
+        AND money_state = 'available'
+        AND (available_at IS NULL OR available_at <= ${snapshotAt})
+      RETURNING id
+    )
+    UPDATE payouts
+    SET status = 'completed'
     WHERE respondent_id = ${respondentId}
-      AND money_state = 'available'
-      AND (available_at IS NULL OR available_at <= ${snapshotAt})
+      AND status IN ('pending', 'processing')
+      AND response_id IN (SELECT id FROM paid_responses)
   `;
 }
 
@@ -124,6 +132,9 @@ export async function checkConnectStatus(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
+
+  const rl = rateLimit(`connect-check:${user.id}`, 60000, 10);
+  if (!rl.allowed) return { error: "Too many requests. Please slow down." };
 
   const [profile] = await sql`
     SELECT stripe_connect_account_id, stripe_connect_onboarding_complete
