@@ -4,7 +4,7 @@ import { getClient, isAIAvailable, MODELS, cachedSystem, cachedTools } from "@/l
 import { ASSUMPTION_IMPROVE_SYSTEM_PROMPT, buildImproveAssumptionPrompt } from "@/lib/ai/prompts";
 import { AIImprovedAssumptionSchema, IMPROVE_ASSUMPTION_TOOL } from "@/lib/ai/schemas";
 import { logGeneration } from "@/lib/ai/logger";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   }
 
   // ─── Rate limit: 50 assumption improvements per user per hour ───
-  const limit = rateLimit(`generate-assumption:${user.id}`, 3600000, 50);
+  const limit = await durableRateLimit(`generate-assumption:${user.id}`, 3600000, 50);
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Improvement limit reached. Please try again later." },

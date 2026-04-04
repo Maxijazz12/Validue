@@ -15,6 +15,7 @@ import {
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { rateLimit } from "@/lib/rate-limit";
 import { initialGateStatus, requiresGate } from "@/lib/reciprocal-gate";
 import { hasReciprocalCampaigns } from "@/app/dashboard/ideas/new/reciprocal-actions";
@@ -39,12 +40,12 @@ export async function publishCampaign(
   }
 
   // Rate limit: 5 publishes per hour
-  const rl = rateLimit(`publish:${user.id}`, 3600000, 5);
+  const rl = await durableRateLimit(`publish:${user.id}`, 3600000, 5);
   if (!rl.allowed) {
     return { error: "Too many campaigns created. Please wait before publishing again." };
   }
   // Double-publish guard: 1 publish per 10 seconds
-  const dedup = rateLimit(`publish-dedup:${user.id}`, 10000, 1);
+  const dedup = await durableRateLimit(`publish-dedup:${user.id}`, 10000, 1);
   if (!dedup.allowed) {
     return { error: "Campaign already being published. Please wait." };
   }

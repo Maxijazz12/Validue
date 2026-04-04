@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { DEFAULTS } from "@/lib/defaults";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 import { claimFailedCashoutRetry } from "@/lib/cashout-retry";
@@ -51,7 +51,7 @@ export async function createConnectOnboardingLink(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const rl = rateLimit(`connect-onboard:${user.id}`, 300_000, 3); // 3 per 5 min
+  const rl = await durableRateLimit(`connect-onboard:${user.id}`, 300_000, 3); // 3 per 5 min
   if (!rl.allowed) return { error: "Too many attempts. Try again shortly." };
 
   // Fetch current Connect status
@@ -134,7 +134,7 @@ export async function checkConnectStatus(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const rl = rateLimit(`connect-check:${user.id}`, 60000, 10);
+  const rl = await durableRateLimit(`connect-check:${user.id}`, 60000, 10);
   if (!rl.allowed) return { error: "Too many requests. Please slow down." };
 
   const [profile] = await sql`
@@ -183,7 +183,7 @@ export async function requestCashout(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const rl = rateLimit(`cashout:${user.id}`, 600_000, 2); // 2 per 10 min
+  const rl = await durableRateLimit(`cashout:${user.id}`, 600_000, 2); // 2 per 10 min
   if (!rl.allowed) return { error: "Too many cashout attempts. Try again in a few minutes." };
 
   // Fetch profile with Connect info + balance
@@ -348,7 +348,7 @@ export async function retryCashout(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const rl = rateLimit(`cashout-retry:${user.id}`, 600_000, 2);
+  const rl = await durableRateLimit(`cashout-retry:${user.id}`, 600_000, 2);
   if (!rl.allowed) return { error: "Too many retry attempts. Try again in a few minutes." };
 
   // Verify the cashout belongs to this user and is failed

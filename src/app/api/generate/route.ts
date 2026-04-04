@@ -10,7 +10,7 @@ import { repairCampaignDraft } from "@/lib/ai/repair-campaign-draft";
 import { runQualityPass } from "@/lib/ai/quality-pass";
 import { logGeneration, logQualityScores } from "@/lib/ai/logger";
 import { PROMPT_VERSION, GENERATION_VERSION } from "@/lib/ai/prompts";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import type {
   CampaignDraft,
   CampaignDraftFallbackReason,
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const limit = rateLimit(`generate:${user.id}`, 3600000, 10);
+  const limit = await durableRateLimit(`generate:${user.id}`, 3600000, 10);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Generation limit reached. Please try again later." }, { status: 429 });
   }

@@ -1,7 +1,8 @@
 /**
  * In-memory sliding window rate limiter.
  * No external dependencies — stores timestamps per key in a Map.
- * Resets on process restart (acceptable for protective limits).
+ * Resets on process restart, so use this only for low-stakes best-effort
+ * throttling where cross-instance durability is not required.
  */
 
 const store = new Map<string, number[]>();

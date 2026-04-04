@@ -5,7 +5,7 @@ import { QUESTION_REGEN_SYSTEM_PROMPT, buildRegenerateQuestionPrompt } from "@/l
 import { AIRegeneratedQuestionSchema, REGENERATE_QUESTION_TOOL } from "@/lib/ai/schemas";
 import { logGeneration } from "@/lib/ai/logger";
 import type { DraftQuestion, RegenerateQuestionRequest } from "@/lib/ai/types";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   }
 
   // ─── Rate limit: 50 question regenerations per user per hour ───
-  const limit = rateLimit(`generate-question:${user.id}`, 3600000, 50);
+  const limit = await durableRateLimit(`generate-question:${user.id}`, 3600000, 50);
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Regeneration limit reached. Please try again later." },
