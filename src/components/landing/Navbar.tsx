@@ -6,7 +6,6 @@ import Image from "next/image";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let ticking = false;
@@ -14,9 +13,7 @@ export default function Navbar() {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        setScrolled(window.scrollY > 50);
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-        setProgress(docHeight > 0 ? Math.min(window.scrollY / docHeight, 1) : 0);
+        setScrolled(window.scrollY > 20);
         ticking = false;
       });
     };
@@ -25,54 +22,53 @@ export default function Navbar() {
   }, []);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-100 flex justify-center px-[24px] pt-[16px]">
+    <header className="fixed top-0 left-0 right-0 z-100">
       <nav
-        className={`w-full max-w-[1200px] rounded-[24px] border backdrop-blur-[48px] transition-all duration-500 ${
+        className={`transition-all duration-500 ${
           scrolled
-            ? "border-black/5 bg-white/70 shadow-[0_4px_32px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]"
-            : "border-transparent bg-white/20 shadow-[0_4px_32px_rgba(0,0,0,0.02),inset_0_1px_0_rgba(255,255,255,0.4)]"
+            ? "bg-white/80 backdrop-blur-xl shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+            : "bg-transparent"
         }`}
       >
-        <div className="px-[32px] max-md:px-[20px] py-[14px] flex justify-between items-center">
-          {/* Logo + divider + nav links grouped left */}
-          <div className="flex items-center gap-0">
-            <Link href="/" className="flex items-center gap-[10px] no-underline">
-              <Image src="/logo-icon.svg" alt="" width={18} height={18} />
-              <span className="font-mono text-[14px] font-bold tracking-[2px] uppercase text-[#1C1917]">
-                VALIDUE
-              </span>
-            </Link>
+        <div className="max-w-[1200px] mx-auto px-6 h-[72px] flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 no-underline">
+            <Image src="/logo-icon.svg" alt="" width={20} height={20} />
+            <span className="text-[15px] font-semibold tracking-[-0.01em] text-text-primary">
+              Validue
+            </span>
+          </Link>
 
-            {/* Vertical divider */}
-            <div className="hidden md:block w-[1px] h-[16px] bg-black/10 mx-[24px]" />
-
-            <div className="hidden md:flex gap-[28px] items-center">
-              <a href="#how" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">HOW IT WORKS</a>
-              <a href="/pricing" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">PRICING</a>
-              <a href="/for-founders" className="font-mono text-[10px] font-bold tracking-widest uppercase text-[#A8A29E] hover:text-[#1C1917] transition-colors no-underline">FOR FOUNDERS</a>
-            </div>
+          {/* Center nav links */}
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#how" className="text-[14px] text-text-secondary hover:text-text-primary transition-colors no-underline">
+              How it works
+            </a>
+            <a href="#pricing" className="text-[14px] text-text-secondary hover:text-text-primary transition-colors no-underline">
+              Pricing
+            </a>
+            <a href="/for-founders" className="text-[14px] text-text-secondary hover:text-text-primary transition-colors no-underline">
+              For Founders
+            </a>
           </div>
 
-          {/* CTA buttons right */}
-          <div className="flex gap-[12px] items-center">
-            <a href="/auth/login" className="hidden md:inline-flex text-[#1C1917] text-[10px] font-mono font-bold tracking-widest uppercase transition-all duration-200 no-underline px-[16px] py-[10px] rounded-full border border-black/10 hover:border-[#1C1917] hover:bg-black/5">
-              [ LOG IN ]
+          {/* Right CTA */}
+          <div className="flex items-center gap-3">
+            <a
+              href="/auth/login"
+              className="hidden md:inline-flex text-[14px] text-text-secondary hover:text-text-primary transition-colors no-underline px-4 py-2"
+            >
+              Log in
             </a>
-            <a href="/auth/signup" className="px-[24px] py-[10px] rounded-full font-mono font-bold tracking-widest uppercase text-[10px] text-white bg-[#1C1917] hover:bg-white hover:text-[#1C1917] border border-transparent hover:border-[#1C1917] transition-all no-underline shadow-[0_2px_8px_rgba(229,101,78,0.2)] hover:shadow-[0_8px_24px_rgba(229,101,78,0.3)]">
-              [ GET YOUR BRIEF ]
+            <a
+              href="/auth/signup"
+              className="inline-flex items-center px-5 py-2.5 rounded-full text-[14px] font-medium text-white bg-text-primary hover:bg-text-primary/90 transition-all no-underline shadow-sm hover:shadow-md"
+            >
+              Get started
             </a>
           </div>
         </div>
-        {/* Scroll progress bar */}
-        {progress > 0 && (
-          <div className="absolute bottom-0 left-[24px] right-[24px] h-[2px] bg-black/5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#E5654E]/40 rounded-full transition-[width] duration-100"
-              style={{ width: `${progress * 100}%` }}
-            />
-          </div>
-        )}
       </nav>
-    </div>
+    </header>
   );
 }

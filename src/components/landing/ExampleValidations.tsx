@@ -1,111 +1,96 @@
 "use client";
 
 import { useState } from "react";
-import SectionHeader from "@/components/ui/SectionHeader";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import Avatar from "@/components/ui/Avatar";
-import Button from "@/components/ui/Button";
 import { exampleValidations } from "@/lib/constants";
 
 type Validation = (typeof exampleValidations)[number];
 
-const verdictColor = {
-  CONFIRMED: { bg: "bg-[#22c55e]/10", text: "text-[#22c55e]", dot: "bg-[#22c55e]" },
-  CHALLENGED: { bg: "bg-[#f59e0b]/10", text: "text-[#f59e0b]", dot: "bg-[#f59e0b]" },
-  REFUTED: { bg: "bg-[#ef4444]/10", text: "text-[#ef4444]", dot: "bg-[#ef4444]" },
-  INSUFFICIENT_DATA: { bg: "bg-[#3b82f6]/10", text: "text-[#3b82f6]", dot: "bg-[#3b82f6]" },
+const recStyle = {
+  PROCEED: { bg: "bg-green-50", text: "text-green-600", dot: "bg-green-500" },
+  PIVOT: { bg: "bg-amber-50", text: "text-amber-600", dot: "bg-amber-500" },
+  PAUSE: { bg: "bg-red-50", text: "text-red-600", dot: "bg-red-500" },
 } as const;
 
-const recommendationStyle = {
-  PROCEED: { bg: "bg-[#22c55e]/10", text: "text-[#22c55e]", label: "PROCEED" },
-  PIVOT: { bg: "bg-[#f59e0b]/10", text: "text-[#f59e0b]", label: "PIVOT" },
-  PAUSE: { bg: "bg-[#ef4444]/10", text: "text-[#ef4444]", label: "PAUSE" },
+const verdictStyle = {
+  CONFIRMED: { text: "text-green-600", dot: "bg-green-500" },
+  CHALLENGED: { text: "text-amber-600", dot: "bg-amber-500" },
+  REFUTED: { text: "text-red-600", dot: "bg-red-500" },
+  INSUFFICIENT_DATA: { text: "text-blue-600", dot: "bg-blue-500" },
 } as const;
 
 function BriefCard({ validation }: { validation: Validation }) {
-  const rec = recommendationStyle[validation.recommendation];
+  const rec = recStyle[validation.recommendation];
 
   return (
-    <div className="bg-white/60 backdrop-blur-3xl rounded-[24px] p-[28px] shadow-card border border-white/80 transition-all duration-500 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] relative overflow-hidden">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-[#E5654E]/30 to-transparent" />
-
-      {/* Header: category + title + founder */}
-      <div className="flex items-start justify-between gap-[12px] mb-[20px]">
-        <div className="min-w-0">
-          <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-[8px] py-[4px] rounded-md bg-[#1C1917] text-white inline-block mb-[10px]">
-            [{validation.category}]
+    <div className="bg-white rounded-2xl p-8 max-md:p-6 border border-border-light shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <span className="inline-block text-[12px] font-medium text-text-muted bg-bg-muted px-2.5 py-1 rounded-md mb-3">
+            {validation.category}
           </span>
-          <h3 className="text-[17px] font-semibold text-[#1C1917] tracking-tight leading-[1.3]">
+          <h3 className="text-[18px] font-semibold text-text-primary tracking-tight">
             {validation.title}
           </h3>
         </div>
-      </div>
-
-      {/* Recommendation badge + response count */}
-      <div className="flex items-center gap-[12px] mb-[20px]">
-        <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-[10px] py-[5px] rounded-md ${rec.bg} ${rec.text}`}>
-          [ {rec.label} ]
-        </span>
-        <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-[10px] py-[5px] rounded-md bg-black/5 text-[#A8A29E]`}>
-          {validation.confidence} CONFIDENCE
-        </span>
-        <div className="flex items-center gap-[6px] ml-auto">
-          <Avatar name={validation.founder} size={16} />
-          <span className="text-[12px] text-[#A8A29E]">{validation.founder}</span>
+        <div className="flex items-center gap-2">
+          <Avatar name={validation.founder} size={24} />
+          <span className="text-[13px] text-text-muted">{validation.founder}</span>
         </div>
       </div>
 
+      {/* Recommendation + confidence */}
+      <div className="flex items-center gap-3 mb-6">
+        <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-full ${rec.bg} ${rec.text}`}>
+          <span className={`w-2 h-2 rounded-full ${rec.dot}`} />
+          {validation.recommendation}
+        </span>
+        <span className="text-[13px] text-text-muted">
+          {validation.confidence} confidence
+        </span>
+      </div>
+
       {/* Signal summary */}
-      <p className="text-[13px] text-[#78716C] leading-[1.7] mb-[20px]">
+      <p className="text-[14px] text-text-secondary leading-[1.7] mb-6">
         {validation.signalSummary}
       </p>
 
       {/* Uncomfortable truth */}
-      <div className="bg-[#FBF6F3] border border-[#E8C1B0]/30 rounded-[12px] p-[16px] mb-[20px]">
-        <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#E5654E] mb-[8px]">
-          [ UNCOMFORTABLE_TRUTH ]
-        </div>
-        <p className="text-[13px] text-[#1C1917] leading-[1.6] italic">
+      <div className="bg-accent-warm-light border border-accent-warm/15 rounded-xl p-5 mb-6">
+        <div className="text-[12px] font-semibold text-brand mb-2">Uncomfortable truth</div>
+        <p className="text-[14px] text-text-primary leading-[1.6] italic">
           {validation.uncomfortableTruth}
         </p>
       </div>
 
       {/* Assumption verdicts */}
-      <div className="flex flex-col gap-[12px] mb-[20px]">
+      <div className="flex flex-col gap-3 mb-6">
         {validation.assumptions.map((a) => {
-          const vc = verdictColor[a.verdict];
+          const vc = verdictStyle[a.verdict];
           return (
-            <div
-              key={a.assumption}
-              className="border border-black/5 rounded-[12px] p-[14px] bg-white/50"
-            >
-              <div className="flex items-center justify-between gap-[8px] mb-[8px]">
-                <span className="text-[13px] font-medium text-[#1C1917] leading-[1.4] flex-1">
+            <div key={a.assumption} className="border border-border-light rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className="text-[14px] font-medium text-text-primary leading-[1.4] flex-1">
                   {a.assumption}
                 </span>
-                <span className={`shrink-0 font-mono text-[9px] font-bold uppercase tracking-widest px-[8px] py-[3px] rounded-md ${vc.bg} ${vc.text} flex items-center gap-[5px]`}>
-                  <span className={`w-[5px] h-[5px] rounded-full ${vc.dot}`} />
-                  {a.verdict}
+                <span className={`shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold ${vc.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${vc.dot}`} />
+                  {a.verdict.replace("_", " ")}
                 </span>
               </div>
-              <div className="flex items-center gap-[12px] mb-[8px]">
-                {/* Evidence bar */}
-                <div className="flex-1 h-[4px] rounded-full bg-[#EDE8E3] overflow-hidden flex">
-                  <div
-                    className="h-full bg-[#22c55e] rounded-l-full"
-                    style={{ width: `${(a.supporting / (a.supporting + a.contradicting)) * 100}%` }}
-                  />
-                  <div
-                    className="h-full bg-[#ef4444] rounded-r-full"
-                    style={{ width: `${(a.contradicting / (a.supporting + a.contradicting)) * 100}%` }}
-                  />
+              {/* Evidence bar */}
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex-1 h-1 rounded-full bg-border-light overflow-hidden flex">
+                  <div className="h-full bg-green-400 rounded-l-full" style={{ width: `${(a.supporting / (a.supporting + a.contradicting)) * 100}%` }} />
+                  <div className="h-full bg-red-400 rounded-r-full" style={{ width: `${(a.contradicting / (a.supporting + a.contradicting)) * 100}%` }} />
                 </div>
-                <span className="font-mono text-[10px] text-[#A8A29E] shrink-0">
+                <span className="text-[12px] text-text-muted shrink-0">
                   {a.supporting}/{a.supporting + a.contradicting}
                 </span>
               </div>
-              <p className="text-[12px] text-[#78716C] leading-[1.5] italic">
+              <p className="text-[13px] text-text-muted leading-[1.5] italic">
                 &ldquo;{a.quote}&rdquo;
               </p>
             </div>
@@ -114,23 +99,15 @@ function BriefCard({ validation }: { validation: Validation }) {
       </div>
 
       {/* Next step */}
-      <div className="border-t border-black/5 pt-[16px]">
-        <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#A8A29E] mb-[8px]">
-          [ CHEAPEST_NEXT_TEST ]
-        </div>
-        <p className="text-[13px] text-[#1C1917] leading-[1.6]">
-          {validation.nextStep}
-        </p>
+      <div className="border-t border-border-light pt-5">
+        <div className="text-[12px] font-semibold text-text-muted mb-2">Cheapest next test</div>
+        <p className="text-[14px] text-text-primary leading-[1.6]">{validation.nextStep}</p>
       </div>
 
-      {/* Response count footer */}
-      <div className="flex items-center justify-between mt-[16px] pt-[12px] border-t border-black/5">
-        <span className="font-mono text-[10px] text-[#A8A29E] tracking-widest">
-          {validation.responses} RESPONSES SYNTHESIZED
-        </span>
-        <span className="font-mono text-[10px] text-[#A8A29E] tracking-widest">
-          ${validation.funded} FUNDED
-        </span>
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-5 pt-4 border-t border-border-light text-[13px] text-text-muted">
+        <span>{validation.responses} responses</span>
+        <span>${validation.funded} funded</span>
       </div>
     </div>
   );
@@ -142,36 +119,35 @@ export default function ExampleValidations() {
 
   return (
     <section id="examples">
-      <SectionHeader
-        label="EXAMPLE_BRIEFS"
-        title="See what you get"
-        subtitle="Real Decision Briefs from validated ideas. Every campaign ends with a clear recommendation, evidence-backed verdicts, and a next step."
-      />
+      <div className="text-center mb-16">
+        <p className="text-brand text-[14px] font-medium mb-4">Example briefs</p>
+        <h2 className="text-[clamp(28px,4vw,42px)] font-bold tracking-[-0.02em] leading-[1.1] text-text-primary">
+          See what you get
+        </h2>
+        <p className="mt-5 text-[17px] text-text-secondary max-w-[500px] mx-auto leading-[1.7]">
+          Real Decision Briefs from validated ideas. Every campaign ends with a clear recommendation.
+        </p>
+      </div>
 
       {/* Tab selector */}
-      <div className="flex items-center justify-center gap-[8px] mt-[48px] mb-[40px] flex-wrap">
+      <div className="flex items-center justify-center gap-2 mb-10 flex-wrap">
         {exampleValidations.map((v, i) => {
-          const rec = recommendationStyle[v.recommendation];
+          const rec = recStyle[v.recommendation];
           const isActive = i === activeIndex;
           return (
             <button
               key={v.id}
               onClick={() => setActiveIndex(i)}
-              className={`flex items-center gap-[8px] px-[16px] py-[10px] rounded-[12px] transition-all duration-300 border text-left ${
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-full transition-all duration-300 border text-left cursor-pointer ${
                 isActive
-                  ? "bg-white shadow-card border-black/10"
-                  : "bg-transparent border-transparent hover:bg-white/50 hover:border-black/5"
+                  ? "bg-white shadow-sm border-border-light"
+                  : "bg-transparent border-transparent hover:bg-bg-muted"
               }`}
             >
-              <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${isActive ? rec.text.replace("text-", "bg-") : "bg-[#A8A29E]"}`} />
-              <div className="min-w-0">
-                <div className="text-[13px] font-medium text-[#1C1917] truncate max-w-[200px]">
-                  {v.title.length > 30 ? v.title.slice(0, 30) + "..." : v.title}
-                </div>
-                <div className={`font-mono text-[9px] font-bold uppercase tracking-widest ${isActive ? rec.text : "text-[#A8A29E]"}`}>
-                  {rec.label}
-                </div>
-              </div>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? rec.dot : "bg-text-muted/30"}`} />
+              <span className="text-[14px] font-medium text-text-primary">
+                {v.title.length > 25 ? v.title.slice(0, 25) + "..." : v.title}
+              </span>
             </button>
           );
         })}
@@ -184,11 +160,13 @@ export default function ExampleValidations() {
         </div>
       </ScrollReveal>
 
-      {/* CTA */}
-      <div className="flex items-center justify-center mt-[40px]">
-        <Button variant="primary" href="/auth/signup">
-          Get Your Own Brief
-        </Button>
+      <div className="flex items-center justify-center mt-10">
+        <a
+          href="/auth/signup"
+          className="inline-flex items-center px-7 py-3 rounded-full text-[15px] font-medium text-white bg-text-primary hover:bg-text-primary/90 transition-all no-underline shadow-sm hover:shadow-md"
+        >
+          Get your own brief
+        </a>
       </div>
     </section>
   );

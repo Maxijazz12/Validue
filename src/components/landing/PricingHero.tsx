@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "How are respondents matched to my campaign?",
-    a: "We match based on category interests, expertise, age range, and industry. Pro unlocks priority matching, which surfaces your campaign to the most relevant respondents first.",
+    a: "We match based on interests, expertise, age range, industry, and experience level. Pro unlocks priority matching, which surfaces your campaign to the most relevant respondents first.",
   },
   {
     q: "What\u2019s a Decision Brief?",

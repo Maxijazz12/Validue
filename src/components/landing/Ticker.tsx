@@ -6,14 +6,14 @@ export default function Ticker() {
   const items = [...tickerFacts, ...tickerFacts];
 
   return (
-    <div className="border-t border-b border-[#EDE8E3]/50 py-[14px] overflow-hidden relative bg-transparent">
+    <div className="border-t border-b border-border-light/50 py-4 overflow-hidden">
       <div className="flex w-max animate-[ticker_60s_linear_infinite]">
         {items.map((fact, i) => (
           <div
             key={i}
-            className="shrink-0 px-[48px] flex items-center gap-[12px] text-[13px] text-[#78716C] whitespace-nowrap"
+            className="shrink-0 px-10 flex items-center gap-3 text-[14px] text-text-muted whitespace-nowrap"
           >
-            <span className="w-[4px] h-[4px] rounded-full bg-[#D4A088]/50" />
+            <span className="w-1 h-1 rounded-full bg-brand/40" />
             {fact}
           </div>
         ))}

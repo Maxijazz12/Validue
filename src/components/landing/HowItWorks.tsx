@@ -1,47 +1,38 @@
 "use client";
 
-import SectionHeader from "@/components/ui/SectionHeader";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { howItWorksSteps } from "@/lib/constants";
-
-const stepNumbers = ["01", "02", "03"];
 
 export default function HowItWorks() {
   return (
     <section id="how">
-      <SectionHeader
-        label="HOW IT WORKS"
-        title="Three steps to clarity"
-        subtitle="Start with a rough idea. End with assumption verdicts, evidence, and a clear next move."
-      />
-      <div className="grid grid-cols-3 gap-[16px] mt-[72px] max-md:grid-cols-1 relative">
-        {/* System connector lines */}
-        <svg className="absolute top-1/2 left-0 right-0 -translate-y-1/2 pointer-events-none max-md:hidden" height="1" style={{ width: "100%" }}>
-          <line x1="33%" y1="0.5" x2="66%" y2="0.5" stroke="#E5654E" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="4 4" />
-        </svg>
+      <div className="text-center mb-16">
+        <p className="text-brand text-[14px] font-medium mb-4">How it works</p>
+        <h2 className="text-[clamp(28px,4vw,42px)] font-bold tracking-[-0.02em] leading-[1.1] text-text-primary">
+          Three steps to clarity
+        </h2>
+        <p className="mt-5 text-[17px] text-text-secondary max-w-[480px] mx-auto leading-[1.7]">
+          Start with a rough idea. End with assumption verdicts, evidence, and a clear next move.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6 max-md:grid-cols-1 relative">
+        {/* Connector line (desktop only) */}
+        <div className="hidden md:block absolute top-[60px] left-[20%] right-[20%] h-px bg-gradient-to-r from-border-light via-brand/20 to-border-light" />
 
         {howItWorksSteps.map((step, i) => (
           <ScrollReveal key={step.step} animation="slide-up" staggerIndex={i}>
-            <div
-              className="group bg-white/80 backdrop-blur-3xl rounded-[24px] p-[36px_32px] transition-all duration-500 shadow-card-interactive border border-black/5 hover:border-[#E5654E]/20 hover:-translate-y-[2px] relative overflow-hidden before:absolute before:top-0 before:left-[15%] before:right-[15%] before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-[#E5654E]/40 before:to-transparent"
-            >
-              {/* Node ID */}
-              <span className="absolute top-[16px] right-[24px] font-mono text-[24px] font-bold text-black/5 pointer-events-none select-none">
-                [{stepNumbers[i]}]
-              </span>
-
-              <div className="relative">
-                <div className="font-mono text-[10px] text-[#A8A29E] tracking-widest mb-[16px] font-bold uppercase flex items-center gap-[8px]">
-                  <span className="w-[4px] h-[4px] rounded-full bg-[#E5654E] animate-pulse" />
-                  STEP_{stepNumbers[i]}
-                </div>
-                <h3 className="text-[18px] font-bold mb-[12px] tracking-tight text-[#1C1917]">
-                  {step.title}
-                </h3>
-                <p className="text-[14px] text-[#78716C] leading-[1.7] tracking-[0.01em]">
-                  {step.description}
-                </p>
+            <div className="relative text-center p-8 max-md:p-6">
+              {/* Step number */}
+              <div className="w-12 h-12 rounded-full bg-bg-muted border border-border-light flex items-center justify-center mx-auto mb-6 text-[15px] font-semibold text-text-primary relative z-10 bg-white">
+                {i + 1}
               </div>
+              <h3 className="text-[18px] font-semibold text-text-primary mb-3">
+                {step.title}
+              </h3>
+              <p className="text-[14px] text-text-secondary leading-[1.7] max-w-[300px] mx-auto">
+                {step.description}
+              </p>
             </div>
           </ScrollReveal>
         ))}

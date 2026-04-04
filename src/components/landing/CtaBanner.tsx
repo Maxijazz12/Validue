@@ -1,27 +1,33 @@
-import Button from "@/components/ui/Button";
+import Link from "next/link";
 
 export default function CtaBanner() {
   return (
-    <section className="text-center relative py-[48px] px-[40px] max-md:px-[24px] max-md:py-[36px]">
-      <h2 className="text-[clamp(28px,4vw,44px)] font-bold tracking-tight leading-[1.1] text-white">
-        Your next build decision{" "}
-        <span className="relative inline-block">
-          <span className="italic font-light text-white/50 font-sans">
-            should not be a guess.
-          </span>
+    <section className="text-center py-8">
+      <h2 className="text-[clamp(28px,4vw,44px)] font-bold tracking-[-0.02em] leading-[1.1] text-white">
+        Your next build decision<br />
+        <span className="text-white/40 italic font-heading font-normal">
+          shouldn&apos;t be a guess
         </span>
       </h2>
-      <p className="font-mono text-[11px] uppercase tracking-widest text-[#A8A29E] mt-[24px] max-w-[400px] mx-auto leading-[1.8]">
-        [ // RUN THE TEST BEFORE YOU WRITE THE CODE ]<br />
-        START WITH A RAW IDEA. LEAVE WITH A DECISION BRIEF.
+      <p className="mt-6 text-[17px] text-white/50 max-w-[420px] mx-auto leading-[1.7]">
+        Start with a raw idea. Leave with a Decision Brief that tells you exactly what to do next.
       </p>
-      <div className="flex items-center justify-center gap-[12px] mt-[48px]">
-        <Button variant="primary" href="/auth/signup" className="!bg-white !text-[#1C1917] hover:!bg-white/90 hover:!shadow-[0_4px_24px_rgba(255,255,255,0.2)] font-mono uppercase tracking-widest text-[10px] font-bold py-[12px] px-[24px]">
-          [ GET_YOUR_FIRST_BRIEF ]
-        </Button>
-        <Button variant="outline" href="/#examples" className="!border-white/10 !text-[#A8A29E] hover:!border-white/30 hover:!text-white font-mono uppercase tracking-widest text-[10px] font-bold py-[12px] px-[24px]">
-          [ SEE_EXAMPLE_BRIEFS ]
-        </Button>
+      <div className="mt-10 flex items-center justify-center gap-4 max-md:flex-col">
+        <Link
+          href="/auth/signup"
+          className="inline-flex items-center px-8 py-3.5 rounded-full text-[15px] font-medium text-text-primary bg-white hover:bg-white/90 transition-all no-underline shadow-[0_4px_12px_rgba(255,255,255,0.1)] hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] hover:-translate-y-[1px]"
+        >
+          Get your first brief
+          <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </Link>
+        <Link
+          href="/#examples"
+          className="inline-flex items-center px-6 py-3.5 rounded-full text-[15px] text-white/50 hover:text-white transition-colors no-underline"
+        >
+          See example briefs
+        </Link>
       </div>
     </section>
   );

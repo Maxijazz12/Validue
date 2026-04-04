@@ -48,16 +48,16 @@ export default function PricingButton({
       <button
         onClick={handleClick}
         disabled={loading}
-        className={`w-full py-[12px] rounded-xl font-mono text-[10px] tracking-widest uppercase font-bold cursor-pointer transition-all duration-300 text-center disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`w-full py-3 rounded-full text-[14px] font-medium cursor-pointer transition-all duration-300 text-center disabled:opacity-50 disabled:cursor-not-allowed ${
           featured
-            ? "bg-[#1C1917] text-white hover:bg-[#292524] shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
-            : "bg-transparent text-[#1C1917] border border-black/10 hover:border-[#1C1917] hover:bg-black/5"
+            ? "bg-white text-text-primary hover:bg-white/90 shadow-sm"
+            : "bg-text-primary text-white hover:bg-text-primary/90 shadow-sm"
         }`}
       >
-        {loading ? "[ INITIALIZING PROTOCOL... ]" : `[ ${cta.toUpperCase()} ]`}
+        {loading ? "Processing..." : cta}
       </button>
       {error && (
-        <p className="font-mono text-[9px] uppercase tracking-widest text-red-500 mt-[8px] text-center">{error}</p>
+        <p className="text-[13px] text-red-500 mt-2 text-center">{error}</p>
       )}
     </div>
   );

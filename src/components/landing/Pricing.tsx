@@ -1,80 +1,72 @@
 "use client";
 
-import SectionHeader from "@/components/ui/SectionHeader";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { pricingTiers } from "@/lib/constants";
-import PricingCalculator from "./PricingCalculator";
 import PricingButton from "./PricingButtons";
 
 export default function Pricing() {
   return (
     <section id="pricing">
-      <SectionHeader
-        label="Pricing"
-        title="Plans for sharper decisions"
-        subtitle="Every plan helps you run focused validation and move toward a Decision Brief. Pro is the simple launch upgrade for founders who need more runs, more reach, and better leverage per funded test."
-      />
-      <div className="grid grid-cols-2 gap-[16px] mt-[72px] max-md:grid-cols-1">
-        {pricingTiers.map((tier, i) => (
-          <ScrollReveal key={tier.tier} animation="slide-up" staggerIndex={i}>
-          <div
-            className={`group bg-white/60 backdrop-blur-3xl rounded-[24px] p-[32px_24px] transition-all duration-500 relative ${
-              tier.featured
-                ? "border border-black/10 shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)]"
-                : "shadow-card border border-white/80 hover:shadow-[0_16px_48px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,1)] hover:-translate-y-[2px]"
-            }`}
-          >
-            {tier.featured && (
-              <div className="absolute -top-[1px] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[9px] font-mono tracking-widest uppercase text-white bg-[#1C1917] px-[14px] py-[6px] rounded-full font-bold">
-                [ RECOMMENDED ]
-              </div>
-            )}
-            <div className="font-mono text-[10px] tracking-widest uppercase font-bold mb-[8px] text-[#A8A29E]">
-              {tier.tier}
-            </div>
-            <div className="font-sans text-[48px] tracking-tight font-bold mb-[4px] text-[#1C1917] leading-none">
-              {tier.price}
-            </div>
-            <div className="font-mono text-[10px] uppercase text-[#A8A29E] mb-[16px] tracking-widest">
-              {tier.per}
-            </div>
-            {tier.efficiency && (
-              <div className={`inline-block font-mono text-[9px] uppercase tracking-widest font-bold px-[10px] py-[4px] rounded-md mb-[24px] ${
-                tier.featured
-                  ? "bg-[#E5654E]/10 text-[#E5654E]"
-                  : "bg-black/5 text-[#A8A29E]"
-              }`}>
-                {tier.efficiency} POWER MULTIPLIER
-              </div>
-            )}
-            <ul className="flex flex-col gap-[12px] mb-[32px] list-none">
-              {tier.features.map((feature) => (
-                <li
-                  key={feature}
-                  className="text-[13px] text-[#A8A29E] flex items-start gap-[10px]"
-                >
-                  <span className="font-mono text-[10px] text-[#1C1917] mt-[2px] leading-none">[+]</span>
-                  <span className="leading-[1.5]">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <PricingButton
-              tierKey={tier.tier.toLowerCase()}
-              cta={tier.cta}
-              featured={tier.featured}
-            />
-          </div>
-          </ScrollReveal>
-        ))}
+      <div className="text-center mb-16">
+        <p className="text-brand text-[14px] font-medium mb-4">Pricing</p>
+        <h2 className="text-[clamp(28px,4vw,42px)] font-bold tracking-[-0.02em] leading-[1.1] text-text-primary">
+          Simple, transparent pricing
+        </h2>
+        <p className="mt-5 text-[17px] text-text-secondary max-w-[480px] mx-auto leading-[1.7]">
+          Start free. Upgrade when you need more reach and faster results.
+        </p>
       </div>
 
-      <PricingCalculator />
+      <div className="grid grid-cols-2 gap-6 max-w-[800px] mx-auto max-md:grid-cols-1">
+        {pricingTiers.map((tier, i) => (
+          <ScrollReveal key={tier.tier} animation="slide-up" staggerIndex={i}>
+            <div
+              className={`relative rounded-2xl p-8 transition-all duration-500 h-full flex flex-col ${
+                tier.featured
+                  ? "bg-text-primary text-white shadow-[0_20px_50px_rgba(0,0,0,0.15)]"
+                  : "bg-white border border-border-light hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+              }`}
+            >
+              {tier.featured && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[12px] font-medium bg-brand text-white">
+                  Popular
+                </span>
+              )}
 
-      <div className="mt-[24px] p-[20px_24px] bg-white/60 backdrop-blur-md shadow-[0_4px_16px_rgba(229,101,78,0.04)] border border-white/80 rounded-[16px] text-center">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-[#A8A29E]">
-          <span className="font-bold text-[#1C1917]">{"// "}CORE PROMISE:</span>{" "}
-          EVERY PLAN IS BUILT TO MOVE YOU TOWARD A REAL DECISION BRIEF.
-        </p>
+              <div className={`text-[14px] font-medium mb-3 ${tier.featured ? "text-white/60" : "text-text-muted"}`}>
+                {tier.tier}
+              </div>
+
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className={`text-[48px] font-bold tracking-tight leading-none ${tier.featured ? "text-white" : "text-text-primary"}`}>
+                  {tier.price}
+                </span>
+              </div>
+              <div className={`text-[14px] mb-8 ${tier.featured ? "text-white/50" : "text-text-muted"}`}>
+                {tier.per}
+              </div>
+
+              <ul className="flex flex-col gap-3 mb-8 flex-1">
+                {tier.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-[14px]">
+                    <svg className={`w-5 h-5 shrink-0 mt-0.5 ${tier.featured ? "text-brand" : "text-green-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className={`leading-[1.5] ${tier.featured ? "text-white/80" : "text-text-secondary"}`}>
+                      {feature}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <PricingButton
+                tierKey={tier.tier.toLowerCase()}
+                cta={tier.cta}
+                featured={tier.featured}
+              />
+            </div>
+          </ScrollReveal>
+        ))}
       </div>
     </section>
   );
