@@ -10,6 +10,48 @@
 - 2026-04-03: Cashout flow + launch blockers sweep (7 features)
 - 2026-04-03 (night): Full 9-system audit + 12 critical/high fixes (payout CAS, reputation NaN, timing-safe cron, atomic submission CTE)
 - 2026-04-04: Phase 2 targeting — critique + full implementation (4 workstreams)
+- 2026-04-04 (evening): WS2 hard filters, gap fixes (threshold unification, stored match scores, brief cache versioning), committed all prior work
+
+## 2026-04-04 (evening) — WS2 Hard Filters + Gap Fixes + Full Commit
+
+### What was done
+
+1. **Committed all prior uncommitted work** in 2 logical commits:
+   - Landing page refresh (13 files)
+   - Phase 1+2 targeting + infrastructure (42 files, 4 migrations)
+
+2. **WS2: Hard Filter Dimensions** — Within strict targeting mode, founders can mark specific dimensions as hard requirements:
+   - Migration `055_hard_filter_dimensions.sql` — `hard_filter_dimensions text[] DEFAULT '{}'` on campaigns
+   - `meetsMinimumEligibility` extended with `hardFilterDimensions` param — in strict mode with hard filters, only those dimensions gate; others stay soft
+   - Campaign creation/save/update SQL includes `hard_filter_dimensions`
+   - `AudienceTargetingPanel` shows dimension toggle chips when strict mode active and >=2 dimensions targeted
+   - `startResponse` passes hard filters from campaign to eligibility check
+   - 7 new tests covering all hard filter × mode combinations
+
+3. **Gap: segment-disagreements thresholds** — Replaced hardcoded 70/30 with `DEFAULTS.MATCH_BUCKET_CORE_THRESHOLD` (70) / `MATCH_BUCKET_ADJACENT_THRESHOLD` (40)
+
+4. **Gap: stored match scores in evidence** — `assumption-evidence.ts` now uses `r.match_score_at_start` when available, falls back to recomputing for pre-WS3 rows
+
+5. **Gap: brief cache versioning** — Added `BRIEF_CACHE_VERSION: 2` to defaults, stamped on all BriefResult objects, checked at cache-read time. Pre-segmentation cached briefs auto-invalidate.
+
+### Migrations to apply (5 total, 4 from prior session + 1 new)
+- `051_respondent_industry_experience.sql`
+- `052_targeting_strictness.sql`
+- `053_response_match_snapshot.sql`
+- `054_wall_impressions.sql`
+- `055_hard_filter_dimensions.sql`
+
+**Note:** Supabase MCP was in read-only mode — migrations need manual application.
+
+### Verification
+- Tests: 415/415 passing (was 408)
+- ESLint: 0 errors
+- Build: successful
+
+### Known gaps (carried forward)
+- `Database` type not wired into Supabase clients
+- Dead V1 DB columns still exist
+- Migrations 051-055 not yet applied to Supabase (MCP read-only)
 
 ## 2026-04-04 — Phase 2: Targeting Strictness, Match Snapshots, Funnel Analytics, Brief Segmentation
 
