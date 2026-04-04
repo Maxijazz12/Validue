@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
-import { INTEREST_OPTIONS, EXPERTISE_OPTIONS } from "@/lib/constants";
+import { INTEREST_OPTIONS, EXPERTISE_OPTIONS, INDUSTRY_OPTIONS, EXPERIENCE_LEVEL_OPTIONS } from "@/lib/constants";
 import { durableRateLimit } from "@/lib/durable-rate-limit";
 
 export async function updateRespondentProfile(formData: FormData) {
@@ -27,6 +27,10 @@ export async function updateRespondentProfile(formData: FormData) {
   const ageRange = (formData.get("ageRange") as string) || null;
   const location = (formData.get("location") as string) || null;
   const rawOccupation = (formData.get("occupation") as string) || null;
+  const rawIndustry = (formData.get("industry") as string) || null;
+  const industry = rawIndustry && (INDUSTRY_OPTIONS as readonly string[]).includes(rawIndustry) ? rawIndustry : null;
+  const rawExperienceLevel = (formData.get("experienceLevel") as string) || null;
+  const experienceLevel = rawExperienceLevel && (EXPERIENCE_LEVEL_OPTIONS as readonly string[]).includes(rawExperienceLevel) ? rawExperienceLevel : null;
 
   // Length enforcement + content check on free-text fields
   const occupation = rawOccupation
@@ -51,6 +55,8 @@ export async function updateRespondentProfile(formData: FormData) {
       age_range: ageRange,
       location,
       occupation,
+      industry,
+      experience_level: experienceLevel,
       profile_completed: profileCompleted,
     })
     .eq("id", user.id);

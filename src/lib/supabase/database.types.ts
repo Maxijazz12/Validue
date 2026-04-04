@@ -191,6 +191,7 @@ export type Database = {
           target_interests: string[] | null
           target_location: string | null
           target_responses: number | null
+          targeting_mode: string
           title: string
           total_reach_units: number
           updated_at: string | null
@@ -249,6 +250,7 @@ export type Database = {
           target_interests?: string[] | null
           target_location?: string | null
           target_responses?: number | null
+          targeting_mode?: string
           title: string
           total_reach_units?: number
           updated_at?: string | null
@@ -307,6 +309,7 @@ export type Database = {
           target_interests?: string[] | null
           target_location?: string | null
           target_responses?: number | null
+          targeting_mode?: string
           title?: string
           total_reach_units?: number
           updated_at?: string | null
@@ -528,6 +531,8 @@ export type Database = {
           location: string | null
           notification_preferences: Json | null
           occupation: string | null
+          industry: string | null
+          experience_level: string | null
           onboarding_completed: boolean | null
           pending_balance_cents: number | null
           platform_credit_cents: number | null
@@ -560,6 +565,8 @@ export type Database = {
           location?: string | null
           notification_preferences?: Json | null
           occupation?: string | null
+          industry?: string | null
+          experience_level?: string | null
           onboarding_completed?: boolean | null
           pending_balance_cents?: number | null
           platform_credit_cents?: number | null
@@ -592,6 +599,8 @@ export type Database = {
           location?: string | null
           notification_preferences?: Json | null
           occupation?: string | null
+          industry?: string | null
+          experience_level?: string | null
           onboarding_completed?: boolean | null
           pending_balance_cents?: number | null
           platform_credit_cents?: number | null
@@ -686,6 +695,45 @@ export type Database = {
           },
         ]
       }
+      wall_impressions: {
+        Row: {
+          campaign_id: string
+          user_id: string
+          match_score: number | null
+          match_bucket: string | null
+          shown_at: string
+        }
+        Insert: {
+          campaign_id: string
+          user_id: string
+          match_score?: number | null
+          match_bucket?: string | null
+          shown_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          user_id?: string
+          match_score?: number | null
+          match_bucket?: string | null
+          shown_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_impressions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wall_impressions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       responses: {
         Row: {
           ai_feedback: string | null
@@ -700,6 +748,8 @@ export type Database = {
           is_partial: boolean
           is_qualified: boolean | null
           locked_at: string | null
+          match_bucket: string | null
+          match_score_at_start: number | null
           money_state: string | null
           payout_amount: number | null
           quality_score: number | null
@@ -725,6 +775,8 @@ export type Database = {
           is_partial?: boolean
           is_qualified?: boolean | null
           locked_at?: string | null
+          match_bucket?: string | null
+          match_score_at_start?: number | null
           money_state?: string | null
           payout_amount?: number | null
           quality_score?: number | null
@@ -750,6 +802,8 @@ export type Database = {
           is_partial?: boolean
           is_qualified?: boolean | null
           locked_at?: string | null
+          match_bucket?: string | null
+          match_score_at_start?: number | null
           money_state?: string | null
           payout_amount?: number | null
           quality_score?: number | null

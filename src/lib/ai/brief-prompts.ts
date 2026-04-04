@@ -1,5 +1,7 @@
 import { sanitizeForPrompt } from "./sanitize-prompt";
 import type { AssumptionEvidence, BriefMethodology } from "./assumption-evidence";
+import { groupByBucket } from "./assumption-evidence";
+import type { MatchBucket } from "@/lib/wall-ranking";
 import type { PriceSignal } from "./extract-price-signal";
 import type { ConsistencyReport } from "./detect-consistency-gaps";
 import type { SegmentReport } from "./segment-disagreements";
@@ -33,6 +35,28 @@ Each response includes a pre-computed **weight** field that combines quality and
 - **weight < 30:** Weak evidence — supplementary only. If this is the only evidence for an assumption, flag low confidence.
 
 When high-weight and low-weight responses conflict, favor the high-weight signal. A verdict supported by 3 high-weight responses outweighs 8 low-weight ones.
+
+## Audience Segmentation
+
+When evidence is segmented by fit bucket, it is grouped into three tiers:
+
+- **CORE FIT** (match >= 70): The founder's actual target users. Their signal is the primary anchor for verdicts.
+- **ADJACENT FIT** (match 40-69): Partial overlap. Useful context but should not override core-fit consensus.
+- **OFF-TARGET** (match < 40): Low overlap. Do NOT ignore — they can reveal genuine patterns — but their opinion should not anchor verdicts about the target market.
+
+**Segmentation rules:**
+1. Anchor each assumption verdict primarily on core-fit evidence.
+2. If core-fit and adjacent agree, boost confidence.
+3. If core-fit and adjacent DISAGREE, flag this prominently — it may indicate the target definition is too narrow.
+4. If off-target respondents show surprising agreement with core-fit, note it as a broader market signal.
+5. When adjacent respondents show STRONGER support than core-fit, flag as a potential expansion opportunity.
+6. NEVER ignore off-target evidence that reveals genuine patterns (e.g., "nobody in any segment has this problem").
+
+For each assumption verdict, set segmentAlignment:
+- **ALIGNED**: All segments with data point in the same direction.
+- **SPLIT**: Core-fit diverges from adjacent or off-target.
+- **CORE_ONLY**: Only core-fit data available for this assumption.
+- **UNSEGMENTED**: Evidence was not segmented (too few responses or no core-fit).
 
 ## Confidence Calibration
 
@@ -111,6 +135,12 @@ function computeAvgMatch(
  * Evidence is grouped by assumption so the model sees all relevant
  * data for each assumption in one block.
  */
+const BUCKET_LABELS: Record<MatchBucket, string> = {
+  core: "CORE FIT (target audience)",
+  adjacent: "ADJACENT FIT (partial match)",
+  off_target: "OFF-TARGET (low match)",
+};
+
 export function buildSynthesisPrompt(
   campaignTitle: string,
   campaignDescription: string,
@@ -120,7 +150,8 @@ export function buildSynthesisPrompt(
   priceSignal?: PriceSignal | null,
   consistencyReport?: ConsistencyReport | null,
   segmentReport?: SegmentReport | null,
-  priorRoundVerdicts?: PriorRoundVerdicts | null
+  priorRoundVerdicts?: PriorRoundVerdicts | null,
+  isSegmented?: boolean
 ): string {
   const sections: string[] = [];
 
@@ -147,6 +178,19 @@ Relevant responses: ${evidence.length}`;
 
     if (evidence.length === 0) {
       block += "\n(No responses mapped to this assumption)";
+    } else if (isSegmented) {
+      // Group evidence by fit bucket for segmented briefs
+      const bucketed = groupByBucket(evidence);
+      for (const bucket of ["core", "adjacent", "off_target"] as MatchBucket[]) {
+        const items = bucketed[bucket];
+        if (items.length === 0) continue;
+        block += `\n\n#### ${BUCKET_LABELS[bucket]} (${items.length} responses)`;
+        for (const e of items) {
+          const weight = Math.round(e.qualityScore * (0.6 + 0.4 * (e.audienceMatch / 100)));
+          block += `\n**Q [${e.evidenceCategory}]:** ${truncate(sanitizeForPrompt(e.questionText), 150)}`;
+          block += `\n**A (${e.respondentLabel}, w=${weight}, m=${e.audienceMatch}):** ${truncate(sanitizeForPrompt(e.answerText), 200)}`;
+        }
+      }
     } else {
       for (const e of evidence) {
         const weight = Math.round(e.qualityScore * (0.6 + 0.4 * (e.audienceMatch / 100)));

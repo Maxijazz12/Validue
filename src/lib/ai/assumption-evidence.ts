@@ -1,5 +1,5 @@
 import sql from "@/lib/db";
-import { computeMatchScore } from "@/lib/wall-ranking";
+import { computeMatchScore, classifyMatchBucket, type MatchBucket } from "@/lib/wall-ranking";
 
 /* ─── Types ─── */
 
@@ -13,6 +13,8 @@ export interface AssumptionEvidence {
   evidenceCategory: string;
   /** 0-100 audience match score between respondent profile and campaign targeting */
   audienceMatch: number;
+  /** Fit bucket classification: core (>=70), adjacent (40-69), off_target (<40) */
+  matchBucket: MatchBucket;
 }
 
 export interface BriefMethodology {
@@ -43,12 +45,16 @@ export async function getEvidenceByAssumption(
       p.interests   AS respondent_interests,
       p.expertise   AS respondent_expertise,
       p.age_range   AS respondent_age_range,
+      p.industry    AS respondent_industry,
+      p.experience_level AS respondent_experience_level,
       p.reputation_score AS respondent_reputation,
       p.total_responses_completed AS respondent_total_responses,
       c.target_interests,
       c.target_expertise,
       c.target_age_ranges,
-      c.tags        AS campaign_tags
+      c.tags        AS campaign_tags,
+      c.audience_industry,
+      c.audience_experience_level
     FROM answers a
     JOIN questions q  ON q.id = a.question_id
     JOIN responses r  ON r.id = a.response_id
@@ -85,11 +91,15 @@ export async function getEvidenceByAssumption(
         target_expertise: (row.target_expertise as string[]) ?? [],
         target_age_ranges: (row.target_age_ranges as string[]) ?? [],
         tags: (row.campaign_tags as string[]) ?? [],
+        audience_industry: (row.audience_industry as string | null) ?? null,
+        audience_experience_level: (row.audience_experience_level as string | null) ?? null,
       },
       {
         interests: (row.respondent_interests as string[]) ?? [],
         expertise: (row.respondent_expertise as string[]) ?? [],
         age_range: (row.respondent_age_range as string | null) ?? null,
+        industry: (row.respondent_industry as string | null) ?? null,
+        experience_level: (row.respondent_experience_level as string | null) ?? null,
         profile_completed: true,
         reputation_score: Number(row.respondent_reputation ?? 0),
         total_responses_completed: Number(row.respondent_total_responses ?? 0),
@@ -108,6 +118,7 @@ export async function getEvidenceByAssumption(
       respondentLabel: `Respondent ${count}`,
       evidenceCategory: (row.evidence_category as string) ?? "behavior",
       audienceMatch: Math.round(audienceMatch),
+      matchBucket: classifyMatchBucket(Math.round(audienceMatch)),
     });
   }
 
@@ -210,6 +221,25 @@ export function computeAllCoverage(
   return Array.from({ length: assumptionCount }, (_, i) =>
     computeCoverage(evidenceByAssumption.get(i) ?? [])
   );
+}
+
+/* ─── Bucket Grouping ─── */
+
+export interface BucketedEvidence {
+  core: AssumptionEvidence[];
+  adjacent: AssumptionEvidence[];
+  off_target: AssumptionEvidence[];
+}
+
+/**
+ * Groups evidence items by match bucket for brief segmentation.
+ */
+export function groupByBucket(evidence: AssumptionEvidence[]): BucketedEvidence {
+  return {
+    core: evidence.filter((e) => e.matchBucket === "core"),
+    adjacent: evidence.filter((e) => e.matchBucket === "adjacent"),
+    off_target: evidence.filter((e) => e.matchBucket === "off_target"),
+  };
 }
 
 /* ─── Methodology Stats ─── */

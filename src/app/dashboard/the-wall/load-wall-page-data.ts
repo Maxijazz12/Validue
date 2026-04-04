@@ -4,6 +4,7 @@ import type { WallUserProfile } from "@/components/dashboard/WallFeed";
 import {
   computeWallScore,
   sortByWallScore,
+  classifyMatchBucket,
   type RespondentProfile,
   type WallCampaign,
 } from "@/lib/wall-ranking";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/campaign-availability";
 import { shouldRequireRespondentProfile } from "@/lib/profile-role";
 import { calculateCurrentResponseStreak } from "@/lib/response-activity";
+import sql from "@/lib/db";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -27,6 +29,8 @@ type ProfileRow = {
   interests: string[] | null;
   expertise: string[] | null;
   age_range: string | null;
+  industry: string | null;
+  experience_level: string | null;
   profile_completed: boolean | null;
   reputation_score: number | null;
   total_responses_completed: number | null;
@@ -63,6 +67,8 @@ type CampaignRow = {
   target_interests: string[] | null;
   target_expertise: string[] | null;
   target_age_ranges: string[] | null;
+  audience_industry: string | null;
+  audience_experience_level: string | null;
   estimated_responses_low: number | null;
   creator: { full_name: string | null; avatar_url: string | null } | null;
 };
@@ -106,6 +112,8 @@ function buildRespondentProfile(profile: ProfileRow | null): RespondentProfile {
     interests: profile?.interests ?? [],
     expertise: profile?.expertise ?? [],
     age_range: profile?.age_range ?? null,
+    industry: profile?.industry ?? null,
+    experience_level: profile?.experience_level ?? null,
     profile_completed: !!profile?.profile_completed,
     reputation_score: safeNumber(profile?.reputation_score),
     total_responses_completed: safeNumber(profile?.total_responses_completed),
@@ -172,6 +180,8 @@ function buildWallIdeas(
       target_expertise: campaign.target_expertise ?? [],
       target_age_ranges: campaign.target_age_ranges ?? [],
       tags: campaign.tags ?? [],
+      audience_industry: campaign.audience_industry ?? null,
+      audience_experience_level: campaign.audience_experience_level ?? null,
     };
 
     const { wallScore, matchScore } = computeWallScore(wallCampaign, respondentProfile);
@@ -244,7 +254,7 @@ export async function loadWallPageData(
     supabase
       .from("profiles")
       .select(
-        "full_name, role, avatar_url, onboarding_completed, has_responded, has_posted, interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed, reputation_tier, average_quality_score, total_earned"
+        "full_name, role, avatar_url, onboarding_completed, has_responded, has_posted, interests, expertise, age_range, industry, experience_level, profile_completed, reputation_score, total_responses_completed, reputation_tier, average_quality_score, total_earned"
       )
       .eq("id", userId)
       .single(),
@@ -306,6 +316,27 @@ export async function loadWallPageData(
   const currentStreak = calculateCurrentResponseStreak(
     (recentResponseDates as ResponseDateRow[] | null) ?? []
   );
+
+  // Fire-and-forget: record wall impressions for funnel analytics.
+  // Uses ON CONFLICT DO NOTHING so only first-seen is recorded per user×campaign.
+  // Non-blocking — page renders regardless of success or failure.
+  if (ideas.length > 0) {
+    const impressionValues = ideas.map((idea) => ({
+      campaign_id: idea.id,
+      user_id: userId,
+      match_score: idea.matchScore,
+      match_bucket: classifyMatchBucket(idea.matchScore),
+    }));
+
+    sql`
+      INSERT INTO wall_impressions (campaign_id, user_id, match_score, match_bucket)
+      SELECT * FROM jsonb_to_recordset(${JSON.stringify(impressionValues)}::jsonb)
+        AS t(campaign_id uuid, user_id uuid, match_score smallint, match_bucket text)
+      ON CONFLICT (campaign_id, user_id) DO NOTHING
+    `.catch((err: unknown) => {
+      console.warn("[wall_impressions] batch upsert failed:", (err as Error).message);
+    });
+  }
 
   return {
     profile: typedProfile,

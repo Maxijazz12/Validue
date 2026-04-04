@@ -168,7 +168,7 @@ export async function rankCampaignResponses(campaignId: string) {
             ai_feedback = ${result.feedback},
             scoring_source = ${result.source},
             scoring_confidence = ${clampedConfidence},
-            scoring_dimensions = ${scoringDimensions},
+            scoring_dimensions = ${sql.json(scoringDimensions)},
             status = 'ranked',
             ranked_at = NOW()
         WHERE id = ${response.id}

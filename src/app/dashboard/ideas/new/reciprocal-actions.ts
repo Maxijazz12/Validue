@@ -65,6 +65,8 @@ type ReciprocalCampaignRow = {
   target_expertise: string[] | null;
   target_age_ranges: string[] | null;
   tags: string[] | null;
+  audience_industry: string | null;
+  audience_experience_level: string | null;
 };
 
 type ReciprocalQuestionRow = {
@@ -80,7 +82,7 @@ type ReciprocalQuestionRow = {
 
 async function loadRespondentProfile(userId: string): Promise<RespondentProfile> {
   const [profile] = await sql`
-    SELECT interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed
+    SELECT interests, expertise, age_range, industry, experience_level, profile_completed, reputation_score, total_responses_completed
     FROM profiles
     WHERE id = ${userId}
   `;
@@ -89,6 +91,8 @@ async function loadRespondentProfile(userId: string): Promise<RespondentProfile>
     interests: (profile?.interests as string[]) ?? [],
     expertise: (profile?.expertise as string[]) ?? [],
     age_range: (profile?.age_range as string | null) ?? null,
+    industry: (profile?.industry as string | null) ?? null,
+    experience_level: (profile?.experience_level as string | null) ?? null,
     profile_completed: !!profile?.profile_completed,
     reputation_score: Number(profile?.reputation_score ?? 0),
     total_responses_completed: Number(profile?.total_responses_completed ?? 0),
@@ -246,11 +250,11 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
   // Sort by targeting match score (best match first), then by fill need
   campaigns.sort((a, b) => {
     const scoreA = computeMatchScore(
-      { target_interests: (a.target_interests as string[]) ?? [], target_expertise: (a.target_expertise as string[]) ?? [], target_age_ranges: (a.target_age_ranges as string[]) ?? [], tags: (a.tags as string[]) ?? [] },
+      { target_interests: (a.target_interests as string[]) ?? [], target_expertise: (a.target_expertise as string[]) ?? [], target_age_ranges: (a.target_age_ranges as string[]) ?? [], tags: (a.tags as string[]) ?? [], audience_industry: (a.audience_industry as string | null) ?? null, audience_experience_level: (a.audience_experience_level as string | null) ?? null },
       respondentProfile
     );
     const scoreB = computeMatchScore(
-      { target_interests: (b.target_interests as string[]) ?? [], target_expertise: (b.target_expertise as string[]) ?? [], target_age_ranges: (b.target_age_ranges as string[]) ?? [], tags: (b.tags as string[]) ?? [] },
+      { target_interests: (b.target_interests as string[]) ?? [], target_expertise: (b.target_expertise as string[]) ?? [], target_age_ranges: (b.target_age_ranges as string[]) ?? [], tags: (b.tags as string[]) ?? [], audience_industry: (b.audience_industry as string | null) ?? null, audience_experience_level: (b.audience_experience_level as string | null) ?? null },
       respondentProfile
     );
     if (scoreB !== scoreA) return scoreB - scoreA;
@@ -293,6 +297,8 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
         targetExpertise: (campaign.target_expertise as string[]) ?? [],
         targetAgeRanges: (campaign.target_age_ranges as string[]) ?? [],
         tags: (campaign.tags as string[]) ?? [],
+        audienceIndustry: (campaign.audience_industry as string | null) ?? null,
+        audienceExperienceLevel: (campaign.audience_experience_level as string | null) ?? null,
       },
       { assignCount: RECIPROCAL_QUESTIONS_PER_RESPONSE }
     );

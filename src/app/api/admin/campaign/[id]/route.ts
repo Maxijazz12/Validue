@@ -112,6 +112,8 @@ export async function GET(
       target_expertise: campaign.target_expertise ?? [],
       target_age_ranges: campaign.target_age_ranges ?? [],
       tags: campaign.tags ?? [],
+      audience_industry: campaign.audience_industry ?? null,
+      audience_experience_level: campaign.audience_experience_level ?? null,
     });
     const freshnessScore = computeFreshnessScore(campaign.created_at);
     const momentumScore = computeMomentumScore(

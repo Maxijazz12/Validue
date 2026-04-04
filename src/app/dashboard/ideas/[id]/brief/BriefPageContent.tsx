@@ -206,6 +206,13 @@ export function BriefRefreshState({
   );
 }
 
+const segmentAlignmentLabels: Record<string, { text: string; color: string }> = {
+  ALIGNED: { text: "Segments agree", color: "text-success" },
+  SPLIT: { text: "Segments split", color: "text-error" },
+  CORE_ONLY: { text: "Core only", color: "text-text-muted" },
+  UNSEGMENTED: { text: "", color: "" },
+};
+
 type BriefPageContentProps = {
   id: string;
   count: number;
@@ -222,6 +229,8 @@ type BriefPageContentProps = {
   roundNumber: number;
   parentVerdicts: PriorRoundVerdicts | null;
   synthesisError: boolean;
+  isSegmented?: boolean;
+  bucketCounts?: { core: number; adjacent: number; off_target: number };
 };
 
 export function BriefPageContent({
@@ -236,6 +245,8 @@ export function BriefPageContent({
   roundNumber,
   parentVerdicts,
   synthesisError,
+  isSegmented,
+  bucketCounts,
 }: BriefPageContentProps) {
   return (
     <article className="max-w-[720px] mx-auto px-4 py-12 pb-24">
@@ -282,6 +293,34 @@ export function BriefPageContent({
         </p>
       </section>
 
+      {isSegmented && bucketCounts && (
+        <section className="rounded-[24px] bg-white border border-border-light shadow-card p-[24px] mb-8">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[12px]">
+            Sample Composition
+          </span>
+          <div className="flex gap-6 max-md:gap-4 flex-wrap">
+            <div className="flex items-center gap-[6px]">
+              <span className="w-[8px] h-[8px] rounded-full bg-success inline-block" />
+              <span className="text-[13px] text-text-secondary">Core fit</span>
+              <span className="font-mono text-[14px] font-bold text-text-primary">{bucketCounts.core}</span>
+            </div>
+            <div className="flex items-center gap-[6px]">
+              <span className="w-[8px] h-[8px] rounded-full bg-brand inline-block" />
+              <span className="text-[13px] text-text-secondary">Adjacent</span>
+              <span className="font-mono text-[14px] font-bold text-text-primary">{bucketCounts.adjacent}</span>
+            </div>
+            <div className="flex items-center gap-[6px]">
+              <span className="w-[8px] h-[8px] rounded-full bg-[#999] inline-block" />
+              <span className="text-[13px] text-text-secondary">Off-target</span>
+              <span className="font-mono text-[14px] font-bold text-text-primary">{bucketCounts.off_target}</span>
+            </div>
+          </div>
+          {brief.sampleQuality?.sampleNote && (
+            <p className="text-[12px] text-text-muted mt-[8px]">{brief.sampleQuality.sampleNote}</p>
+          )}
+        </section>
+      )}
+
       <section className="rounded-[28px] bg-white border border-border-light shadow-card p-[32px] mb-8 text-center">
         <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[12px]">
           Recommendation
@@ -321,6 +360,11 @@ export function BriefPageContent({
                   {verdict.assumption}
                 </h3>
                 <div className="flex items-center gap-2 shrink-0">
+                  {verdict.segmentAlignment && verdict.segmentAlignment !== "UNSEGMENTED" && segmentAlignmentLabels[verdict.segmentAlignment] && (
+                    <span className={`font-mono text-[11px] font-medium uppercase tracking-wide ${segmentAlignmentLabels[verdict.segmentAlignment].color}`}>
+                      {segmentAlignmentLabels[verdict.segmentAlignment].text}
+                    </span>
+                  )}
                   {verdict.confidence && (
                     <span className={`font-mono text-[11px] font-medium uppercase tracking-wide ${
                       verdict.confidence === "HIGH" ? "text-success"

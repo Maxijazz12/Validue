@@ -95,7 +95,8 @@ async function callSynthesis(
   priceSignal: PriceSignal | null,
   consistencyReport: ConsistencyReport | null,
   segmentReport: SegmentReport | null,
-  priorRoundVerdicts: PriorRoundVerdicts | null = null
+  priorRoundVerdicts: PriorRoundVerdicts | null = null,
+  isSegmented: boolean = false
 ): Promise<DecisionBrief> {
   const client = getClient();
 
@@ -108,7 +109,8 @@ async function callSynthesis(
     priceSignal,
     consistencyReport,
     segmentReport,
-    priorRoundVerdicts
+    priorRoundVerdicts,
+    isSegmented
   );
 
   console.log("[brief] Calling AI synthesis...");
@@ -168,6 +170,10 @@ export interface BriefResult {
   roundNumber: number;
   /** Cached verdict summary from the parent campaign's brief (null if round 1 or parent has no brief) */
   parentVerdicts: PriorRoundVerdicts | null;
+  /** Whether the brief was segmented by fit bucket */
+  isSegmented?: boolean;
+  /** Bucket counts for the full response pool */
+  bucketCounts?: { core: number; adjacent: number; off_target: number };
 }
 
 type SynthesizeBriefOptions = {
@@ -375,6 +381,14 @@ async function synthesizeFresh(
   const coverage = computeAllCoverage(evidenceByAssumption, assumptions.length);
   const segmentReport = detectSegmentDisagreements(evidenceByAssumption, assumptions);
 
+  // Determine segmentation: segment if >=3 total responses AND >=1 core-fit
+  const allEvidence = Array.from(evidenceByAssumption.values()).flat();
+  const coreCount = allEvidence.filter((e) => e.matchBucket === "core").length;
+  const adjacentCount = allEvidence.filter((e) => e.matchBucket === "adjacent").length;
+  const offTargetCount = allEvidence.filter((e) => e.matchBucket === "off_target").length;
+  const isSegmented = methodology.responseCount >= 3 && coreCount >= 1;
+  const bucketCounts = { core: coreCount, adjacent: adjacentCount, off_target: offTargetCount };
+
   // Too few responses for meaningful synthesis
   // Threshold: 2 responses minimum (partial responses mean more respondents
   // each answering fewer questions — per-assumption thresholds in the prompt
@@ -389,7 +403,7 @@ async function synthesizeFresh(
       confidence: 0,
       latencyMs: Date.now() - start,
     });
-    const result = {
+    const result: BriefResult = {
       brief: buildFallbackBrief(assumptions, methodology.responseCount),
       coverage,
       priceSignal,
@@ -397,6 +411,8 @@ async function synthesizeFresh(
       segmentReport,
       roundNumber,
       parentVerdicts,
+      isSegmented,
+      bucketCounts,
     };
     if (options.persist) {
       await persistCachedBrief(campaignId, result, methodology.responseCount);
@@ -417,7 +433,8 @@ async function synthesizeFresh(
           priceSignal,
           consistencyReport,
           segmentReport,
-          parentVerdicts
+          parentVerdicts,
+          isSegmented
         );
 
         // Deterministic grounding check — fix issues without re-calling AI
@@ -436,7 +453,7 @@ async function synthesizeFresh(
           latencyMs: Date.now() - start,
         });
 
-        const result: BriefResult = { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+        const result: BriefResult = { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts, isSegmented, bucketCounts };
 
         if (options.persist) {
           await persistSuccessfulBrief(campaignId, brief, result, methodology.responseCount);
@@ -461,7 +478,7 @@ async function synthesizeFresh(
     latencyMs: Date.now() - start,
   });
 
-  const result = {
+  const result: BriefResult = {
     brief: buildFallbackBrief(assumptions, methodology.responseCount),
     coverage,
     priceSignal,
@@ -469,6 +486,8 @@ async function synthesizeFresh(
     segmentReport,
     roundNumber,
     parentVerdicts,
+    isSegmented,
+    bucketCounts,
   };
   if (options.persist) {
     await persistCachedBrief(campaignId, result, methodology.responseCount);

@@ -115,27 +115,27 @@ export default async function MyResponsesPage({
       </div>
 
       {/* Stat cards */}
-      {totalCompleted > 0 && (
-        <div className={`grid gap-[12px] mb-[24px] ${hasMoneyActivity ? "grid-cols-4 max-md:grid-cols-2" : "grid-cols-3 max-md:grid-cols-1"}`}>
-          <StatCard label="Reputation" value={repScore}>
-            <div className="mt-[4px]">
-              <ReputationBadge tier={repTier} size="md" />
-            </div>
-          </StatCard>
+      <div className={`grid gap-[12px] mb-[24px] ${FEATURES.RESPONDENT_PAYOUTS || hasMoneyActivity ? "grid-cols-4 max-md:grid-cols-2" : "grid-cols-3 max-md:grid-cols-1"}`}>
+        <StatCard label="Completed" value={totalCompleted} />
+        <StatCard label="Reputation" value={repScore}>
+          <div className="mt-[4px]">
+            <ReputationBadge tier={repTier} size="md" />
+          </div>
+        </StatCard>
+        {totalCompleted > 0 && (
           <StatCard label="Avg Quality" value={avgQuality} valueColor={avgQuality >= 70 ? "#22c55e" : avgQuality >= 40 ? "#E5654E" : "#ef4444"} />
-          <StatCard label="Completed" value={totalCompleted} />
-          {hasMoneyActivity && (
-            <StatCard
-              label="Available"
-              value={`$${(availableBalanceCents / 100).toFixed(2)}`}
-              valueColor={availableBalanceCents > 0 ? "#22c55e" : undefined}
-            />
-          )}
-        </div>
-      )}
+        )}
+        {(FEATURES.RESPONDENT_PAYOUTS || hasMoneyActivity) && (
+          <StatCard
+            label="Available"
+            value={`$${(availableBalanceCents / 100).toFixed(2)}`}
+            valueColor={availableBalanceCents > 0 ? "#22c55e" : undefined}
+          />
+        )}
+      </div>
 
       {/* Cashout panel */}
-      {FEATURES.CASHOUT && hasMoneyActivity && (
+      {FEATURES.CASHOUT && (
         <CashoutPanel
           availableBalanceCents={availableBalanceCents}
           minCashoutCents={DEFAULTS.MIN_CASHOUT_BALANCE_CENTS}

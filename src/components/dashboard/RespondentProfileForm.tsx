@@ -8,6 +8,8 @@ import {
   INTEREST_OPTIONS,
   EXPERTISE_OPTIONS,
   AGE_RANGE_OPTIONS,
+  INDUSTRY_OPTIONS,
+  EXPERIENCE_LEVEL_OPTIONS,
 } from "@/lib/constants";
 
 type Props = {
@@ -16,6 +18,8 @@ type Props = {
   ageRange: string | null;
   location: string;
   occupation: string;
+  industry: string;
+  experienceLevel: string;
 };
 
 export default function RespondentProfileForm({
@@ -24,10 +28,14 @@ export default function RespondentProfileForm({
   ageRange: initialAgeRange,
   location: initialLocation,
   occupation: initialOccupation,
+  industry: initialIndustry,
+  experienceLevel: initialExperienceLevel,
 }: Props) {
   const [interests, setInterests] = useState(initialInterests);
   const [expertise, setExpertise] = useState(initialExpertise);
   const [ageRange, setAgeRange] = useState(initialAgeRange || "");
+  const [industry, setIndustry] = useState(initialIndustry || "");
+  const [experienceLevel, setExperienceLevel] = useState(initialExperienceLevel || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -107,6 +115,48 @@ export default function RespondentProfileForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-[16px] max-w-[500px] max-md:grid-cols-1">
+          <div className="flex flex-col gap-[6px]">
+            <label htmlFor="industry" className="text-[13px] font-medium text-text-secondary">
+              Industry
+            </label>
+            <select
+              id="industry"
+              name="industry"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="text-[14px] px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]"
+            >
+              <option value="">Select...</option>
+              {INDUSTRY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-[6px]">
+            <label htmlFor="experienceLevel" className="text-[13px] font-medium text-text-secondary">
+              Experience level
+            </label>
+            <select
+              id="experienceLevel"
+              name="experienceLevel"
+              value={experienceLevel}
+              onChange={(e) => setExperienceLevel(e.target.value)}
+              className="text-[14px] px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]"
+            >
+              <option value="">Select...</option>
+              {EXPERIENCE_LEVEL_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-[16px] max-w-[500px] max-md:grid-cols-1">

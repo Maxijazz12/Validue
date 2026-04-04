@@ -84,6 +84,8 @@ export interface CampaignDraft {
   rewardType?: "pool" | "top_only";
   bonusAvailable?: boolean;
   rewardsTopAnswers?: boolean;
+  /** Targeting strictness: broad (ranking only), balanced (any overlap), strict (all overlap) */
+  targetingMode?: "broad" | "balanced" | "strict";
 }
 
 /* ─── Signal Strength (UI display) ─── */

@@ -14,7 +14,7 @@ import {
   type CampaignQuestion,
   type AssumptionCoverageCount,
 } from "@/lib/question-assignment";
-import type { RespondentProfile } from "@/lib/wall-ranking";
+import { meetsMinimumEligibility, computeMatchScore, classifyMatchBucket, type RespondentProfile, type TargetingMode } from "@/lib/wall-ranking";
 import { hasRemainingReachBudget } from "@/lib/campaign-availability";
 import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
 
@@ -44,7 +44,7 @@ export async function startResponse(campaignId: string): Promise<{
   // Fetch campaign (include V2 + targeting fields for question assignment)
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, creator_id, status, current_responses, target_responses, expires_at, target_interests, target_expertise, target_age_ranges, tags, reach_served, effective_reach_units, total_reach_units")
+    .select("id, creator_id, status, current_responses, target_responses, expires_at, target_interests, target_expertise, target_age_ranges, tags, audience_industry, audience_experience_level, targeting_mode, reach_served, effective_reach_units, total_reach_units")
     .eq("id", campaignId)
     .single();
 
@@ -63,6 +63,59 @@ export async function startResponse(campaignId: string): Promise<{
   if (!hasRemainingReachBudget(campaign)) {
     throw new Error("This campaign is no longer accepting new responses.");
   }
+
+  // Minimum audience eligibility check — block respondents with zero overlap
+  const { data: eligibilityProfile } = await supabase
+    .from("profiles")
+    .select("interests, expertise, age_range, industry, experience_level, profile_completed, reputation_score, total_responses_completed")
+    .eq("id", user.id)
+    .single();
+
+  const respondentForEligibility: RespondentProfile = {
+    interests: (eligibilityProfile?.interests as string[]) ?? [],
+    expertise: (eligibilityProfile?.expertise as string[]) ?? [],
+    age_range: (eligibilityProfile?.age_range as string | null) ?? null,
+    industry: (eligibilityProfile?.industry as string | null) ?? null,
+    experience_level: (eligibilityProfile?.experience_level as string | null) ?? null,
+    profile_completed: !!eligibilityProfile?.profile_completed,
+    reputation_score: Number(eligibilityProfile?.reputation_score ?? 0),
+    total_responses_completed: Number(eligibilityProfile?.total_responses_completed ?? 0),
+  };
+
+  const targetingMode = ((campaign.targeting_mode as string) ?? "balanced") as TargetingMode;
+  if (
+    !meetsMinimumEligibility(
+      {
+        target_interests: (campaign.target_interests as string[]) ?? [],
+        target_expertise: (campaign.target_expertise as string[]) ?? [],
+        target_age_ranges: (campaign.target_age_ranges as string[]) ?? [],
+        audience_industry: (campaign.audience_industry as string | null) ?? null,
+        audience_experience_level: (campaign.audience_experience_level as string | null) ?? null,
+      },
+      respondentForEligibility,
+      targetingMode
+    )
+  ) {
+    const message = targetingMode === "strict"
+      ? "This campaign requires an exact audience match on all targeting dimensions. Complete your profile in Settings to unlock more campaigns."
+      : "Your profile doesn't match the target audience for this campaign. Complete your matching profile in Settings to unlock more campaigns.";
+    throw new Error(message);
+  }
+
+  // Compute match score ONCE — reused for snapshot on new responses.
+  // Mirrors the incomplete-profile guard from computeWallScore (wall-ranking.ts).
+  const campaignTargetingForScore = {
+    target_interests: (campaign.target_interests as string[]) ?? [],
+    target_expertise: (campaign.target_expertise as string[]) ?? [],
+    target_age_ranges: (campaign.target_age_ranges as string[]) ?? [],
+    tags: (campaign.tags as string[]) ?? [],
+    audience_industry: (campaign.audience_industry as string | null) ?? null,
+    audience_experience_level: (campaign.audience_experience_level as string | null) ?? null,
+  };
+  const matchScoreAtStart = respondentForEligibility.profile_completed
+    ? computeMatchScore(campaignTargetingForScore, respondentForEligibility)
+    : DEFAULTS.MATCH_SCORE_INCOMPLETE;
+  const matchBucket = classifyMatchBucket(matchScoreAtStart);
 
   // Clean up stale in-progress responses for this user (> 60 min old)
   await sql`
@@ -152,22 +205,7 @@ export async function startResponse(campaignId: string): Promise<{
   const usePartialAssignment = questions.length >= MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT;
 
   if (usePartialAssignment) {
-    // Fetch respondent profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed")
-      .eq("id", user.id)
-      .single();
-
-    const respondentProfile: RespondentProfile = {
-      interests: (profile?.interests as string[]) ?? [],
-      expertise: (profile?.expertise as string[]) ?? [],
-      age_range: (profile?.age_range as string | null) ?? null,
-      profile_completed: !!profile?.profile_completed,
-      reputation_score: Number(profile?.reputation_score ?? 0),
-      total_responses_completed: Number(profile?.total_responses_completed ?? 0),
-    };
-
+    // Reuse respondentForEligibility — same profile, already fetched above.
     // Get per-assumption coverage counts (how many submitted answers exist per assumption)
     const coverageRows = await sql`
       SELECT q.assumption_index, COUNT(*)::int AS count
@@ -202,12 +240,14 @@ export async function startResponse(campaignId: string): Promise<{
     const assignment = assignQuestions(
       questions,
       coverageCounts,
-      respondentProfile,
+      respondentForEligibility,
       {
         targetInterests: (campaign.target_interests as string[]) ?? [],
         targetExpertise: (campaign.target_expertise as string[]) ?? [],
         targetAgeRanges: (campaign.target_age_ranges as string[]) ?? [],
         tags: (campaign.tags as string[]) ?? [],
+        audienceIndustry: (campaign.audience_industry as string | null) ?? null,
+        audienceExperienceLevel: (campaign.audience_experience_level as string | null) ?? null,
       },
       { excludeQuestionIds: excludeIds.size > 0 ? excludeIds : undefined }
     );
@@ -225,10 +265,11 @@ export async function startResponse(campaignId: string): Promise<{
   // Prevents race condition where concurrent users both pass a separate COUNT check.
   const targetResponses = campaign.target_responses || 0;
   const [inserted] = await sql`
-    INSERT INTO responses (campaign_id, respondent_id, status, money_state, assigned_question_ids, is_partial)
+    INSERT INTO responses (campaign_id, respondent_id, status, money_state, assigned_question_ids, is_partial, match_score_at_start, match_bucket)
     SELECT
       ${campaignId}, ${user.id}, 'in_progress', 'pending_qualification',
-      ${assignedQuestionIds ?? null}::uuid[], ${isPartial}
+      ${assignedQuestionIds ?? null}::uuid[], ${isPartial},
+      ${matchScoreAtStart}::smallint, ${matchBucket}
     WHERE (
       SELECT COUNT(*)
       FROM responses

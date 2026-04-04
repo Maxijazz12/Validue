@@ -12,6 +12,12 @@ export const DEFAULTS = {
   /** Fraction of max points awarded when either side of a match dimension is empty */
   MATCH_SCORE_UNKNOWN_DIM: 0.4,
 
+  /** Minimum match score to classify as 'core' audience bucket */
+  MATCH_BUCKET_CORE_THRESHOLD: 70,
+
+  /** Minimum match score to classify as 'adjacent' audience bucket (below this = 'off_target') */
+  MATCH_BUCKET_ADJACENT_THRESHOLD: 40,
+
   /** Momentum score when target_responses is 0 or missing */
   MOMENTUM_NO_TARGET: 50,
 

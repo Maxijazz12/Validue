@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import DisputeButton from "@/app/dashboard/my-responses/DisputeButton";
+import DisputeButton from "@/components/dashboard/DisputeButton";
 
 const tabs = ["All", "In Progress", "Submitted", "Ranked"] as const;
 type Tab = (typeof tabs)[number];

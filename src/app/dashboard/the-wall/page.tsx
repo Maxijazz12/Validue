@@ -18,13 +18,11 @@ export default async function TheWallPage() {
   const { profile, ideas, userProfile, profileIncomplete, showOnboarding } =
     await loadWallPageData(supabase, user.id);
 
-  if (profileIncomplete) {
-    redirect("/dashboard/settings?complete-profile=true");
-  }
-
   return (
     <>
-      {showOnboarding && profile && (
+      {profileIncomplete && <ProfilePrompt />}
+
+      {showOnboarding && profile && !profileIncomplete && (
         <WallOnboarding
           userName={profile.full_name ?? ""}
           showRespondentExperience={shouldShowRespondentProfile(profile)}
@@ -34,8 +32,6 @@ export default async function TheWallPage() {
           ideaCount={ideas.length}
         />
       )}
-
-      {profileIncomplete && <ProfilePrompt />}
 
       <WallFeed ideas={ideas} userProfile={userProfile} />
     </>

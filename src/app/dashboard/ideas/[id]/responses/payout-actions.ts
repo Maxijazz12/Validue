@@ -77,7 +77,7 @@ export async function suggestDistribution(campaignId: string) {
   const distributable = safePositive(campaign.distributable_amount);
   if (distributable <= 0) return { suggestions: [], distributable: 0 };
 
-  return suggestDistributionV2(supabase, campaign, distributable);
+  return suggestDistributionV2(campaign, distributable);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -213,8 +213,10 @@ async function loadTrustedPayoutSuggestions(
   return buildTrustedPayoutSuggestions(campaign, distributable, responses, answerRows);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function suggestDistributionV2(_supabase: any, campaign: any, distributable: number) {
+async function suggestDistributionV2(
+  campaign: PayoutCampaignRecord,
+  distributable: number
+) {
   const suggestions = await loadTrustedPayoutSuggestions(campaign, distributable);
   return { suggestions, distributable };
 }
@@ -319,9 +321,9 @@ export async function allocatePayoutsV2(
         WHERE id = ${campaignId}
       `;
 
-	      for (const allocation of resolvedAllocations) {
-	        const respondentId = respondentMap.get(allocation.responseId);
-	        if (!respondentId) continue;
+      for (const allocation of resolvedAllocations) {
+        const respondentId = respondentMap.get(allocation.responseId);
+        if (!respondentId) continue;
 
         if (allocation.qualified && allocation.amount > 0) {
           // Create payout record

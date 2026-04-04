@@ -581,6 +581,8 @@ export default function DraftReviewStep({
           <AudienceTargetingPanel
             audience={draft.audience}
             onChange={(a: DraftAudience) => updateField("audience", a)}
+            targetingMode={draft.targetingMode ?? "balanced"}
+            onTargetingModeChange={(mode) => updateField("targetingMode", mode)}
             scribbleText={draft.summary}
             assumptions={draft.assumptions}
             questions={draft.questions}

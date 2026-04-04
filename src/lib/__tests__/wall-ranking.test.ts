@@ -6,9 +6,12 @@ import {
   computeFreshnessScore,
   computeWallScore,
   sortByWallScore,
+  meetsMinimumEligibility,
+  classifyMatchBucket,
   type WallCampaign,
   type RespondentProfile,
 } from "../wall-ranking";
+import { DEFAULTS } from "../defaults";
 
 const baseCampaign: WallCampaign = {
   id: "aaa",
@@ -23,12 +26,16 @@ const baseCampaign: WallCampaign = {
   target_expertise: [],
   target_age_ranges: [],
   tags: [],
+  audience_industry: null,
+  audience_experience_level: null,
 };
 
 const baseProfile: RespondentProfile = {
   interests: [],
   expertise: [],
   age_range: null,
+  industry: null,
+  experience_level: null,
   profile_completed: true,
   reputation_score: 0,
   total_responses_completed: 0,
@@ -37,8 +44,8 @@ const baseProfile: RespondentProfile = {
 describe("computeMatchScore", () => {
   it("scores 40% of max per dimension when both sides empty", () => {
     const score = computeMatchScore(baseCampaign, baseProfile);
-    // interests: 40*0.4=16, expertise: 30*0.4=12, age: 15*0.4=6, tags: 0 = 34
-    expect(score).toBe(34);
+    // interests: 35*0.4=14, expertise: 25*0.4=10, age: 15*0.4=6, industry: 10*0.4=4, experience: 10*0.4=4, tags: 0 = 38
+    expect(score).toBe(38);
   });
 
   it("gives full points for perfect overlap", () => {
@@ -47,16 +54,20 @@ describe("computeMatchScore", () => {
       target_interests: ["a", "b"],
       target_expertise: ["x"],
       target_age_ranges: ["25-34"],
+      audience_industry: "Technology",
+      audience_experience_level: "Mid-level (3–5 years)",
     };
     const profile = {
       ...baseProfile,
       interests: ["a", "b"],
       expertise: ["x"],
       age_range: "25-34" as const,
+      industry: "Technology",
+      experience_level: "Mid-level (3–5 years)",
     };
     const score = computeMatchScore(campaign, profile);
-    // interests: 40, expertise: 30, age: 15, tags: 0 = 85
-    expect(score).toBe(85);
+    // interests: 35, expertise: 25, age: 15, industry: 10, experience: 10, tags: 0 = 95
+    expect(score).toBe(95);
   });
 
   it("caps at 100", () => {
@@ -229,5 +240,223 @@ describe("sortByWallScore", () => {
     const sorted = sortByWallScore(campaigns);
     // UUID lexicographic: "aaa" < "zzz", so "aaa" comes first
     expect(sorted[0].id).toBe("aaa");
+  });
+});
+
+/* ─── meetsMinimumEligibility ─── */
+
+describe("meetsMinimumEligibility", () => {
+  const targetedCampaign = {
+    target_interests: ["SaaS", "Fintech"],
+    target_expertise: ["Developer"],
+    target_age_ranges: ["25-34"],
+    audience_industry: "Technology",
+    audience_experience_level: "Mid-level (3–5 years)",
+  };
+
+  const fullMatchProfile: RespondentProfile = {
+    interests: ["SaaS"],
+    expertise: ["Developer"],
+    age_range: "25-34",
+    industry: "Technology",
+    experience_level: "Mid-level (3–5 years)",
+    profile_completed: true,
+    reputation_score: 50,
+    total_responses_completed: 5,
+  };
+
+  const partialMatchProfile: RespondentProfile = {
+    interests: ["SaaS"],
+    expertise: ["Designer"],
+    age_range: "35-44",
+    industry: "Healthcare",
+    experience_level: "Senior (6–10 years)",
+    profile_completed: true,
+    reputation_score: 50,
+    total_responses_completed: 5,
+  };
+
+  const noMatchProfile: RespondentProfile = {
+    interests: ["Gaming"],
+    expertise: ["Designer"],
+    age_range: "18-24",
+    industry: "Healthcare",
+    experience_level: "Student",
+    profile_completed: true,
+    reputation_score: 50,
+    total_responses_completed: 5,
+  };
+
+  const incompleteProfile: RespondentProfile = {
+    interests: [],
+    expertise: [],
+    age_range: null,
+    industry: null,
+    experience_level: null,
+    profile_completed: false,
+    reputation_score: 0,
+    total_responses_completed: 0,
+  };
+
+  const untargetedCampaign = {
+    target_interests: [] as string[],
+    target_expertise: [] as string[],
+    target_age_ranges: [] as string[],
+    audience_industry: null as string | null,
+    audience_experience_level: null as string | null,
+  };
+
+  // ─── Broad Mode ───
+
+  describe("broad mode", () => {
+    it("allows respondent with zero overlap", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, noMatchProfile, "broad")).toBe(true);
+    });
+
+    it("allows respondent with partial overlap", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, partialMatchProfile, "broad")).toBe(true);
+    });
+
+    it("allows incomplete profiles", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, incompleteProfile, "broad")).toBe(true);
+    });
+
+    it("allows full match", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, fullMatchProfile, "broad")).toBe(true);
+    });
+  });
+
+  // ─── Balanced Mode (default) ───
+
+  describe("balanced mode", () => {
+    it("allows respondent with one matching dimension (interests)", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, partialMatchProfile, "balanced")).toBe(true);
+    });
+
+    it("rejects respondent with zero overlap", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, noMatchProfile, "balanced")).toBe(false);
+    });
+
+    it("allows full match", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, fullMatchProfile, "balanced")).toBe(true);
+    });
+
+    it("defaults to balanced when mode is omitted", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, partialMatchProfile)).toBe(true);
+      expect(meetsMinimumEligibility(targetedCampaign, noMatchProfile)).toBe(false);
+    });
+
+    it("allows incomplete profiles", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, incompleteProfile, "balanced")).toBe(true);
+    });
+
+    it("passes when campaign has no targeting", () => {
+      expect(meetsMinimumEligibility(untargetedCampaign, noMatchProfile, "balanced")).toBe(true);
+    });
+  });
+
+  // ─── Strict Mode ───
+
+  describe("strict mode", () => {
+    it("rejects respondent with only partial overlap", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, partialMatchProfile, "strict")).toBe(false);
+    });
+
+    it("allows respondent with full overlap on all targeted dimensions", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, fullMatchProfile, "strict")).toBe(true);
+    });
+
+    it("rejects respondent with zero overlap", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, noMatchProfile, "strict")).toBe(false);
+    });
+
+    it("allows incomplete profiles (nudge, not block)", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, incompleteProfile, "strict")).toBe(true);
+    });
+
+    it("passes when campaign has no targeting (vacuous truth)", () => {
+      expect(meetsMinimumEligibility(untargetedCampaign, noMatchProfile, "strict")).toBe(true);
+    });
+  });
+
+  // ─── Edge Cases ───
+
+  describe("edge cases", () => {
+    it("strict mode with single dimension targeted — only checks that one", () => {
+      const singleDim = {
+        target_interests: ["SaaS"],
+        target_expertise: [] as string[],
+        target_age_ranges: [] as string[],
+        audience_industry: null as string | null,
+        audience_experience_level: null as string | null,
+      };
+      const profile = { ...noMatchProfile, interests: ["SaaS"] };
+      expect(meetsMinimumEligibility(singleDim, profile, "strict")).toBe(true);
+    });
+
+    it("strict mode: null profile dimension fails against targeted campaign dimension", () => {
+      const profile = { ...fullMatchProfile, industry: null };
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "strict")).toBe(false);
+    });
+
+    it("strict mode: empty profile array fails against targeted campaign array", () => {
+      const profile = { ...fullMatchProfile, interests: [] as string[] };
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "strict")).toBe(false);
+    });
+
+    it("balanced mode: null profile dimension on one dim, match on another, passes", () => {
+      const profile = { ...partialMatchProfile, industry: null };
+      // Still has interests: ["SaaS"] which matches
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "balanced")).toBe(true);
+    });
+
+    it("industry matching is case-insensitive", () => {
+      const campaign = { ...untargetedCampaign, audience_industry: "TECHNOLOGY" };
+      const profile = { ...noMatchProfile, industry: "technology" };
+      expect(meetsMinimumEligibility(campaign, profile, "balanced")).toBe(true);
+    });
+
+    it("experience level matching is case-insensitive", () => {
+      const campaign = { ...untargetedCampaign, audience_experience_level: "Senior (6–10 years)" };
+      const profile = { ...noMatchProfile, experience_level: "senior (6–10 years)" };
+      expect(meetsMinimumEligibility(campaign, profile, "balanced")).toBe(true);
+    });
+  });
+});
+
+/* ─── classifyMatchBucket ─── */
+
+describe("classifyMatchBucket", () => {
+  it("classifies score >= 70 as core", () => {
+    expect(classifyMatchBucket(70)).toBe("core");
+    expect(classifyMatchBucket(85)).toBe("core");
+    expect(classifyMatchBucket(100)).toBe("core");
+  });
+
+  it("classifies score 40-69 as adjacent", () => {
+    expect(classifyMatchBucket(40)).toBe("adjacent");
+    expect(classifyMatchBucket(55)).toBe("adjacent");
+    expect(classifyMatchBucket(69)).toBe("adjacent");
+  });
+
+  it("classifies score < 40 as off_target", () => {
+    expect(classifyMatchBucket(0)).toBe("off_target");
+    expect(classifyMatchBucket(39)).toBe("off_target");
+  });
+
+  it("classifies incomplete profile score (30) as off_target", () => {
+    expect(classifyMatchBucket(DEFAULTS.MATCH_SCORE_INCOMPLETE)).toBe("off_target");
+  });
+
+  it("classifies empty-dimension baseline (~38) as off_target", () => {
+    // A completed profile with zero overlap scores ~38 (all unknown fractions)
+    expect(classifyMatchBucket(38)).toBe("off_target");
+  });
+
+  it("uses threshold constants from DEFAULTS", () => {
+    expect(classifyMatchBucket(DEFAULTS.MATCH_BUCKET_CORE_THRESHOLD)).toBe("core");
+    expect(classifyMatchBucket(DEFAULTS.MATCH_BUCKET_CORE_THRESHOLD - 1)).toBe("adjacent");
+    expect(classifyMatchBucket(DEFAULTS.MATCH_BUCKET_ADJACENT_THRESHOLD)).toBe("adjacent");
+    expect(classifyMatchBucket(DEFAULTS.MATCH_BUCKET_ADJACENT_THRESHOLD - 1)).toBe("off_target");
   });
 });

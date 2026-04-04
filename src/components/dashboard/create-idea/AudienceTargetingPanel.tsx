@@ -16,9 +16,19 @@ import {
 const selectClass =
   "text-[14px] px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-text-primary outline-none focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] transition-all duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-[32px]";
 
+type TargetingMode = "broad" | "balanced" | "strict";
+
+const TARGETING_MODE_DESCRIPTIONS: Record<TargetingMode, string> = {
+  broad: "Anyone can respond. Targeting only affects ranking order.",
+  balanced: "Respondents must match at least one targeting dimension.",
+  strict: "Respondents must match all targeting dimensions. Fewer but more relevant responses.",
+};
+
 interface AudienceTargetingPanelProps {
   audience: DraftAudience;
   onChange: (audience: DraftAudience) => void;
+  targetingMode: TargetingMode;
+  onTargetingModeChange: (mode: TargetingMode) => void;
   scribbleText?: string;
   assumptions?: string[];
   questions?: DraftQuestion[];
@@ -27,6 +37,8 @@ interface AudienceTargetingPanelProps {
 export default function AudienceTargetingPanel({
   audience,
   onChange,
+  targetingMode,
+  onTargetingModeChange,
   scribbleText,
   assumptions,
   questions,
@@ -96,6 +108,32 @@ export default function AudienceTargetingPanel({
           <span className="text-[13px] font-medium text-error">{suggestError}</span>
         </div>
       )}
+
+      {/* Targeting strictness selector */}
+      <div className="mb-[24px]">
+        <label className="text-[13px] font-medium text-text-secondary mb-[8px] block">
+          Targeting strictness
+        </label>
+        <div className="flex rounded-xl border border-border-light overflow-hidden">
+          {(["broad", "balanced", "strict"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => onTargetingModeChange(mode)}
+              className={`flex-1 py-[10px] px-[12px] text-[13px] font-medium transition-all duration-200 ${
+                targetingMode === mode
+                  ? "bg-text-primary text-white"
+                  : "bg-white text-text-muted hover:bg-surface-secondary"
+              }`}
+            >
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+        </div>
+        <p className="text-[12px] text-text-muted mt-[6px]">
+          {TARGETING_MODE_DESCRIPTIONS[targetingMode]}
+        </p>
+      </div>
 
       <div className="flex flex-col gap-[24px]">
         <ChipSelect

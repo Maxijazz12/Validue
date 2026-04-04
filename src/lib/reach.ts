@@ -327,7 +327,8 @@ export function getCampaignWarnings(
   tier: PlanTier,
   fundingAmount: number,
   audienceFilterCount: number,
-  qualityScore?: number
+  qualityScore?: number,
+  targetingMode?: "broad" | "balanced" | "strict"
 ): string[] {
   const warnings: string[] = [];
   const estimate = calculateReach(tier, fundingAmount, { qualityScore });
@@ -351,10 +352,20 @@ export function getCampaignWarnings(
     );
   }
 
-  // Narrow audience warning
-  if (audienceFilterCount >= 4) {
+  // Narrow audience warning — threshold varies by targeting mode
+  const narrowThreshold = targetingMode === "strict" ? 3 : 4;
+  if (audienceFilterCount >= narrowThreshold) {
     warnings.push(
-      "Your targeting is very specific, which may limit how many people can respond. Broadening slightly will help your campaign fill faster."
+      targetingMode === "strict"
+        ? "Strict targeting with this many dimensions will significantly limit eligible respondents. Consider removing some filters or switching to Balanced."
+        : "Your targeting is very specific, which may limit how many people can respond. Broadening slightly will help your campaign fill faster."
+    );
+  }
+
+  // Strict mode general notice
+  if (targetingMode === "strict" && audienceFilterCount >= 1) {
+    warnings.push(
+      "Strict targeting requires respondents to match every dimension you set. This guarantees relevance but may slow campaign fill."
     );
   }
 

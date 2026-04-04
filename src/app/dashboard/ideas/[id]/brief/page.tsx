@@ -116,6 +116,8 @@ export default async function BriefPage({
       roundNumber={cachedBrief.result.roundNumber}
       parentVerdicts={cachedBrief.result.parentVerdicts}
       synthesisError={false}
+      isSegmented={cachedBrief.result.isSegmented}
+      bucketCounts={cachedBrief.result.bucketCounts}
     />
   );
 }

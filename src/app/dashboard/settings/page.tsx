@@ -162,6 +162,8 @@ export default async function SettingsPage({
             ageRange={profile?.age_range ?? null}
             location={profile?.location ?? ""}
             occupation={profile?.occupation ?? ""}
+            industry={profile?.industry ?? ""}
+            experienceLevel={profile?.experience_level ?? ""}
           />
         </div>
       )}

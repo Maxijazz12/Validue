@@ -52,6 +52,8 @@ export type CampaignTargeting = {
   targetExpertise: string[];
   targetAgeRanges: string[];
   tags: string[];
+  audienceIndustry?: string | null;
+  audienceExperienceLevel?: string | null;
 };
 
 export type AssignmentResult = {
@@ -153,6 +155,8 @@ export function assignQuestions(
       target_expertise: targeting.targetExpertise,
       target_age_ranges: targeting.targetAgeRanges,
       tags: targeting.tags,
+      audience_industry: targeting.audienceIndustry ?? null,
+      audience_experience_level: targeting.audienceExperienceLevel ?? null,
     },
     profile
   );

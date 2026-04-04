@@ -8,6 +8,102 @@
 - 2026-04-02 (night): E2e testing session — migrations applied, respond flow verified, brief fallback rendering
 - 2026-04-03 (afternoon): Full codebase security & math audit + 12 fixes (CAS locks, timing-safe cron, spam bypass, idempotency)
 - 2026-04-03: Cashout flow + launch blockers sweep (7 features)
+- 2026-04-03 (night): Full 9-system audit + 12 critical/high fixes (payout CAS, reputation NaN, timing-safe cron, atomic submission CTE)
+- 2026-04-04: Phase 2 targeting — critique + full implementation (4 workstreams)
+
+## 2026-04-04 — Phase 2: Targeting Strictness, Match Snapshots, Funnel Analytics, Brief Segmentation
+
+### What was done
+
+Fixed a live bug in `assumption-evidence.ts` and `extract-price-signal.ts` (industry + experience_level columns missing from SQL queries — match scores in briefs were wrong for those dimensions since Phase 1 shipped). Then implemented all 4 workstreams of Phase 2.
+
+#### WS1: Targeting Strictness Modes
+- Founders choose `broad` / `balanced` / `strict` when creating campaigns
+- `broad` = no eligibility check (ranking only), `balanced` = any-dimension overlap (existing behavior), `strict` = all-dimension overlap required
+- Migration `052_targeting_strictness.sql` — column + CHECK constraint
+- Refactored `meetsMinimumEligibility` to accept `TargetingMode` param with backward-compatible default
+- 21 new tests covering all mode × dimension × edge case combinations
+- Subsidized campaigns forced to `balanced` (anti-gaming)
+- 3-option segmented control in `AudienceTargetingPanel` with mode descriptions
+- Reach warnings adjusted for strict mode (lower filter threshold)
+- Mode-aware error messages in `startResponse`
+
+#### WS3: Response-Time Match Snapshots
+- Captures `match_score_at_start` (smallint) + `match_bucket` (core/adjacent/off_target) at response creation time
+- Migration `053_response_match_snapshot.sql` — columns + CHECK constraints + partial index
+- `classifyMatchBucket()` helper in `wall-ranking.ts` (reusable across codebase)
+- `MATCH_BUCKET_CORE_THRESHOLD: 70` and `MATCH_BUCKET_ADJACENT_THRESHOLD: 40` in defaults
+- Eliminated duplicate profile fetch in `startResponse` (saves 1 DB round-trip per response start)
+- 6 new bucket classification tests
+
+#### WS4: Founder Audience-Funnel Analytics
+- `wall_impressions` table tracks which campaigns each respondent sees on The Wall
+- Migration `054_wall_impressions.sql` — table + PK + CHECK constraints + indexes + both SELECT and INSERT RLS policies
+- Fire-and-forget batch impression recording in `load-wall-page-data.ts` via `jsonb_to_recordset` + `ON CONFLICT DO NOTHING`
+- Funnel query on responses page: shown → started → submitted → qualified → paid, broken out by match bucket
+- Demographics query: top industries, experience levels, age ranges from submitted responses
+- `AudienceFunnel` component — stacked bar chart with conversion rates per stage, color-coded by bucket
+- `RespondentDemographics` component — top-5 breakdowns with mini bar charts
+
+#### WS5: Brief Segmentation by Fit Bucket
+- Added `matchBucket: MatchBucket` to `AssumptionEvidence` type
+- Added `groupByBucket()` helper for evidence grouping
+- Updated AI system prompt with detailed segmentation instructions (weighting rules, expansion market detection, segment alignment definitions)
+- `buildSynthesisPrompt` groups evidence by bucket per assumption when `isSegmented` is true
+- Added `segmentAlignment` (ALIGNED/SPLIT/CORE_ONLY/UNSEGMENTED) to `AssumptionVerdictSchema`
+- Added `sampleQuality` to `DecisionBriefSchema` (bucket counts + note)
+- Segmentation decision: activate when >=3 total responses AND >=1 core-fit
+- "Sample Composition" card in brief UI with colored bucket indicators
+- Segment alignment badges on each verdict card
+
+#### Deferred
+- **WS2 (Hard Filters)** — deferred until strict mode adoption data exists. Adds nested config (which dimensions are "hard" within strict mode) that most founders won't use yet.
+
+### Migrations to apply (3 new)
+- `052_targeting_strictness.sql`
+- `053_response_match_snapshot.sql`
+- `054_wall_impressions.sql`
+
+### Files created (5)
+- `supabase/migrations/052_targeting_strictness.sql`
+- `supabase/migrations/053_response_match_snapshot.sql`
+- `supabase/migrations/054_wall_impressions.sql`
+- `src/components/dashboard/responses/AudienceFunnel.tsx`
+- `src/components/dashboard/responses/RespondentDemographics.tsx`
+
+### Files modified (18)
+- `src/lib/wall-ranking.ts` — `TargetingMode`, `MatchBucket`, `classifyMatchBucket()`, refactored `meetsMinimumEligibility`
+- `src/lib/defaults.ts` — `MATCH_BUCKET_CORE_THRESHOLD`, `MATCH_BUCKET_ADJACENT_THRESHOLD`
+- `src/lib/supabase/database.types.ts` — `targeting_mode` on campaigns, `match_score_at_start`/`match_bucket` on responses, `wall_impressions` table
+- `src/lib/ai/types.ts` — `targetingMode` on `CampaignDraft`
+- `src/lib/campaign-draft-persistence.ts` — `targetingMode` through all types + builders
+- `src/lib/reach.ts` — `getCampaignWarnings` accepts `targetingMode`
+- `src/lib/ai/assumption-evidence.ts` — `matchBucket` on evidence, `groupByBucket()`, fixed missing industry/experience columns in SQL
+- `src/lib/ai/extract-price-signal.ts` — fixed missing industry/experience columns in SQL
+- `src/lib/ai/brief-prompts.ts` — segmentation instructions in system prompt, bucket-grouped evidence in user message
+- `src/lib/ai/brief-schemas.ts` — `segmentAlignment` on verdicts, `sampleQuality` on brief
+- `src/lib/ai/synthesize-brief.ts` — segmentation decision, `isSegmented`/`bucketCounts` on `BriefResult`
+- `src/app/dashboard/ideas/new/actions.ts` — `targeting_mode` in publish/save/update SQL
+- `src/app/dashboard/the-wall/[id]/actions.ts` — targeting mode + match snapshot in startResponse
+- `src/app/dashboard/the-wall/load-wall-page-data.ts` — impression recording
+- `src/app/dashboard/ideas/[id]/responses/page.tsx` — funnel + demographics queries + rendering
+- `src/app/dashboard/ideas/[id]/brief/BriefPageContent.tsx` — sample composition card + segment alignment badges
+- `src/app/dashboard/ideas/[id]/brief/page.tsx` — passes segmentation props
+- `src/components/dashboard/create-idea/AudienceTargetingPanel.tsx` — targeting mode selector
+- `src/components/dashboard/create-idea/DraftReviewStep.tsx` — passes targeting mode props
+
+### Verification
+- Tests: 408/408 passing (was 381 at session start)
+- ESLint: 0 errors
+- Build: successful
+
+### Known gaps (carried forward)
+- WS2 (Hard Filters) deferred — revisit after strict mode adoption data
+- matchSkew in `segment-disagreements.ts` still uses hardcoded 70/30 thresholds (should use `classifyMatchBucket`)
+- `assumption-evidence.ts` re-computes match scores at brief time — future: use stored `match_score_at_start` from WS3 with fallback for pre-WS3 rows
+- Brief cache does not have a version — old cached briefs won't have segmentation fields (they render fine since fields are optional, but won't show the new UI)
+- `Database` type not wired into Supabase clients
+- Dead V1 DB columns still exist
 
 ## 2026-04-03 (night) — Full 9-system audit + 12 critical/high fixes
 

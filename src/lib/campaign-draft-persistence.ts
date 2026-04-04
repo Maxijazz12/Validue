@@ -28,6 +28,7 @@ export type StoredDraftCampaignRecord = {
   audience_industry: string | null;
   audience_experience_level: string | null;
   audience_niche_qualifier: string | null;
+  targeting_mode: string | null;
   quality_scores: unknown;
   quality_score?: number | null;
 };
@@ -63,6 +64,7 @@ export type PersistedCampaignDraft = {
   audienceIndustry: string | null;
   audienceExperienceLevel: string | null;
   audienceNicheQualifier: string | null;
+  targetingMode: "broad" | "balanced" | "strict";
   qualityScoresJson: string | null;
   qualityScores: CampaignDraft["qualityScores"] | null;
   qualityScore: number;
@@ -94,6 +96,14 @@ function normalizeRewardType(
   rewardType: string | null | undefined
 ): "pool" | "top_only" {
   return rewardType === "top_only" ? "top_only" : "pool";
+}
+
+function normalizeTargetingMode(
+  mode: string | null | undefined
+): "broad" | "balanced" | "strict" {
+  if (mode === "broad") return "broad";
+  if (mode === "strict") return "strict";
+  return "balanced";
 }
 
 function coerceStringArray(value: unknown): string[] | null {
@@ -172,6 +182,7 @@ export function buildPersistedCampaignDraft(
     audienceIndustry: draft.audience.industry || null,
     audienceExperienceLevel: draft.audience.experienceLevel || null,
     audienceNicheQualifier: draft.audience.nicheQualifier || null,
+    targetingMode: normalizeTargetingMode(draft.targetingMode),
     qualityScoresJson: qualityScores ? JSON.stringify(qualityScores) : null,
     qualityScores,
     qualityScore: qualityScores?.overall ?? 0,
@@ -226,6 +237,7 @@ export function buildCopiedCampaignDraft(
     audienceIndustry: campaign.audience_industry ?? null,
     audienceExperienceLevel: campaign.audience_experience_level ?? null,
     audienceNicheQualifier: campaign.audience_niche_qualifier ?? null,
+    targetingMode: normalizeTargetingMode(campaign.targeting_mode),
     qualityScoresJson: qualityScores ? JSON.stringify(qualityScores) : null,
     qualityScores,
     qualityScore:
@@ -298,5 +310,6 @@ export function buildDraftFromStoredCampaign(
     rewardType: persistedCampaign.rewardType,
     bonusAvailable: persistedCampaign.bonusAvailable,
     rewardsTopAnswers: persistedCampaign.rewardsTopAnswers,
+    targetingMode: persistedCampaign.targetingMode,
   };
 }

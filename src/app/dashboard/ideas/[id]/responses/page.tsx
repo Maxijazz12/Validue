@@ -4,10 +4,13 @@ import Link from "next/link";
 import RankButton from "@/components/dashboard/responses/RankButton";
 import ResponseSection from "@/components/dashboard/responses/ResponseSection";
 import ExportResponsesButton from "@/components/dashboard/responses/ExportResponsesButton";
+import AudienceFunnel from "@/components/dashboard/responses/AudienceFunnel";
+import RespondentDemographics from "@/components/dashboard/responses/RespondentDemographics";
 import type { ResponseItem } from "@/components/dashboard/responses/ResponseList";
 import { safeNumber } from "@/lib/defaults";
 import { getSubscription } from "@/lib/plan-guard";
 import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
+import sql from "@/lib/db";
 
 export default async function CampaignResponsesPage({
   params,
@@ -70,6 +73,63 @@ export default async function CampaignResponsesPage({
     existing.push(answer);
     answersByResponse.set(answer.response_id, existing);
   }
+
+  // Funnel analytics + demographics (parallel, non-blocking for page render)
+  const [funnelRows, demographicRows] = await Promise.all([
+    sql`
+      SELECT
+        COALESCE(wi.match_bucket, r.match_bucket, 'unknown') AS bucket,
+        COUNT(DISTINCT wi.user_id) AS shown_count,
+        COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN r.respondent_id END) AS started_count,
+        COUNT(DISTINCT CASE WHEN r.status IN ('submitted','ranked') THEN r.respondent_id END) AS submitted_count,
+        COUNT(DISTINCT CASE WHEN r.money_state IN ('qualified','available','paid_out') THEN r.respondent_id END) AS qualified_count,
+        COUNT(DISTINCT CASE WHEN r.money_state IN ('available','paid_out') THEN r.respondent_id END) AS paid_count
+      FROM wall_impressions wi
+      LEFT JOIN responses r ON r.campaign_id = wi.campaign_id AND r.respondent_id = wi.user_id
+      WHERE wi.campaign_id = ${id}
+      GROUP BY COALESCE(wi.match_bucket, r.match_bucket, 'unknown')
+      ORDER BY CASE COALESCE(wi.match_bucket, r.match_bucket, 'unknown')
+        WHEN 'core' THEN 1 WHEN 'adjacent' THEN 2 WHEN 'off_target' THEN 3 ELSE 4 END
+    `.catch(() => []),
+    sql`
+      SELECT p.industry, p.experience_level, p.age_range
+      FROM responses r
+      JOIN profiles p ON p.id = r.respondent_id
+      WHERE r.campaign_id = ${id}
+        AND r.status IN ('submitted', 'ranked')
+    `.catch(() => []),
+  ]);
+
+  // Transform funnel data
+  type FunnelRow = { bucket: string; shown_count: number; started_count: number; submitted_count: number; qualified_count: number; paid_count: number };
+  const funnelData = (funnelRows as FunnelRow[]).map((row) => ({
+    bucket: row.bucket as string,
+    shown: Number(row.shown_count),
+    started: Number(row.started_count),
+    submitted: Number(row.submitted_count),
+    qualified: Number(row.qualified_count),
+    paid: Number(row.paid_count),
+  }));
+  const hasFunnelData = funnelData.some((r) => r.shown > 0);
+
+  // Aggregate demographics client-side (small dataset)
+  type DemoRow = { industry: string | null; experience_level: string | null; age_range: string | null };
+  const industryMap = new Map<string, number>();
+  const experienceMap = new Map<string, number>();
+  const ageMap = new Map<string, number>();
+  for (const row of demographicRows as DemoRow[]) {
+    if (row.industry) industryMap.set(row.industry, (industryMap.get(row.industry) ?? 0) + 1);
+    if (row.experience_level) experienceMap.set(row.experience_level, (experienceMap.get(row.experience_level) ?? 0) + 1);
+    if (row.age_range) ageMap.set(row.age_range, (ageMap.get(row.age_range) ?? 0) + 1);
+  }
+  const toSorted = (m: Map<string, number>) =>
+    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([label, count]) => ({ label, count }));
+  const demographics = {
+    industries: toSorted(industryMap),
+    experienceLevels: toSorted(experienceMap),
+    ageRanges: toSorted(ageMap),
+  };
+  const hasDemographics = demographics.industries.length > 0 || demographics.experienceLevels.length > 0 || demographics.ageRanges.length > 0;
 
   // Compute stats
   const totalResponses = responses?.length || 0;
@@ -257,6 +317,14 @@ export default async function CampaignResponsesPage({
           </div>
         </div>
       </div>
+
+      {/* Audience Funnel + Demographics */}
+      {(hasFunnelData || hasDemographics) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[16px] mb-[24px]">
+          {hasFunnelData && <AudienceFunnel data={funnelData} />}
+          {hasDemographics && <RespondentDemographics data={demographics} />}
+        </div>
+      )}
 
       {/* Rank button */}
       {unrankedCount > 0 && (

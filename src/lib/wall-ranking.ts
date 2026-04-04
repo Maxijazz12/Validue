@@ -15,12 +15,16 @@ export type WallCampaign = {
   target_expertise: string[];
   target_age_ranges: string[];
   tags: string[];
+  audience_industry: string | null;
+  audience_experience_level: string | null;
 };
 
 export type RespondentProfile = {
   interests: string[];
   expertise: string[];
   age_range: string | null;
+  industry: string | null;
+  experience_level: string | null;
   profile_completed: boolean;
   reputation_score: number;
   total_responses_completed?: number;
@@ -30,63 +34,94 @@ export type RespondentProfile = {
 
 /**
  * Match score: how well the campaign targets align with the respondent profile.
- * 0–100 points based on interest/expertise/age/tag overlap.
+ * 0–100 points based on interest/expertise/age/industry/experience/tag overlap.
  *
- * V2: Symmetric handling — if either side is empty for a dimension,
+ * V3: Added industry + experience_level dimensions. Point budget:
+ *   interests  35,  expertise  25,  age  15,  industry  10,
+ *   experience 10,  tags  10,  reputation  5  (max ~110, clamped to 100).
+ *
+ * Symmetric handling — if either side is empty for a dimension,
  * score that dimension at 40% of max (slightly below neutral).
  */
 export function computeMatchScore(
   campaign: Pick<
     WallCampaign,
-    "target_interests" | "target_expertise" | "target_age_ranges" | "tags"
+    | "target_interests"
+    | "target_expertise"
+    | "target_age_ranges"
+    | "tags"
+    | "audience_industry"
+    | "audience_experience_level"
   >,
   profile: RespondentProfile
 ): number {
   let score = 0;
   const unknownFraction = DEFAULTS.MATCH_SCORE_UNKNOWN_DIM;
 
-  // Interest overlap (0-40 pts)
+  // Interest overlap (0-35 pts)
   if (
     campaign.target_interests.length === 0 ||
     profile.interests.length === 0
   ) {
-    score += 40 * unknownFraction; // 16 pts — unknown alignment
+    score += 35 * unknownFraction;
   } else {
     const overlap = campaign.target_interests.filter((i) =>
       profile.interests.includes(i)
     ).length;
     const ratio = overlap / campaign.target_interests.length;
-    score += ratio * 40;
+    score += ratio * 35;
   }
 
-  // Expertise overlap (0-30 pts)
+  // Expertise overlap (0-25 pts)
   if (
     campaign.target_expertise.length === 0 ||
     profile.expertise.length === 0
   ) {
-    score += 30 * unknownFraction; // 12 pts
+    score += 25 * unknownFraction;
   } else {
     const overlap = campaign.target_expertise.filter((e) =>
       profile.expertise.includes(e)
     ).length;
     const ratio = overlap / campaign.target_expertise.length;
-    score += ratio * 30;
+    score += ratio * 25;
   }
 
   // Age range match (0-15 pts)
   if (campaign.target_age_ranges.length === 0 || !profile.age_range) {
-    score += 15 * unknownFraction; // 6 pts
+    score += 15 * unknownFraction;
   } else {
     if (campaign.target_age_ranges.includes(profile.age_range)) score += 15;
   }
 
-  // Tag overlap with interests/expertise (0-15 pts) — fallback for legacy campaigns
+  // Industry match (0-10 pts)
+  if (!campaign.audience_industry || !profile.industry) {
+    score += 10 * unknownFraction;
+  } else {
+    if (
+      profile.industry.toLowerCase() ===
+      campaign.audience_industry.toLowerCase()
+    )
+      score += 10;
+  }
+
+  // Experience level match (0-10 pts)
+  if (!campaign.audience_experience_level || !profile.experience_level) {
+    score += 10 * unknownFraction;
+  } else {
+    if (
+      profile.experience_level.toLowerCase() ===
+      campaign.audience_experience_level.toLowerCase()
+    )
+      score += 10;
+  }
+
+  // Tag overlap with interests/expertise (0-10 pts) — fallback for legacy campaigns
   if (campaign.tags.length > 0) {
     const allProfileTags = [...profile.interests, ...profile.expertise];
     const tagOverlap = campaign.tags.filter((t) =>
       allProfileTags.includes(t)
     ).length;
-    score += Math.min((tagOverlap / campaign.tags.length) * 15, 15);
+    score += Math.min((tagOverlap / campaign.tags.length) * 10, 10);
   }
 
   // Reputation boost (0-5 pts, requires minimum sample)
@@ -99,6 +134,110 @@ export function computeMatchScore(
   }
 
   return Math.min(100, Math.round(score));
+}
+
+/* ─── Match Bucket Classification ─── */
+
+export type MatchBucket = "core" | "adjacent" | "off_target";
+
+/**
+ * Classifies a match score into a fit bucket for analytics and brief segmentation.
+ *   core     (>= 70): closely matches the target audience
+ *   adjacent (40-69): partial match, useful but less authoritative signal
+ *   off_target (< 40): poor match
+ */
+export function classifyMatchBucket(score: number): MatchBucket {
+  if (score >= DEFAULTS.MATCH_BUCKET_CORE_THRESHOLD) return "core";
+  if (score >= DEFAULTS.MATCH_BUCKET_ADJACENT_THRESHOLD) return "adjacent";
+  return "off_target";
+}
+
+export type TargetingMode = "broad" | "balanced" | "strict";
+
+/**
+ * Minimum eligibility check for responding to a campaign.
+ *
+ * Modes:
+ *   broad    — always eligible (targeting affects ranking only)
+ *   balanced — pass if respondent overlaps on at least ONE targeted dimension (default)
+ *   strict   — pass only if respondent overlaps on ALL targeted dimensions
+ *
+ * Incomplete profiles always pass regardless of mode (we nudge completion separately).
+ * Campaigns with no targeting set always pass regardless of mode.
+ */
+export function meetsMinimumEligibility(
+  campaign: Pick<
+    WallCampaign,
+    | "target_interests"
+    | "target_expertise"
+    | "target_age_ranges"
+    | "audience_industry"
+    | "audience_experience_level"
+  >,
+  profile: RespondentProfile,
+  mode: TargetingMode = "balanced"
+): boolean {
+  // Incomplete profiles always pass — we nudge completion separately
+  if (!profile.profile_completed) return true;
+
+  // Build list of actively targeted dimensions and whether the respondent matches each
+  const targeted: { name: string; matches: boolean }[] = [];
+
+  if (campaign.target_interests.length > 0) {
+    targeted.push({
+      name: "interests",
+      matches:
+        profile.interests.length > 0 &&
+        campaign.target_interests.some((i) => profile.interests.includes(i)),
+    });
+  }
+  if (campaign.target_expertise.length > 0) {
+    targeted.push({
+      name: "expertise",
+      matches:
+        profile.expertise.length > 0 &&
+        campaign.target_expertise.some((e) => profile.expertise.includes(e)),
+    });
+  }
+  if (campaign.target_age_ranges.length > 0) {
+    targeted.push({
+      name: "age_range",
+      matches:
+        !!profile.age_range &&
+        campaign.target_age_ranges.includes(profile.age_range),
+    });
+  }
+  if (campaign.audience_industry) {
+    targeted.push({
+      name: "industry",
+      matches:
+        !!profile.industry &&
+        profile.industry.toLowerCase() ===
+          campaign.audience_industry.toLowerCase(),
+    });
+  }
+  if (campaign.audience_experience_level) {
+    targeted.push({
+      name: "experience_level",
+      matches:
+        !!profile.experience_level &&
+        profile.experience_level.toLowerCase() ===
+          campaign.audience_experience_level.toLowerCase(),
+    });
+  }
+
+  // No targeting at all — anyone can respond
+  if (targeted.length === 0) return true;
+
+  switch (mode) {
+    case "broad":
+      return true;
+    case "strict":
+      return targeted.every((d) => d.matches);
+    case "balanced":
+    default:
+      return targeted.some((d) => d.matches);
+  }
 }
 
 /**

@@ -21,6 +21,7 @@ export const AssumptionVerdictSchema = z.object({
     .min(0)
     .max(3),
   contradictingSignal: z.string().max(400).optional(),
+  segmentAlignment: z.enum(["ALIGNED", "SPLIT", "CORE_ONLY", "UNSEGMENTED"]).optional(),
 });
 
 export const NextStepSchema = z.object({
@@ -40,6 +41,13 @@ export const DecisionBriefSchema = z.object({
   strongestSignals: z.array(z.string().max(400)).min(1).max(5),
   nextSteps: z.array(NextStepSchema).min(2).max(5),
   cheapestTest: z.string().max(500),
+  sampleQuality: z.object({
+    coreFitCount: z.number().int().min(0),
+    adjacentCount: z.number().int().min(0),
+    offTargetCount: z.number().int().min(0),
+    isSegmented: z.boolean(),
+    sampleNote: z.string().max(300),
+  }).optional(),
 });
 
 export type DecisionBrief = z.infer<typeof DecisionBriefSchema>;
@@ -182,6 +190,12 @@ export const SYNTHESIZE_BRIEF_TOOL = {
               description:
                 "Brief note on any contradicting evidence, if present. Include a quote if available. Max 400 chars.",
             },
+            segmentAlignment: {
+              type: "string" as const,
+              enum: ["ALIGNED", "SPLIT", "CORE_ONLY", "UNSEGMENTED"],
+              description:
+                "Whether audience segments agree on this assumption. ALIGNED = all segments agree, SPLIT = core diverges from adjacent/off-target, CORE_ONLY = only core-fit data, UNSEGMENTED = evidence was not segmented.",
+            },
           },
         },
         description:
@@ -227,6 +241,18 @@ export const SYNTHESIZE_BRIEF_TOOL = {
         maxLength: 500,
         description:
           "The single cheapest test the founder can run THIS WEEK to get more signal. Be specific — name the channel, audience, and metric to track. Max 500 chars.",
+      },
+      sampleQuality: {
+        type: "object" as const,
+        required: ["coreFitCount", "adjacentCount", "offTargetCount", "isSegmented", "sampleNote"],
+        properties: {
+          coreFitCount: { type: "number" as const, description: "Number of core-fit respondents" },
+          adjacentCount: { type: "number" as const, description: "Number of adjacent-fit respondents" },
+          offTargetCount: { type: "number" as const, description: "Number of off-target respondents" },
+          isSegmented: { type: "boolean" as const, description: "Whether evidence was segmented by fit bucket" },
+          sampleNote: { type: "string" as const, maxLength: 300, description: "Brief note on sample representativeness" },
+        },
+        description: "Audience composition breakdown. Summarize how representative the sample is of the target audience.",
       },
     },
   },
