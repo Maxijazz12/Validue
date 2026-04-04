@@ -40,6 +40,8 @@ type DisputeData = {
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"diagnostics" | "campaign" | "users" | "disputes">("diagnostics");
 
   // Diagnostics
@@ -64,9 +66,54 @@ export default function AdminPage() {
   const [disputesLoading, setDisputesLoading] = useState(false);
   const [disputesError, setDisputesError] = useState<string | null>(null);
 
-  function handleLogin(e: React.FormEvent) {
+  const resetAdminSession = useCallback((message: string | null = null) => {
+    setAuthenticated(false);
+    setAdminKey("");
+    setActiveTab("diagnostics");
+    setDiagnostics(null);
+    setCampaignData(null);
+    setUserData(null);
+    setDisputesList(null);
+    setDiagError(null);
+    setCampError(null);
+    setUserError(null);
+    setDisputesError(null);
+    setAuthError(message);
+  }, []);
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setAuthenticated(true);
+    const trimmedKey = adminKey.trim();
+    if (!trimmedKey) {
+      setAuthError("Admin key is required");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setDiagError(null);
+
+    try {
+      const res = await fetch("/api/admin/diagnostics", {
+        headers: { "x-admin-key": trimmedKey },
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          resetAdminSession("Invalid admin key");
+          return;
+        }
+        throw new Error(`${res.status}: ${await res.text()}`);
+      }
+
+      setDiagnostics(await res.json());
+      setAdminKey(trimmedKey);
+      setAuthenticated(true);
+    } catch (err) {
+      setAuthenticated(false);
+      setAuthError((err as Error).message);
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
   const fetchDiagnostics = useCallback(async () => {
@@ -78,9 +125,7 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         if (res.status === 401) {
-          setAuthenticated(false);
-          sessionStorage.removeItem("admin_key");
-          setDiagError("Invalid admin key");
+          resetAdminSession("Admin session expired. Please sign in again.");
           return;
         }
         throw new Error(`${res.status}: ${await res.text()}`);
@@ -91,7 +136,7 @@ export default function AdminPage() {
     } finally {
       setDiagLoading(false);
     }
-  }, [adminKey]);
+  }, [adminKey, resetAdminSession]);
 
   async function fetchCampaign() {
     if (!campaignId.trim()) return;
@@ -101,6 +146,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/campaign/${campaignId.trim()}`, {
         headers: { "x-admin-key": adminKey },
       });
+      if (res.status === 401) {
+        resetAdminSession("Admin session expired. Please sign in again.");
+        return;
+      }
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       setCampaignData(await res.json());
     } catch (err) {
@@ -118,6 +167,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/users?q=${encodeURIComponent(userSearch.trim())}`, {
         headers: { "x-admin-key": adminKey },
       });
+      if (res.status === 401) {
+        resetAdminSession("Admin session expired. Please sign in again.");
+        return;
+      }
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       const data = await res.json();
       setUserData(data.users);
@@ -135,6 +188,10 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/disputes?status=open", {
         headers: { "x-admin-key": adminKey },
       });
+      if (res.status === 401) {
+        resetAdminSession("Admin session expired. Please sign in again.");
+        return;
+      }
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       const data = await res.json();
       setDisputesList(data.disputes);
@@ -143,7 +200,7 @@ export default function AdminPage() {
     } finally {
       setDisputesLoading(false);
     }
-  }, [adminKey]);
+  }, [adminKey, resetAdminSession]);
 
   async function resolveDispute(disputeId: string, status: string, adminNotes: string) {
     try {
@@ -152,6 +209,10 @@ export default function AdminPage() {
         headers: { "x-admin-key": adminKey, "content-type": "application/json" },
         body: JSON.stringify({ disputeId, status, adminNotes }),
       });
+      if (res.status === 401) {
+        resetAdminSession("Admin session expired. Please sign in again.");
+        return;
+      }
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       // Refresh disputes list
       fetchDisputes();
@@ -187,10 +248,14 @@ export default function AdminPage() {
           />
           <button
             type="submit"
+            disabled={authLoading}
             className="w-full px-4 py-3 rounded-lg bg-[#D4A088] text-[#0A0A0A] font-mono font-bold text-[14px] hover:bg-[#E8C1B0] transition-colors"
           >
-            Enter
+            {authLoading ? "Checking..." : "Enter"}
           </button>
+          {authError && (
+            <p className="mt-3 text-center text-[13px] text-red-400">{authError}</p>
+          )}
         </form>
       </div>
     );
@@ -210,9 +275,7 @@ export default function AdminPage() {
           <h1 className="text-[20px] font-bold tracking-wider">ADMIN CONSOLE</h1>
           <button
             onClick={() => {
-              sessionStorage.removeItem("admin_key");
-              setAuthenticated(false);
-              setAdminKey("");
+              resetAdminSession();
             }}
             className="text-[12px] text-[#666] hover:text-white transition-colors"
           >

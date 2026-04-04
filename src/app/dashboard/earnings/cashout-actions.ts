@@ -8,6 +8,7 @@ import { captureError } from "@/lib/sentry";
 import { rateLimit } from "@/lib/rate-limit";
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
+import { claimFailedCashoutRetry } from "@/lib/cashout-retry";
 
 function cashoutIdempotencyKey(cashoutId: string, attemptCount: number): string {
   return `cashout_${cashoutId}_attempt_${Math.max(1, attemptCount)}`;
@@ -377,35 +378,36 @@ export async function retryCashout(
     return { error: `Insufficient balance. You need $${(amountCents / 100).toFixed(2)} but have $${(currentBalance / 100).toFixed(2)}.` };
   }
 
-  // Atomically deduct balance + update cashout status in one transaction
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql typing
-  const txResult = await sql.begin(async (tx: any) => {
-    const [updated] = await tx`
-      UPDATE profiles
-      SET available_balance_cents = available_balance_cents - ${amountCents},
-          last_cashout_at = NOW()
-      WHERE id = ${user.id}
-        AND available_balance_cents >= ${amountCents}
-      RETURNING available_balance_cents
-    `;
-    if (!updated) return { error: "Balance changed. Please refresh." } as const;
+  let txResult: { attemptCount: number; snapshotAt: string | Date };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql typing
+    txResult = await sql.begin(async (tx: any) => {
+      const claimed = await claimFailedCashoutRetry(
+        tx,
+        cashoutId,
+        user.id,
+        amountCents
+      );
 
-    const [updatedCashout] = await tx`
-      UPDATE cashouts
-      SET status = 'processing',
-          failure_reason = NULL,
-          attempt_count = attempt_count + 1
-      WHERE id = ${cashoutId}
-      RETURNING attempt_count, created_at
-    `;
-    return {
-      ok: true,
-      attemptCount: Number(updatedCashout?.attempt_count) || 1,
-      snapshotAt: updatedCashout?.created_at || cashout.created_at,
-    } as const;
-  });
+      if (!claimed) {
+        throw new Error("CASHOUT_NOT_RETRYABLE");
+      }
 
-  if ("error" in txResult) return { error: txResult.error as string };
+      return claimed;
+    });
+  } catch (err) {
+    const message = (err as Error).message;
+    if (message === "CASHOUT_NOT_RETRYABLE") {
+      return { error: "This cashout is already being retried. Please refresh." };
+    }
+    if (message === "INSUFFICIENT_BALANCE") {
+      return { error: "Balance changed. Please refresh." };
+    }
+
+    console.error("[cashout-retry] Retry claim failed:", err);
+    captureError(err, { userId: user.id, cashoutId, operation: "cashout.retry_claim" });
+    return { error: "Retry failed. Please try again." };
+  }
 
   // Attempt transfer
   try {

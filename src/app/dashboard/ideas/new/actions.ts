@@ -5,7 +5,7 @@ import sql from "@/lib/db";
 import type { CampaignDraft } from "@/lib/ai/types";
 import { canCreateCampaign, isFirstCampaign, checkSubsidyEligibility } from "@/lib/plan-guard";
 import { calculateReach, validateFunding } from "@/lib/reach";
-import { PLAN_CONFIG, PLATFORM_FEE_RATE } from "@/lib/plans";
+import { PLAN_CONFIG, PLATFORM_FEE_RATE, normalizeTier } from "@/lib/plans";
 import { DEFAULTS } from "@/lib/defaults";
 import {
   defaultTargetResponses,
@@ -43,6 +43,11 @@ export async function publishCampaign(
   if (!rl.allowed) {
     return { error: "Too many campaigns created. Please wait before publishing again." };
   }
+  // Double-publish guard: 1 publish per 10 seconds
+  const dedup = rateLimit(`publish-dedup:${user.id}`, 10000, 1);
+  if (!dedup.allowed) {
+    return { error: "Campaign already being published. Please wait." };
+  }
 
   // 2. Check tier allowance
   const allowance = await canCreateCampaign(user.id);
@@ -50,7 +55,14 @@ export async function publishCampaign(
     return { error: allowance.reason ?? "Campaign limit reached for this period." };
   }
 
-  // 3. Content moderation check
+  // 3. Input validation — emptiness, length, and count guards
+  if (!draft.title?.trim()) return { error: "Title is required." };
+  if (!draft.summary?.trim()) return { error: "Summary is required." };
+  draft.title = enforceLength(draft.title, MAX_LENGTHS.TITLE).text;
+  draft.summary = enforceLength(draft.summary, MAX_LENGTHS.SUMMARY).text;
+  if (draft.tags && draft.tags.length > 5) return { error: "Maximum 5 tags allowed." };
+
+  // 3a. Content moderation check
   const contentFields = [
     { name: "title", text: draft.title },
     { name: "summary", text: draft.summary },
@@ -74,6 +86,22 @@ export async function publishCampaign(
   const baselineCount = draft.questions.filter((q) => q.isBaseline).length;
   if (baselineCount === 0) {
     return { error: "Campaign must include at least 1 behavioral screening question. Re-generate or add a baseline question." };
+  }
+
+  // 3c. Minimum total question count
+  if (draft.questions.length < 3) {
+    return { error: "Campaign must have at least 3 questions." };
+  }
+
+  // 3d. Validate question types and MC options
+  const VALID_QUESTION_TYPES = new Set(["open", "multiple_choice"]);
+  for (const q of draft.questions) {
+    if (!VALID_QUESTION_TYPES.has(q.type)) {
+      return { error: `Invalid question type: ${q.type}` };
+    }
+    if (q.type === "multiple_choice" && (!q.options || q.options.length < 2)) {
+      return { error: "Multiple choice questions need at least 2 options." };
+    }
   }
 
   // 4. Validate funding amount against tier minimum
@@ -109,6 +137,7 @@ export async function publishCampaign(
     isFirstMonth: firstMonth,
     isFirstCampaign: firstCampaign,
     qualityScore,
+    rankedResponseCount: 0,
   });
 
   const planConfig = PLAN_CONFIG[allowance.tier];
@@ -139,6 +168,9 @@ export async function publishCampaign(
   const keyAssumptions = draft.assumptions
     .filter((a) => a.trim().length > 0)
     .map((a) => enforceLength(a, 500).text);
+  if (keyAssumptions.length === 0) {
+    return { error: "At least one assumption is required." };
+  }
   // Determine initial status:
   // - Subsidized → active immediately
   // - Paid campaigns → pending_funding until Stripe funding clears
@@ -153,6 +185,7 @@ export async function publishCampaign(
       FROM responses
       WHERE respondent_id = ${user.id}
         AND status IN ('submitted', 'ranked')
+        AND created_at > NOW() - INTERVAL '1 hour'
     `;
     gateAlreadyCleared = (reciprocalCheck?.completed ?? 0) >= 1;
   }
@@ -174,13 +207,18 @@ export async function publishCampaign(
     : gateAlreadyCleared
       ? ("cleared" as const)
       : initialGateStatus(allowance.tier);
+  // If the reciprocal gate is required but not cleared, reject the publish.
+  // The pre-publish reciprocal flow (GeneratingStep) should always clear it;
+  // pending_gate had no activation path (incrementReciprocalGate was never called).
+  if (gateRequired && !gateAlreadyCleared) {
+    return { error: "Please complete the reciprocal questions before publishing." };
+  }
+
   const initialStatus = isSubsidized
     ? "active"
     : fundingAmount > 0
       ? "pending_funding"
-      : gateRequired && !gateAlreadyCleared
-        ? "pending_gate"
-        : "active";
+      : "active";
   // Subsidized: use subsidy budget as reward_amount for display; funded: use actual amount
   const effectiveRewardAmount = isSubsidized ? DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN : fundingAmount;
 
@@ -188,6 +226,38 @@ export async function publishCampaign(
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature via Omit<Sql>
     const result = await sql.begin(async (tx: any) => {
+      // Advisory lock on user to prevent concurrent publishes racing past the limit check
+      await tx`SELECT pg_advisory_xact_lock(hashtext('publish:' || ${user.id}))`;
+
+      // Re-check campaign count inside transaction to close TOCTOU window
+      const [subscriptionRow] = await tx`
+        SELECT tier, current_period_start, current_period_end
+        FROM subscriptions
+        WHERE user_id = ${user.id}
+        LIMIT 1
+      `;
+
+      const subTier = normalizeTier(subscriptionRow?.tier) ?? "free";
+      const [countRow] = subscriptionRow?.current_period_end && subTier !== "free"
+        ? await tx`
+            SELECT COUNT(*)::int AS count
+            FROM campaigns
+            WHERE creator_id = ${user.id}
+              AND status != 'draft'
+              AND created_at >= ${subscriptionRow.current_period_start}
+              AND created_at < ${subscriptionRow.current_period_end}
+          `
+        : await tx`
+            SELECT COUNT(*)::int AS count
+            FROM campaigns
+            WHERE creator_id = ${user.id}
+              AND status != 'draft'
+              AND created_at >= NOW() - INTERVAL '1 day' * ${DEFAULTS.FREE_TIER_RESET_DAYS}
+          `;
+      if (countRow.count >= allowance.limit) {
+        throw new Error("CAMPAIGN_LIMIT_REACHED");
+      }
+
       // Ensure profile exists (trigger may not have fired)
       await tx`
         INSERT INTO profiles (id, full_name, role)
@@ -308,6 +378,9 @@ export async function publishCampaign(
     console.error("[publishCampaign] DB error:", message);
     captureError(err, { userId: user.id, operation: "campaign.publish" });
 
+    if (message === "CAMPAIGN_LIMIT_REACHED") {
+      return { error: "Campaign limit reached for this period." };
+    }
     if (message.includes("password authentication failed") || message.includes("SASL")) {
       return { error: "Database connection failed. Please contact support." };
     }

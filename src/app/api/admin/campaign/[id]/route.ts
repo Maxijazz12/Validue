@@ -6,9 +6,9 @@ import {
   computeMomentumScore,
 } from "@/lib/wall-ranking";
 import { getQualityModifier } from "@/lib/reach";
-import { rateLimit } from "@/lib/rate-limit";
 import { isAdminAuthorized } from "@/lib/admin-auth";
 import { isValidUuid } from "@/lib/validate-uuid";
+import { adminRateLimit } from "@/lib/admin-rate-limit";
 
 /**
  * GET /api/admin/campaign/[id]
@@ -27,7 +27,7 @@ export async function GET(
   }
 
   // Rate limit: 10 campaign diagnostics per minute
-  const limit = rateLimit("admin:campaign", 60000, 10);
+  const limit = await adminRateLimit(request, "admin:campaign", 60000, 10);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }

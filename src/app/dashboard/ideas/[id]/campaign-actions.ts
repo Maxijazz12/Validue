@@ -8,6 +8,7 @@ import { logOps } from "@/lib/ops-logger";
 import { createNotification } from "@/lib/notifications";
 import { captureWarning } from "@/lib/sentry";
 import { rateLimit } from "@/lib/rate-limit";
+import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
 
 export async function completeCampaign(
   campaignId: string
@@ -19,35 +20,34 @@ export async function completeCampaign(
 
   if (!user) return { error: "Not authenticated." };
 
+  const rl = rateLimit(`complete:${user.id}`, 60000, 5);
+  if (!rl.allowed) return { error: "Too many requests. Please slow down." };
+
   try {
-    const result = await sql`
-      UPDATE campaigns
-      SET status = 'completed', updated_at = NOW()
-      WHERE id = ${campaignId}
-        AND creator_id = ${user.id}
-        AND status = 'active'
-      RETURNING id
-    `;
-    if (result.length === 0) return { error: "Campaign not found or already completed." };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+    const result = await sql.begin(async (tx: any) => {
+      return completeCampaignWithinTransaction(tx, {
+        campaignId,
+        creatorId: user.id,
+      });
+    });
+
+    if (result.kind !== "completed") {
+      return { error: "Campaign not found or already completed." };
+    }
     logOps({ event: "campaign.status_changed", campaignId, fromStatus: "active", toStatus: "completed", triggeredBy: "user" });
 
-    // Notify founder that campaign is complete
-    const { data: campaign } = await supabase
-      .from("campaigns")
-      .select("title")
-      .eq("id", campaignId)
-      .single();
-
-    if (campaign) {
-      await createNotification({
-        userId: user.id,
-        type: "campaign_completed",
-        title: "Campaign complete!",
-        body: `"${campaign.title}" has reached its response target.`,
-        campaignId,
-        link: `/dashboard/ideas/${campaignId}/responses`,
-      });
-    }
+    await createNotification({
+      userId: user.id,
+      type: "campaign_completed",
+      title: "Campaign complete!",
+      body:
+        result.releasedCount > 0
+          ? `"${result.title}" is complete. ${result.releasedCount} payout${result.releasedCount === 1 ? "" : "s"} ${result.releasedCount === 1 ? "is" : "are"} now available.`
+          : `"${result.title}" has reached its response target.`,
+      campaignId,
+      link: `/dashboard/ideas/${campaignId}/responses`,
+    });
   } catch (err) {
     console.error("[completeCampaign] DB error:", err);
     captureWarning(`completeCampaign failed: ${(err as Error).message}`, { campaignId, operation: "campaign.complete" });
@@ -55,6 +55,8 @@ export async function completeCampaign(
   }
 
   revalidatePath(`/dashboard/ideas/${campaignId}`);
+  revalidatePath(`/dashboard/ideas/${campaignId}/responses`);
+  revalidatePath("/dashboard/earnings");
   return { success: true };
 }
 
@@ -67,6 +69,9 @@ export async function pauseCampaign(
   } = await supabase.auth.getUser();
 
   if (!user) return { error: "Not authenticated." };
+
+  const rl = rateLimit(`pause:${user.id}`, 60000, 10);
+  if (!rl.allowed) return { error: "Too many requests. Please slow down." };
 
   try {
     const result = await sql`
@@ -99,10 +104,19 @@ export async function resumeCampaign(
 
   if (!user) return { error: "Not authenticated." };
 
+  const rl = rateLimit(`pause:${user.id}`, 60000, 10);
+  if (!rl.allowed) return { error: "Too many requests. Please slow down." };
+
   try {
     const result = await sql`
       UPDATE campaigns
-      SET status = 'active', updated_at = NOW()
+      SET status = 'active',
+          expires_at = CASE
+            WHEN expires_at IS NOT NULL
+            THEN expires_at + (NOW() - updated_at)
+            ELSE NULL
+          END,
+          updated_at = NOW()
       WHERE id = ${campaignId}
         AND creator_id = ${user.id}
         AND status = 'paused'

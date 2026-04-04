@@ -29,6 +29,7 @@ import {
 } from "@/lib/payout-math";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
+import { settleLockedCampaignPayouts } from "@/lib/campaign-settlement";
 
 function verifyCronSecret(request: Request, secret: string): boolean {
   const authHeader = request.headers.get("authorization");
@@ -248,64 +249,7 @@ export async function GET(request: Request) {
           const lockedCount = Number(lockedSummary?.locked_count ?? 0);
 
           if (campaign.payout_status === "allocated" || lockedCount > 0) {
-            const lockedRespondents = await tx`
-              SELECT respondent_id, SUM(COALESCE(payout_amount, 0)) AS total
-              FROM responses
-              WHERE campaign_id = ${campaign.id}
-                AND money_state = 'locked'
-              GROUP BY respondent_id
-            `;
-
-            await tx`
-              UPDATE responses
-              SET money_state = 'available',
-                  available_at = NOW()
-              WHERE campaign_id = ${campaign.id}
-                AND money_state = 'locked'
-            `;
-
-            await tx`
-              UPDATE payouts
-              SET status = 'processing'
-              WHERE campaign_id = ${campaign.id}
-                AND status = 'pending'
-            `;
-
-            for (const lr of lockedRespondents) {
-              const raw = Number(lr.total);
-              if (!Number.isFinite(raw)) {
-                logOps({
-                  event: "payout.anomaly",
-                  campaignId: campaign.id,
-                  respondentId: lr.respondent_id,
-                  expectedCents: 0,
-                  anomalyType: "balance_mismatch",
-                });
-                continue;
-              }
-
-              const cents = Math.round(raw * 100);
-              if (cents <= 0) continue;
-
-              const [updated] = await tx`
-                UPDATE profiles
-                SET pending_balance_cents = GREATEST(0, pending_balance_cents - ${cents}),
-                    available_balance_cents = available_balance_cents + ${cents}
-                WHERE id = ${lr.respondent_id}
-                  AND pending_balance_cents >= ${cents}
-                RETURNING id
-              `;
-
-              if (!updated) {
-                logOps({
-                  event: "payout.anomaly",
-                  campaignId: campaign.id,
-                  respondentId: lr.respondent_id,
-                  expectedCents: cents,
-                  anomalyType: "balance_mismatch",
-                });
-              }
-            }
+            const settlement = await settleLockedCampaignPayouts(tx, campaign.id);
 
             await tx`
               UPDATE campaigns
@@ -330,7 +274,7 @@ export async function GET(request: Request) {
             return {
               kind: "completed",
               campaignId: campaign.id,
-              payoutsSettled: lockedCount,
+              payoutsSettled: settlement.lockedCount,
               creditsGranted: 0,
             } as const;
           }

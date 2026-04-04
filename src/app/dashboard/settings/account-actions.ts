@@ -4,11 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
+import { rateLimit } from "@/lib/rate-limit";
 import sql from "@/lib/db";
 
 /**
- * Permanently delete the authenticated user's account and all associated data.
- * Cascading order matters — delete from leaf tables first.
+ * Permanently delete the authenticated user's account when it has no shared
+ * campaign or earnings history that would be distorted by self-serve deletion.
  */
 export async function deleteAccount(): Promise<{ error: string } | never> {
   const supabase = await createClient();
@@ -17,6 +18,9 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
   } = await supabase.auth.getUser();
 
   if (!user) return { error: "Not authenticated" };
+
+  const rl = rateLimit(`delete:${user.id}`, 600000, 1);
+  if (!rl.allowed) return { error: "Too many requests. Please try again later." };
 
   const userId = user.id;
 
@@ -28,6 +32,18 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
   `;
   if (pendingCashout) {
     return { error: "You have a pending cashout. Please wait for it to complete before deleting your account." };
+  }
+
+  // Block deletion if user has active campaigns with unspent funding
+  const [activeCampaign] = await sql`
+    SELECT id FROM campaigns
+    WHERE creator_id = ${userId}
+      AND status IN ('active', 'pending_funding', 'pending_gate')
+      AND distributable_amount > 0
+    LIMIT 1
+  `;
+  if (activeCampaign) {
+    return { error: "Please complete or cancel active campaigns before deleting your account." };
   }
 
   // Block deletion if user has pending balance > 0 (money would be lost)
@@ -43,6 +59,65 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
         error: `You have $${((available + pending) / 100).toFixed(2)} in earnings. Please cash out before deleting your account.`,
       };
     }
+  }
+
+  // Block deletion when other users have responses or payout history on this user's campaigns.
+  const [creatorDependencies] = await sql`
+    SELECT
+      EXISTS(
+        SELECT 1
+        FROM responses r
+        JOIN campaigns c ON c.id = r.campaign_id
+        WHERE c.creator_id = ${userId}
+        LIMIT 1
+      ) AS has_campaign_responses,
+      EXISTS(
+        SELECT 1
+        FROM payouts p
+        JOIN campaigns c ON c.id = p.campaign_id
+        WHERE c.creator_id = ${userId}
+        LIMIT 1
+      ) AS has_campaign_payouts
+  `;
+  if (creatorDependencies?.has_campaign_responses || creatorDependencies?.has_campaign_payouts) {
+    return {
+      error:
+        "This account has collected responses or payout history. Please contact support so we can delete it safely without impacting other users.",
+    };
+  }
+
+  // Block self-serve deletion if this respondent has shared campaign or payout history.
+  const [respondentDependencies] = await sql`
+    SELECT
+      EXISTS(
+        SELECT 1
+        FROM responses
+        WHERE respondent_id = ${userId}
+          AND status IN ('submitted', 'ranked')
+        LIMIT 1
+      ) AS has_response_history,
+      EXISTS(
+        SELECT 1
+        FROM payouts
+        WHERE respondent_id = ${userId}
+        LIMIT 1
+      ) AS has_payout_history,
+      EXISTS(
+        SELECT 1
+        FROM cashouts
+        WHERE respondent_id = ${userId}
+        LIMIT 1
+      ) AS has_cashout_history
+  `;
+  if (
+    respondentDependencies?.has_response_history ||
+    respondentDependencies?.has_payout_history ||
+    respondentDependencies?.has_cashout_history
+  ) {
+    return {
+      error:
+        "This account has response or earnings history tied to other users' campaigns. Please contact support so we can delete it safely without distorting shared records.",
+    };
   }
 
   try {
@@ -125,13 +200,10 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
 
       // Profile
       await tx`DELETE FROM profiles WHERE id = ${userId}`;
-    });
 
-    // Delete auth user via Supabase Admin API
-    // Note: we use the service-role client for this, but since we don't have one
-    // configured, we'll sign the user out and the auth.users row will be orphaned.
-    // Supabase will clean orphaned auth users, or you can set up a DB trigger.
-    // For now, sign out to invalidate the session.
+      // Auth user
+      await tx`DELETE FROM auth.users WHERE id = ${userId}`;
+    });
 
     logOps({
       event: "webhook.processed",
@@ -147,7 +219,11 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
   }
 
   // Sign out
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Cookie invalidation is best-effort after deleting the auth row.
+  }
 
   redirect("/auth/login?deleted=true");
 }

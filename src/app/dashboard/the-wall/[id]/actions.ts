@@ -10,33 +10,16 @@ import { rateLimit } from "@/lib/rate-limit";
 import sql from "@/lib/db";
 import {
   assignQuestions,
+  MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT,
   type CampaignQuestion,
   type AssumptionCoverageCount,
 } from "@/lib/question-assignment";
 import type { RespondentProfile } from "@/lib/wall-ranking";
+import { hasRemainingReachBudget } from "@/lib/campaign-availability";
+import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
 
-export type AnswerMetadata = {
-  pasteDetected: boolean;
-  pasteCount: number;
-  timeSpentMs: number;
-  charCount: number;
-};
-
-function sanitizeCounter(value: number): number {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric < 0) return 0;
-  return Math.floor(numeric);
-}
-
-function sanitizeMetadata(m: AnswerMetadata, text: string): AnswerMetadata {
-  return {
-    pasteDetected: m.pasteDetected === true,
-    pasteCount: sanitizeCounter(m.pasteCount),
-    timeSpentMs: sanitizeCounter(m.timeSpentMs),
-    // Derive character count from the persisted answer text, not the client payload.
-    charCount: text.length,
-  };
-}
+import { sanitizeMetadata, type AnswerMetadata } from "@/lib/sanitize-metadata";
+export type { AnswerMetadata };
 
 function elapsedMsSince(createdAt: string | null): number {
   if (!createdAt) return 0;
@@ -56,10 +39,13 @@ export async function startResponse(campaignId: string): Promise<{
 
   if (!user) throw new Error("Not authenticated");
 
+  const rl = rateLimit(`start:${user.id}`, 60000, 10);
+  if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
+
   // Fetch campaign (include V2 + targeting fields for question assignment)
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, creator_id, status, current_responses, target_responses, expires_at, economics_version, target_interests, target_expertise, target_age_ranges, tags")
+    .select("id, creator_id, status, current_responses, target_responses, expires_at, target_interests, target_expertise, target_age_ranges, tags, reach_served, effective_reach_units, total_reach_units")
     .eq("id", campaignId)
     .single();
 
@@ -75,17 +61,18 @@ export async function startResponse(campaignId: string): Promise<{
   if ((campaign.target_responses ?? 0) <= 0) {
     throw new Error("This campaign is not accepting responses yet.");
   }
-
-  // V2: Clean up stale in-progress responses for this user (> 60 min old)
-  if (campaign.economics_version === 2) {
-    await sql`
-      UPDATE responses
-      SET status = 'abandoned'
-      WHERE respondent_id = ${user.id}
-        AND status = 'in_progress'
-        AND created_at < NOW() - INTERVAL '1 millisecond' * ${DEFAULTS.STALE_RESPONSE_TIMEOUT_MS}
-    `;
+  if (!hasRemainingReachBudget(campaign)) {
+    throw new Error("This campaign is no longer accepting new responses.");
   }
+
+  // Clean up stale in-progress responses for this user (> 60 min old)
+  await sql`
+    UPDATE responses
+    SET status = 'abandoned'
+    WHERE respondent_id = ${user.id}
+      AND status = 'in_progress'
+      AND created_at < NOW() - INTERVAL '1 millisecond' * ${DEFAULTS.STALE_RESPONSE_TIMEOUT_MS}
+  `;
 
   // Check for existing response to this campaign
   const { data: existing } = await supabase
@@ -102,7 +89,6 @@ export async function startResponse(campaignId: string): Promise<{
       // Don't allow re-entry after abandonment — treat as used slot
       throw new Error("Your previous response to this campaign timed out.");
     }
-    // Verify money_state is still valid for resume (null is OK for V1 responses)
     if (
       existing.money_state &&
       existing.money_state !== "pending_qualification"
@@ -116,41 +102,27 @@ export async function startResponse(campaignId: string): Promise<{
     };
   }
 
-  // V2: Fill cap — checked atomically at INSERT time below (see guardedInsertV2).
-  // V1: pre-check (atomic insert below enforces the hard cap)
-  if (campaign.economics_version !== 2) {
-    if (
-      (campaign.target_responses ?? 0) > 0 &&
-      (campaign.current_responses ?? 0) >= (campaign.target_responses ?? 0)
-    )
-      throw new Error("Campaign has reached its response target");
+  // Daily completed-response cap
+  const [{ count: todayCount }] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM responses
+    WHERE respondent_id = ${user.id}
+      AND status IN ('submitted', 'ranked')
+      AND created_at > NOW() - INTERVAL '24 hours'
+  `;
+  if (todayCount >= DEFAULTS.MAX_DAILY_RESPONSES) {
+    throw new Error("You've reached today's response limit. Come back tomorrow.");
   }
 
-  // V2: Daily completed-response cap
-  if (campaign.economics_version === 2) {
-    const [{ count: todayCount }] = await sql`
-      SELECT COUNT(*)::int AS count
-      FROM responses
-      WHERE respondent_id = ${user.id}
-        AND status IN ('submitted', 'ranked')
-        AND created_at > NOW() - INTERVAL '24 hours'
-    `;
-    if (todayCount >= DEFAULTS.MAX_DAILY_RESPONSES) {
-      throw new Error("You've reached today's response limit. Come back tomorrow.");
-    }
-  }
-
-  // V2: Concurrent in-progress cap
-  if (campaign.economics_version === 2) {
-    const [{ count: inProgressCount }] = await sql`
-      SELECT COUNT(*)::int AS count
-      FROM responses
-      WHERE respondent_id = ${user.id}
-        AND status = 'in_progress'
-    `;
-    if (inProgressCount >= DEFAULTS.MAX_CONCURRENT_RESPONSES) {
-      throw new Error("Please finish your current responses before starting new ones.");
-    }
+  // Concurrent in-progress cap
+  const [{ count: inProgressCount }] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM responses
+    WHERE respondent_id = ${user.id}
+      AND status = 'in_progress'
+  `;
+  if (inProgressCount >= DEFAULTS.MAX_CONCURRENT_RESPONSES) {
+    throw new Error("Please finish your current responses before starting new ones.");
   }
 
   // ─── Question Assignment (partial response mode) ───
@@ -173,15 +145,15 @@ export async function startResponse(campaignId: string): Promise<{
     sortOrder: q.sort_order,
   }));
 
-  // Only run partial assignment if there are enough questions (>= 6)
+  // Only run partial assignment if there are enough questions
   // Campaigns with few questions should remain full-response
-  const usePartialAssignment = questions.length >= 6;
+  const usePartialAssignment = questions.length >= MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT;
 
   if (usePartialAssignment) {
     // Fetch respondent profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("interests, expertise, age_range, reputation_score, total_responses_completed")
+      .select("interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed")
       .eq("id", user.id)
       .single();
 
@@ -189,7 +161,7 @@ export async function startResponse(campaignId: string): Promise<{
       interests: (profile?.interests as string[]) ?? [],
       expertise: (profile?.expertise as string[]) ?? [],
       age_range: (profile?.age_range as string | null) ?? null,
-      profile_completed: !!profile?.interests?.length,
+      profile_completed: !!profile?.profile_completed,
       reputation_score: Number(profile?.reputation_score ?? 0),
       total_responses_completed: Number(profile?.total_responses_completed ?? 0),
     };
@@ -201,7 +173,7 @@ export async function startResponse(campaignId: string): Promise<{
       JOIN questions q ON q.id = a.question_id
       JOIN responses r ON r.id = a.response_id
       WHERE r.campaign_id = ${campaignId}
-        AND r.status IN ('submitted', 'ranked')
+        AND r.status IN ('in_progress', 'submitted', 'ranked')
         AND q.assumption_index IS NOT NULL
       GROUP BY q.assumption_index
     `;
@@ -247,35 +219,13 @@ export async function startResponse(campaignId: string): Promise<{
   // Create new response (reserves a slot)
   const isPartial = assignedQuestionIds !== null;
 
-  if (campaign.economics_version === 2) {
-    // Atomic fill-cap INSERT: only inserts if active slots < target_responses.
-    // Prevents race condition where concurrent users both pass a separate COUNT check.
-    const targetResponses = campaign.target_responses || 0;
-    const [inserted] = await sql`
-      INSERT INTO responses (campaign_id, respondent_id, status, money_state, assigned_question_ids, is_partial)
-      SELECT
-        ${campaignId}, ${user.id}, 'in_progress', 'pending_qualification',
-        ${assignedQuestionIds ?? null}::uuid[], ${isPartial}
-      WHERE (
-        SELECT COUNT(*)
-        FROM responses
-        WHERE campaign_id = ${campaignId}
-          AND status IN ('in_progress', 'submitted', 'ranked')
-      ) < ${targetResponses}
-      RETURNING id
-    `;
-    if (!inserted) {
-      throw new Error("This campaign has reached its response limit.");
-    }
-    return { responseId: inserted.id, assignedQuestionIds };
-  }
-
-  // V1: atomic insert with fill-cap guard (prevents concurrent overshoot)
+  // Atomic fill-cap INSERT: only inserts if active slots < target_responses.
+  // Prevents race condition where concurrent users both pass a separate COUNT check.
   const targetResponses = campaign.target_responses || 0;
   const [inserted] = await sql`
-    INSERT INTO responses (campaign_id, respondent_id, status, assigned_question_ids, is_partial)
+    INSERT INTO responses (campaign_id, respondent_id, status, money_state, assigned_question_ids, is_partial)
     SELECT
-      ${campaignId}, ${user.id}, 'in_progress',
+      ${campaignId}, ${user.id}, 'in_progress', 'pending_qualification',
       ${assignedQuestionIds ?? null}::uuid[], ${isPartial}
     WHERE (
       SELECT COUNT(*)
@@ -286,7 +236,7 @@ export async function startResponse(campaignId: string): Promise<{
     RETURNING id
   `;
   if (!inserted) {
-    throw new Error("Campaign has reached its response target");
+    throw new Error("This campaign has reached its response limit.");
   }
 
   return { responseId: inserted.id, assignedQuestionIds };
@@ -408,17 +358,16 @@ export async function submitResponse(responseId: string) {
   if (response.status !== "in_progress")
     throw new Error("Response already submitted");
 
-  // Verify campaign hasn't expired since the response was started
-  const { data: campaignCheck } = await supabase
+  const { data: campaignMeta } = await supabase
     .from("campaigns")
-    .select("status, expires_at")
+    .select("format, status, expires_at")
     .eq("id", response.campaign_id)
     .single();
 
   if (
-    campaignCheck &&
-    (campaignCheck.status !== "active" ||
-      (campaignCheck.expires_at && new Date() >= new Date(campaignCheck.expires_at)))
+    campaignMeta &&
+    (campaignMeta.status !== "active" ||
+      (campaignMeta.expires_at && new Date() >= new Date(campaignMeta.expires_at)))
   ) {
     throw new Error("This campaign has expired. Your response can no longer be submitted.");
   }
@@ -452,63 +401,94 @@ export async function submitResponse(responseId: string) {
   if (unanswered.length > 0)
     throw new Error(`${unanswered.length} questions still unanswered`);
 
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("economics_version, format")
-    .eq("id", response.campaign_id)
-    .single();
+  // Scale time threshold for partial responses
+  // Full: 90s standard / 45s quick. Partial: scale by (assigned / total) with 15s floor
+  let minTime: number =
+    campaignMeta?.format === "quick"
+      ? DEFAULTS.SUBMIT_MIN_TIME_QUICK_MS
+      : DEFAULTS.SUBMIT_MIN_TIME_STANDARD_MS;
 
-  if (campaign?.economics_version === 2) {
-    // Scale time threshold for partial responses
-    // Full: 90s standard / 45s quick. Partial: scale by (assigned / total) with 15s floor
-    let minTime: number =
-      campaign.format === "quick"
-        ? DEFAULTS.SUBMIT_MIN_TIME_QUICK_MS
-        : DEFAULTS.SUBMIT_MIN_TIME_STANDARD_MS;
+  if (isPartial) {
+    const totalQuestionCount = (await supabase
+      .from("questions")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", response.campaign_id)
+    ).count ?? requiredQuestionIds.length;
 
-    if (isPartial) {
-      const totalQuestionCount = (await supabase
-        .from("questions")
-        .select("id", { count: "exact", head: true })
-        .eq("campaign_id", response.campaign_id)
-      ).count ?? requiredQuestionIds.length;
-
-      const ratio = requiredQuestionIds.length / Math.max(1, totalQuestionCount);
-      const perQuestionFloor = requiredQuestionIds.length * DEFAULTS.PARTIAL_MIN_TIME_PER_QUESTION_MS;
-      minTime = Math.max(perQuestionFloor, Math.round(minTime * ratio));
-    }
-
-    const serverDurationMs = elapsedMsSince(response.created_at);
-    if (serverDurationMs < minTime) {
-      throw new Error(
-        "Your response was submitted too quickly. Please take more time to provide thoughtful answers."
-      );
-    }
+    const ratio = requiredQuestionIds.length / Math.max(1, totalQuestionCount);
+    const perQuestionFloor = requiredQuestionIds.length * DEFAULTS.PARTIAL_MIN_TIME_PER_QUESTION_MS;
+    minTime = Math.max(perQuestionFloor, Math.round(minTime * ratio));
   }
 
-  // Submit + increment atomically (CAS prevents double-submission)
-  const [submitted] = await sql`
-    WITH cas AS (
-      UPDATE responses
-      SET status = 'submitted',
-          submitted_duration_ms = GREATEST(
-            0,
-            FLOOR(EXTRACT(EPOCH FROM (NOW() - COALESCE(created_at, NOW()))) * 1000)
-          )::int
-      WHERE id = ${responseId} AND status = 'in_progress'
-      RETURNING campaign_id
-    )
-    UPDATE campaigns
-    SET current_responses = current_responses + 1,
-        ranking_status = CASE
-          WHEN ranking_status = 'ranking' THEN 'ranking'
-          ELSE 'unranked'
-        END
-    WHERE id = (SELECT campaign_id FROM cas)
-    RETURNING id
-  `;
+  const serverDurationMs = elapsedMsSince(response.created_at);
+  if (serverDurationMs < minTime) {
+    throw new Error(
+      "Your response was submitted too quickly. Please take more time to provide thoughtful answers."
+    );
+  }
 
-  if (!submitted) throw new Error("Response already submitted or not found.");
+  // Submit + increment atomically, and auto-complete immediately if the target is reached.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+  const submission = await sql.begin(async (tx: any) => {
+    const [lockedCampaign] = await tx`
+      SELECT id, title, creator_id, status, expires_at
+      FROM campaigns
+      WHERE id = ${response.campaign_id}
+      FOR UPDATE
+    `;
+
+    const expiresAt = lockedCampaign?.expires_at
+      ? new Date(String(lockedCampaign.expires_at))
+      : null;
+    if (
+      !lockedCampaign ||
+      String(lockedCampaign.status) !== "active" ||
+      (expiresAt && new Date() >= expiresAt)
+    ) {
+      throw new Error("This campaign has expired. Your response can no longer be submitted.");
+    }
+
+    const [submitted] = await tx`
+      WITH cas AS (
+        UPDATE responses
+        SET status = 'submitted',
+            submitted_duration_ms = GREATEST(
+              0,
+              FLOOR(EXTRACT(EPOCH FROM (NOW() - COALESCE(created_at, NOW()))) * 1000)
+            )::int
+        WHERE id = ${responseId} AND status = 'in_progress'
+        RETURNING campaign_id
+      )
+      UPDATE campaigns
+      SET current_responses = COALESCE(current_responses, 0) + 1,
+          ranking_status = CASE
+            WHEN ranking_status = 'ranking' THEN 'ranking'
+            ELSE 'unranked'
+          END
+      WHERE id = (SELECT campaign_id FROM cas)
+        AND status = 'active'
+      RETURNING id, title, creator_id, current_responses, target_responses
+    `;
+
+    if (!submitted) {
+      throw new Error("Response already submitted or not found.");
+    }
+
+    const completion = await completeCampaignWithinTransaction(tx, {
+      campaignId: String(submitted.id),
+      requireTargetReached: true,
+    });
+
+    return {
+      campaignId: String(submitted.id),
+      title: String(submitted.title),
+      creatorId: String(submitted.creator_id),
+      currentResponses: Number(submitted.current_responses ?? 0),
+      targetResponses: Number(submitted.target_responses ?? 0),
+      autoCompleted: completion.kind === "completed",
+      releasedCount: completion.kind === "completed" ? completion.releasedCount : 0,
+    };
+  });
 
   // Mark respondent as having responded
   await supabase
@@ -517,20 +497,24 @@ export async function submitResponse(responseId: string) {
     .eq("id", user.id);
 
   // Notify the campaign creator about the new response
-  const { data: campaignForNotif } = await supabase
-    .from("campaigns")
-    .select("title, creator_id, current_responses, target_responses")
-    .eq("id", response.campaign_id)
-    .single();
+  await createNotification({
+    userId: submission.creatorId,
+    type: "new_response",
+    title: "New response received",
+    body: `"${submission.title}" — ${submission.currentResponses}/${submission.targetResponses} responses`,
+    campaignId: response.campaign_id,
+    link: `/dashboard/ideas/${response.campaign_id}/responses`,
+  });
 
-  if (campaignForNotif) {
-    const count = campaignForNotif.current_responses;
-    const target = campaignForNotif.target_responses;
+  if (submission.autoCompleted) {
     await createNotification({
-      userId: campaignForNotif.creator_id,
-      type: "new_response",
-      title: "New response received",
-      body: `"${campaignForNotif.title}" — ${count}/${target} responses`,
+      userId: submission.creatorId,
+      type: "campaign_completed",
+      title: "Campaign complete!",
+      body:
+        submission.releasedCount > 0
+          ? `"${submission.title}" is complete. ${submission.releasedCount} payout${submission.releasedCount === 1 ? "" : "s"} ${submission.releasedCount === 1 ? "is" : "are"} now available.`
+          : `"${submission.title}" has reached its response target.`,
       campaignId: response.campaign_id,
       link: `/dashboard/ideas/${response.campaign_id}/responses`,
     });
@@ -538,6 +522,10 @@ export async function submitResponse(responseId: string) {
 
   revalidatePath("/dashboard/the-wall");
   revalidatePath(`/dashboard/ideas/${response.campaign_id}`);
+  revalidatePath(`/dashboard/ideas/${response.campaign_id}/responses`);
+  if (submission.autoCompleted) {
+    revalidatePath("/dashboard/earnings");
+  }
 
   return { success: true };
 }

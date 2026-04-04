@@ -15,13 +15,12 @@ import { RECIPROCAL_REQUIRED } from "@/lib/reciprocal-gate";
 import { jsonToStringArray } from "@/lib/json-utils";
 
 import sql from "@/lib/db";
-import { completeCampaign } from "./campaign-actions";
 import AssumptionSignal from "@/components/dashboard/AssumptionSignal";
 
 /* ─── Helpers ─── */
 
 const statusColors: Record<string, string> = {
-  draft: "bg-bg-muted text-slate",
+  draft: "bg-bg-muted text-text-muted",
   pending_funding: "bg-brand/10 text-brand",
   pending_gate: "bg-brand/10 text-brand",
   active: "bg-success/10 text-success",
@@ -124,23 +123,6 @@ export default async function CampaignDetailPage({
     }
   }
 
-  // Auto-complete: if active and current_responses >= target_responses, complete the campaign
-  if (
-    campaign.status === "active" &&
-    (campaign.target_responses ?? 0) > 0 &&
-    (campaign.current_responses ?? 0) >= (campaign.target_responses ?? 0)
-  ) {
-    await completeCampaign(campaign.id);
-    // Re-fetch to get updated status
-    const { data: refreshed } = await supabase
-      .from("campaigns")
-      .select("*")
-      .eq("id", id)
-      .eq("creator_id", user.id)
-      .single();
-    if (refreshed) Object.assign(campaign, refreshed);
-  }
-
   const currentResponses = campaign.current_responses ?? 0;
   const targetResponses = campaign.target_responses ?? 0;
 
@@ -227,7 +209,7 @@ export default async function CampaignDetailPage({
       <div className="mb-[32px]">
         <Link
           href="/dashboard/ideas"
-          className="inline-flex items-center gap-[6px] text-[13px] text-slate hover:text-text-secondary transition-colors no-underline mb-[16px]"
+          className="inline-flex items-center gap-[6px] text-[13px] text-text-muted hover:text-text-secondary transition-colors no-underline mb-[16px]"
         >
           <svg
             width="14"
@@ -244,10 +226,10 @@ export default async function CampaignDetailPage({
           Back to Ideas
         </Link>
 
-        <div className="bg-bg-muted rounded-2xl border border-border-light p-[24px_32px] max-md:p-[20px] relative overflow-hidden">
+        <div className="bg-white rounded-[28px] border border-border-light p-[24px_32px] max-md:p-[20px] relative overflow-hidden shadow-card">
           <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-accent-warm-muted/25 to-transparent" />
           <div className="flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
-            <h1 className="text-[24px] font-bold tracking-[-0.03em] text-text-primary">{campaign.title}</h1>
+            <h1 className="text-[24px] font-medium tracking-tight text-text-primary">{campaign.title}</h1>
             <div className="flex items-center gap-[8px] shrink-0">
               {campaign.status === "completed" && (
                 <RetestCampaignButton campaignId={campaign.id} />
@@ -272,13 +254,13 @@ export default async function CampaignDetailPage({
 
       {/* ─── Draft Banner ─── */}
       {campaign.status === "draft" && (
-        <div className="mb-[16px] px-[16px] py-[14px] rounded-xl bg-bg-muted border border-border-light flex items-center justify-between gap-[12px]">
+        <div className="mb-[16px] px-[20px] py-[16px] rounded-[20px] bg-white border border-border-light shadow-card flex items-center justify-between gap-[12px]">
           <p className="text-[13px] text-text-secondary">
             This campaign is a draft. Edit and publish it when you&apos;re ready.
           </p>
           <Link
             href={`/dashboard/ideas/${campaign.id}/edit`}
-            className="shrink-0 inline-flex items-center justify-center px-[20px] py-[8px] rounded-xl text-[13px] font-medium bg-accent text-white hover:bg-accent transition-all duration-200 no-underline"
+            className="shrink-0 inline-flex items-center justify-center px-[20px] py-[8px] rounded-full text-[13px] font-medium bg-accent text-white hover:bg-accent-dark transition-all duration-300 no-underline"
           >
             Edit Draft
           </Link>
@@ -302,19 +284,19 @@ export default async function CampaignDetailPage({
 
       {/* ─── Funding Banner ─── */}
       {funded === "true" && campaign.status === "active" && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-success/10 border border-success/20 text-[13px] text-success font-medium">
+        <div className="mb-[16px] px-[20px] py-[14px] rounded-[20px] bg-success/10 border border-success/20 text-[13px] text-success font-medium">
           You&apos;re live! Your campaign is now visible to matched respondents.
         </div>
       )}
 
       {funded === "true" && campaign.status === "pending_funding" && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-brand/10 border border-brand/20 text-[13px] text-brand-dark font-medium">
+        <div className="mb-[16px] px-[20px] py-[14px] rounded-[20px] bg-brand/10 border border-brand/20 text-[13px] text-brand-dark font-medium">
           Payment confirmed — your campaign is going live now. This page will refresh shortly.
         </div>
       )}
 
       {funded === "true" && campaign.status === "pending_gate" && (
-        <div className="mb-[16px] px-[16px] py-[12px] rounded-xl bg-success/10 border border-success/20 text-[13px] text-success font-medium">
+        <div className="mb-[16px] px-[20px] py-[14px] rounded-[20px] bg-success/10 border border-success/20 text-[13px] text-success font-medium">
           Funding received. Complete the reciprocal step below and your campaign will go live.
         </div>
       )}
@@ -323,8 +305,8 @@ export default async function CampaignDetailPage({
         const completed = campaign.reciprocal_responses_completed ?? 0;
         const remaining = Math.max(0, RECIPROCAL_REQUIRED - completed);
         return (
-          <div className="mb-[16px] bg-white border border-brand/30 rounded-xl p-[20px]">
-            <p className="text-[15px] font-semibold text-text-primary">
+          <div className="mb-[16px] bg-white border border-brand/20 rounded-[24px] p-[24px] shadow-card">
+            <p className="text-[15px] font-medium tracking-tight text-text-primary">
               Answer questions to go live
             </p>
             <p className="text-[13px] text-text-secondary mt-[2px]">
@@ -334,13 +316,13 @@ export default async function CampaignDetailPage({
               {Array.from({ length: RECIPROCAL_REQUIRED }, (_, i) => (
                 <div
                   key={i}
-                  className={`h-[4px] flex-1 rounded-full ${i < completed ? "bg-success" : "bg-border-light"}`}
+                  className={`h-[3px] flex-1 rounded-full ${i < completed ? "bg-success" : "bg-border-light"}`}
                 />
               ))}
             </div>
             <Link
               href="/dashboard/the-wall"
-              className="inline-block mt-[12px] px-[16px] py-[8px] rounded-xl bg-accent text-white text-[13px] font-medium no-underline hover:bg-accent transition-colors"
+              className="inline-block mt-[12px] px-[20px] py-[8px] rounded-full bg-accent text-white text-[13px] font-medium no-underline hover:bg-accent-dark transition-all duration-300"
             >
               Continue
             </Link>
@@ -358,7 +340,7 @@ export default async function CampaignDetailPage({
         const fillSpeed = effectiveReach ? estimateFillSpeed(effectiveReach) : null;
 
         return (
-          <div className="mb-[16px] bg-white border border-brand/30 rounded-xl p-[20px] flex flex-col gap-[12px]">
+          <div className="mb-[16px] bg-white border border-brand/20 rounded-[24px] p-[24px] flex flex-col gap-[12px] shadow-card">
             <div className="flex items-center justify-between gap-[16px] max-md:flex-col max-md:items-start">
               <div>
                 <p className="text-[15px] font-semibold text-text-primary">
@@ -396,8 +378,8 @@ export default async function CampaignDetailPage({
 
       {/* ─── Paused State ─── */}
       {campaign.status === "paused" && (
-        <div className="mb-[16px] bg-white border border-brand/30 rounded-xl p-[20px]">
-          <p className="text-[15px] font-semibold text-text-primary">Campaign paused</p>
+        <div className="mb-[16px] bg-white border border-brand/20 rounded-[24px] p-[24px] shadow-card">
+          <p className="text-[15px] font-medium tracking-tight text-text-primary">Campaign paused</p>
           <p className="text-[13px] text-text-secondary mt-[2px] mb-[12px]">
             Your campaign is hidden from The Wall. Resume anytime to start collecting responses again.
           </p>
@@ -418,17 +400,17 @@ export default async function CampaignDetailPage({
         const qualityBonus = Math.round((qualityMod - 1) * 100);
 
         return (
-          <div className="bg-bg-muted border border-border-light rounded-2xl p-[24px] mb-[24px] relative overflow-hidden">
+          <div className="bg-white border border-border-light rounded-[28px] p-[24px] mb-[24px] relative overflow-hidden shadow-card">
             <div className="absolute top-0 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-accent-warm-muted/25 to-transparent" />
             <div className="flex items-center justify-between mb-[16px]">
               <h2 className="text-[16px] font-semibold text-text-primary">Campaign Performance</h2>
               <div className="flex items-center gap-[8px]">
-                <span className="text-[12px] text-slate">Campaign Strength</span>
+                <span className="text-[12px] text-text-muted">Campaign Strength</span>
                 <div className="flex items-baseline gap-[2px]">
                   <span className="font-mono font-bold text-[20px]" style={{ WebkitTextStrokeWidth: '0.8px', WebkitTextStrokeColor: sColors.strokeStyle, WebkitTextFillColor: sColors.fillStyle }}>
                     {strength}
                   </span>
-                  <span className="text-[12px] text-slate font-normal">/10</span>
+                  <span className="text-[12px] text-text-muted font-normal">/10</span>
                 </div>
               </div>
             </div>
@@ -446,7 +428,7 @@ export default async function CampaignDetailPage({
 
             {/* Reach served progress */}
             <div className="mb-[12px]">
-              <div className="flex items-center justify-between text-[12px] text-slate mb-[4px]">
+              <div className="flex items-center justify-between text-[12px] text-text-muted mb-[4px]">
                 <span>People reached</span>
                 <span>
                   <span className="font-mono font-semibold text-text-primary">{reachServed.toLocaleString()}</span>
@@ -463,10 +445,10 @@ export default async function CampaignDetailPage({
 
             {/* Quality + fill speed */}
             <div className="flex items-center gap-[16px] text-[12px]">
-              <span className="text-slate">
+              <span className="text-text-muted">
                 Fill speed: <span className="font-semibold text-text-primary">{estimateFillSpeed(effectiveReach)}</span>
               </span>
-              <span className="text-[#d4d4d4]">&middot;</span>
+              <span className="text-border-muted">&middot;</span>
               <span style={{ color: qualityBonus >= 0 ? "var(--color-success)" : "var(--color-brand-dark)" }}>
                 {qualityBonus >= 0
                   ? `Survey quality boosting reach by +${qualityBonus}%`
@@ -476,7 +458,7 @@ export default async function CampaignDetailPage({
 
             {/* Campaign actions for active campaigns */}
             {campaign.status === "active" && (
-              <div className="mt-[16px] pt-[16px] border-t border-[#f0f0f0] flex flex-col gap-[10px]">
+              <div className="mt-[16px] pt-[16px] border-t border-border-light flex flex-col gap-[10px]">
                 {FEATURES.CAMPAIGN_FUNDING && (
                   <p className="text-[12px] text-text-secondary">Increase your budget to reach more people and attract additional responses.</p>
                 )}
@@ -495,16 +477,16 @@ export default async function CampaignDetailPage({
 
       {/* ─── Stats Row ─── */}
       <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
-        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] shadow-card hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-400 relative overflow-hidden">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
-          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
+          <span className="text-[11px] text-text-muted uppercase tracking-[1px] font-semibold">
             Responses
           </span>
           <div className="mt-[4px]">
             <span className="font-mono text-[22px] font-bold text-text-primary">
               {currentResponses}
             </span>
-            <span className="text-[13px] text-slate">
+            <span className="text-[13px] text-text-muted">
               /{targetResponses}
             </span>
           </div>
@@ -516,9 +498,9 @@ export default async function CampaignDetailPage({
           </div>
         </div>
 
-        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] shadow-card hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-400 relative overflow-hidden">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
-          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
+          <span className="text-[11px] text-text-muted uppercase tracking-[1px] font-semibold">
             Category
           </span>
           <div className="font-semibold text-[15px] text-text-primary mt-[4px]">
@@ -526,9 +508,9 @@ export default async function CampaignDetailPage({
           </div>
         </div>
 
-        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] shadow-card hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-400 relative overflow-hidden">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
-          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
+          <span className="text-[11px] text-text-muted uppercase tracking-[1px] font-semibold">
             Est. Time
           </span>
           <div className="font-mono text-[15px] font-semibold text-text-primary mt-[4px]">
@@ -536,9 +518,9 @@ export default async function CampaignDetailPage({
           </div>
         </div>
 
-        <div className="bg-white border border-border-light rounded-2xl p-[16px] hover:border-border-muted transition-all duration-200 relative overflow-hidden">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] shadow-card hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-400 relative overflow-hidden">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent-warm-muted/20 to-transparent" />
-          <span className="text-[11px] text-slate uppercase tracking-[1px] font-semibold">
+          <span className="text-[11px] text-text-muted uppercase tracking-[1px] font-semibold">
             Created
           </span>
           <div className="text-[15px] font-semibold text-text-primary mt-[4px]">
@@ -551,14 +533,14 @@ export default async function CampaignDetailPage({
       {currentResponses >= 3 && (
         <Link
           href={`/dashboard/ideas/${campaign.id}/brief`}
-          className="block bg-accent rounded-2xl p-[20px] mb-[16px] hover:bg-accent hover:-translate-y-[1px] transition-all duration-200 no-underline group"
+          className="block bg-accent rounded-[24px] p-[20px] mb-[16px] shadow-[0_8px_32px_rgba(28,25,23,0.15)] hover:-translate-y-[1px] transition-all duration-400 no-underline group"
         >
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[16px] font-semibold text-white">
                 View Decision Brief
               </span>
-              <span className="text-[13px] text-slate ml-[8px]">
+              <span className="text-[13px] text-text-muted ml-[8px]">
                 AI synthesis of {currentResponses} responses into assumption verdicts
               </span>
             </div>
@@ -573,14 +555,14 @@ export default async function CampaignDetailPage({
       {currentResponses > 0 && (
         <Link
           href={`/dashboard/ideas/${campaign.id}/responses`}
-          className="block bg-white border border-border-light rounded-2xl p-[16px] mb-[24px] hover:border-border-muted hover:shadow-[0_4px_16px_rgba(232,193,176,0.06)] hover:-translate-y-[1px] transition-all duration-300 no-underline group"
+          className="block bg-white border border-border-light rounded-[24px] p-[20px] mb-[24px] shadow-card hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-400 no-underline group"
         >
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[15px] font-semibold text-text-primary group-hover:text-[#000000] transition-colors">
                 View {currentResponses} Response{currentResponses !== 1 ? "s" : ""}
               </span>
-              <span className="text-[13px] text-slate ml-[8px]">
+              <span className="text-[13px] text-text-muted ml-[8px]">
                 {campaign.ranking_status === "ranked"
                   ? "Ranked"
                   : `${currentResponses} new — review & rank them`}
@@ -611,7 +593,7 @@ export default async function CampaignDetailPage({
                         : "New response submitted"}
                     </span>
                   </div>
-                  <span className="text-slate">
+                  <span className="text-text-muted">
                     {timeAgo(r.ranked_at || r.created_at)}
                   </span>
                 </div>
@@ -629,7 +611,7 @@ export default async function CampaignDetailPage({
       )}
 
       {/* ─── Description ─── */}
-      <div className="bg-white border border-border-light rounded-2xl p-[32px] mb-[24px]">
+      <div className="bg-white border border-border-light rounded-[28px] p-[32px] shadow-card mb-[24px]">
         <h2 className="text-[16px] font-semibold text-text-primary mb-[12px]">
           Description
         </h2>
@@ -667,13 +649,13 @@ export default async function CampaignDetailPage({
       />
 
       {/* ─── Survey Questions ─── */}
-      <div className="bg-white border border-border-light rounded-2xl p-[32px] mb-[24px]">
+      <div className="bg-white border border-border-light rounded-[28px] p-[32px] shadow-card mb-[24px]">
         <h2 className="text-[16px] font-semibold text-text-primary mb-[20px]">
           Survey Questions
         </h2>
 
         {allQuestions.length === 0 ? (
-          <p className="text-[13px] text-slate">No questions found.</p>
+          <p className="text-[13px] text-text-muted">No questions found.</p>
         ) : (
           <div className="flex flex-col gap-[24px]">
             {/* Open-ended */}
@@ -741,7 +723,7 @@ export default async function CampaignDetailPage({
       </div>
 
       {/* ─── Audience Targeting ─── */}
-      <div className="bg-white border border-border-light rounded-2xl p-[32px] mb-[24px]">
+      <div className="bg-white border border-border-light rounded-[28px] p-[32px] shadow-card mb-[24px]">
         <h2 className="text-[16px] font-semibold text-text-primary mb-[16px]">
           Audience Targeting
         </h2>
@@ -789,7 +771,7 @@ export default async function CampaignDetailPage({
 
           {!targetingFields.some((f) => f.values && f.values.length > 0) &&
             !textFields.some((f) => f.value) && (
-              <p className="text-[13px] text-slate">
+              <p className="text-[13px] text-text-muted">
                 No audience targeting configured.
               </p>
             )}
@@ -798,7 +780,7 @@ export default async function CampaignDetailPage({
 
       {/* ─── Quality Scores ─── */}
       {qualityScores && qualityScores.overall !== undefined && (
-        <div className="bg-white border border-brand/30 rounded-2xl p-[32px] mb-[24px]">
+        <div className="bg-white border border-brand/20 rounded-[28px] p-[32px] shadow-card mb-[24px]">
           <div className="flex items-center justify-between mb-[16px]">
             <h2 className="text-[16px] font-semibold text-text-primary">
               Survey Strength
@@ -907,7 +889,7 @@ function QuestionRow({
                 : "Follow-up"}
           </span>
           {category && (
-            <span className="text-[10px] text-slate">{category}</span>
+            <span className="text-[10px] text-text-muted">{category}</span>
           )}
         </div>
         <p className="text-[14px] text-text-primary leading-[1.5]">{text}</p>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import sql from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
 import { isAdminAuthorized } from "@/lib/admin-auth";
+import { adminRateLimit } from "@/lib/admin-rate-limit";
 
 /**
  * GET /api/admin/diagnostics
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   // Rate limit: 10 diagnostics requests per minute
-  const limit = rateLimit("admin:diagnostics", 60000, 10);
+  const limit = await adminRateLimit(request, "admin:diagnostics", 60000, 10);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }

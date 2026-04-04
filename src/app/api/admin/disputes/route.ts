@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import sql from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
 import { isAdminAuthorized } from "@/lib/admin-auth";
 import { isValidUuid } from "@/lib/validate-uuid";
 import { logOps } from "@/lib/ops-logger";
+import { adminRateLimit } from "@/lib/admin-rate-limit";
 
 /**
  * GET /api/admin/disputes?status=open
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const limit = rateLimit("admin:disputes", 60000, 20);
+  const limit = await adminRateLimit(request, "admin:disputes:list", 60000, 20);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
@@ -52,6 +52,11 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   if (!isAdminAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limit = await adminRateLimit(request, "admin:disputes:patch", 60000, 20);
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
   const { disputeId, status, adminNotes } = await request.json();
@@ -95,7 +100,8 @@ export async function PATCH(request: Request) {
           SELECT
             c.creator_id,
             c.distributable_amount,
-            ROUND(AVG(p.amount)::numeric, 2) AS avg_payout
+            ROUND(AVG(p.amount)::numeric, 2) AS avg_payout,
+            COALESCE(SUM(p.amount), 0) AS allocated_total
           FROM campaigns c
           LEFT JOIN payouts p
             ON p.campaign_id = c.id
@@ -104,52 +110,61 @@ export async function PATCH(request: Request) {
           GROUP BY c.creator_id, c.distributable_amount
         `;
 
+        const [existingPayout] = await tx`
+          SELECT id, amount
+          FROM payouts
+          WHERE response_id = ${updatedDispute.response_id}
+            AND status != 'failed'
+          LIMIT 1
+        `;
+
+        const [responseSnapshot] = await tx`
+          SELECT base_payout, payout_amount
+          FROM responses
+          WHERE id = ${updatedDispute.response_id}
+        `;
+
+        const distributableAmount = Math.max(
+          0,
+          Number(payoutContext?.distributable_amount) || 0
+        );
+        const existingAmount = Math.max(0, Number(existingPayout?.amount) || 0);
+        const allocatedElsewhere = Math.max(
+          0,
+          (Number(payoutContext?.allocated_total) || 0) - existingAmount
+        );
+        const remainingPool = Math.max(0, distributableAmount - allocatedElsewhere);
+        const candidateAmount = Math.max(
+          Number(responseSnapshot?.base_payout)
+            || Number(responseSnapshot?.payout_amount)
+            || Number(payoutContext?.avg_payout)
+            || 0,
+          0
+        );
+        const payoutAmount = Math.min(candidateAmount, remainingPool);
+
+        if (payoutAmount <= 0) {
+          throw new Error("DISPUTE_NO_REMAINING_PAYOUT_POOL");
+        }
+
         const [response] = await tx`
           UPDATE responses
           SET money_state = 'available',
               available_at = NOW(),
-              payout_amount = GREATEST(
-                COALESCE(
-                  NULLIF(base_payout, 0),
-                  NULLIF(payout_amount, 0),
-                  ${Number(payoutContext?.avg_payout) || 0},
-                  ${Number(payoutContext?.distributable_amount) || 0}
-                ),
-                0
-              ),
-              base_payout = GREATEST(
-                COALESCE(
-                  NULLIF(base_payout, 0),
-                  NULLIF(payout_amount, 0),
-                  ${Number(payoutContext?.avg_payout) || 0},
-                  ${Number(payoutContext?.distributable_amount) || 0}
-                ),
-                0
-              ),
+              payout_amount = ${payoutAmount},
+              base_payout = ${payoutAmount},
               bonus_payout = 0,
               is_qualified = true,
               disqualification_reasons = ARRAY[]::text[]
           WHERE id = ${updatedDispute.response_id}
             AND money_state = 'not_qualified'
-          RETURNING base_payout, payout_amount
+          RETURNING payout_amount
         `;
 
         if (response) {
-          const payoutAmount = Math.max(
-            Number(response.base_payout) || Number(response.payout_amount) || 0,
-            0
-          );
           const payoutCents = Math.round(payoutAmount * 100);
 
           if (payoutCents > 0) {
-            const [existingPayout] = await tx`
-              SELECT id
-              FROM payouts
-              WHERE response_id = ${updatedDispute.response_id}
-                AND status != 'failed'
-              LIMIT 1
-            `;
-
             if (existingPayout) {
               await tx`
                 UPDATE payouts
@@ -223,6 +238,12 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    if ((err as Error).message === "DISPUTE_NO_REMAINING_PAYOUT_POOL") {
+      return NextResponse.json(
+        { error: "No distributable funds remain for this campaign." },
+        { status: 409 }
+      );
+    }
     console.error("[admin/disputes] Update failed:", err);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }

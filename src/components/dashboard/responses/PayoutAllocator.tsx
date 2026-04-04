@@ -5,9 +5,9 @@ import Button from "@/components/ui/Button";
 import { PLATFORM_FEE_RATE } from "@/lib/plans";
 import {
   suggestDistribution,
-  allocatePayouts,
+  allocatePayoutsV2,
   type PayoutSuggestion,
-  type PayoutAllocation,
+  type PayoutAllocationV2Input,
 } from "@/app/dashboard/ideas/[id]/responses/payout-actions";
 
 type PayoutAllocatorProps = {
@@ -61,18 +61,30 @@ export default function PayoutAllocator({
       .finally(() => setIsLoading(false));
   }, [campaignId]);
 
-  const getAllocations = useCallback((): PayoutAllocation[] => {
-    if (mode === "ai") {
-      return suggestions.map((s) => ({
+  const getAllocations = useCallback((): PayoutAllocationV2Input[] => {
+    function toV2(s: PayoutSuggestion, amount: number): PayoutAllocationV2Input {
+      return {
         responseId: s.responseId,
-        amount: s.suggestedAmount,
-      }));
+        amount,
+        basePayout: s.basePayout ?? amount,
+        bonusPayout: s.bonusPayout ?? 0,
+        qualified: s.qualified ?? amount > 0,
+        disqualificationReasons: s.disqualificationReasons,
+      };
+    }
+
+    if (mode === "ai") {
+      return suggestions.map((s) => toV2(s, s.suggestedAmount));
     }
 
     if (mode === "manual") {
       return Array.from(manualAmounts.entries())
-        .filter(([, amount]) => amount > 0)
-        .map(([responseId, amount]) => ({ responseId, amount }));
+        .map(([responseId, amount]) => {
+          const s = suggestions.find((sg) => sg.responseId === responseId);
+          if (!s) return null;
+          return toV2(s, amount);
+        })
+        .filter((a): a is PayoutAllocationV2Input => a !== null);
     }
 
     // Top N mode
@@ -83,14 +95,10 @@ export default function PayoutAllocator({
         (sum, t) => sum + Math.pow(t.qualityScore, 2),
         0
       );
-      return {
-        responseId: s.responseId,
-        amount:
-          totalWeight > 0
-            ? Math.round(((weight / totalWeight) * distributableAmount) * 100) /
-              100
-            : 0,
-      };
+      const amount = totalWeight > 0
+        ? Math.round(((weight / totalWeight) * distributableAmount) * 100) / 100
+        : 0;
+      return toV2(s, amount);
     });
   }, [mode, suggestions, manualAmounts, topN, distributableAmount]);
 
@@ -106,7 +114,7 @@ export default function PayoutAllocator({
     setShowConfirm(false);
     startTransition(async () => {
       try {
-        const result = await allocatePayouts(campaignId, getAllocations());
+        const result = await allocatePayoutsV2(campaignId, getAllocations());
         setSuccess(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Allocation failed");
@@ -128,7 +136,7 @@ export default function PayoutAllocator({
     setManualAmounts(next);
   }
 
-  if (payoutStatus === "allocated" || success) {
+  if (payoutStatus === "allocated" || payoutStatus === "completed" || success) {
     return (
       <div className="bg-success/5 border border-success/20 rounded-2xl p-[24px]">
         <div className="flex items-center gap-[8px] mb-[8px]">
@@ -151,7 +159,9 @@ export default function PayoutAllocator({
         <p className="text-[13px] text-text-secondary">
           {success
             ? `${success.count} respondent${success.count !== 1 ? "s" : ""} will receive payouts.`
-            : "Payouts have been allocated for this campaign."}
+            : payoutStatus === "completed"
+              ? "Payouts have been distributed for this campaign."
+              : "Payouts have been allocated for this campaign."}
           {" "}Respondents can see their earnings in their dashboard.
         </p>
       </div>
@@ -171,7 +181,7 @@ export default function PayoutAllocator({
       <p className="text-[13px] text-text-secondary mb-[16px]">
         Distribute ${distributableAmount.toFixed(2)} among your best
         respondents.
-        <span className="text-slate">
+        <span className="text-text-muted">
           {" "}(${rewardAmount.toFixed(2)} pool minus {Math.round(PLATFORM_FEE_RATE * 100)}% platform fee)
         </span>
       </p>
@@ -207,7 +217,7 @@ export default function PayoutAllocator({
             <span className="w-[5px] h-[5px] bg-border-muted/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.2s]" />
             <span className="w-[5px] h-[5px] bg-border-muted/50 rounded-full animate-[loadDot_1.4s_ease_infinite] [animation-delay:0.4s]" />
           </div>
-          <p className="text-[12px] text-slate mt-[8px]">Calculating distribution</p>
+          <p className="text-[12px] text-text-muted mt-[8px]">Calculating distribution</p>
         </div>
       ) : (
         <>
@@ -267,7 +277,7 @@ export default function PayoutAllocator({
                         {s.respondentName}
                       </span>
                     )}
-                    <span className="text-[11px] text-slate flex items-center gap-[4px]">
+                    <span className="text-[11px] text-text-muted flex items-center gap-[4px]">
                       Score: {s.qualityScore}
                       {isLowConf && (
                         <span className="text-[10px] px-[5px] py-[0.5px] rounded-full bg-[#FEF3C7] text-[#92400E] font-medium">
@@ -279,7 +289,7 @@ export default function PayoutAllocator({
 
                   {mode === "manual" ? (
                     <div className="relative w-[90px] shrink-0">
-                      <span className="absolute left-[8px] top-1/2 -translate-y-1/2 text-[12px] text-slate">
+                      <span className="absolute left-[8px] top-1/2 -translate-y-1/2 text-[12px] text-text-muted">
                         $
                       </span>
                       <input
@@ -301,7 +311,7 @@ export default function PayoutAllocator({
                   ) : (
                     <span
                       className={`text-[14px] font-mono font-semibold shrink-0 ${
-                        isIncluded ? "text-success" : "text-slate"
+                        isIncluded ? "text-success" : "text-text-muted"
                       }`}
                     >
                       ${amount.toFixed(2)}
@@ -323,7 +333,7 @@ export default function PayoutAllocator({
               >
                 ${totalAllocated.toFixed(2)}
               </span>
-              <span className="text-[12px] text-slate ml-[4px]">
+              <span className="text-[12px] text-text-muted ml-[4px]">
                 / ${distributableAmount.toFixed(2)}
               </span>
               {remaining > 0.01 && (
@@ -371,7 +381,7 @@ export default function PayoutAllocator({
                   </span>
                 </p>
                 {/* Top 3 preview */}
-                <div className="text-[12px] text-slate pl-[8px] border-l-2 border-border-light">
+                <div className="text-[12px] text-text-muted pl-[8px] border-l-2 border-border-light">
                   {currentAllocations
                     .filter((a) => a.amount >= 0.5)
                     .slice(0, 3)
