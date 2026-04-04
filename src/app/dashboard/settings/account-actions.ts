@@ -46,6 +46,17 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
     return { error: "Please complete or cancel active campaigns before deleting your account." };
   }
 
+  // Block deletion if user has locked/pending-qualification payouts (not yet settled to balance)
+  const [lockedPayout] = await sql`
+    SELECT id FROM payouts
+    WHERE respondent_id = ${userId}
+      AND money_state IN ('locked', 'pending_qualification')
+    LIMIT 1
+  `;
+  if (lockedPayout) {
+    return { error: "You have earnings being processed. Please wait for them to settle before deleting your account." };
+  }
+
   // Block deletion if user has pending balance > 0 (money would be lost)
   const [profile] = await sql`
     SELECT available_balance_cents, pending_balance_cents
@@ -82,7 +93,7 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
   if (creatorDependencies?.has_campaign_responses || creatorDependencies?.has_campaign_payouts) {
     return {
       error:
-        "This account has collected responses or payout history. Please contact support so we can delete it safely without impacting other users.",
+        "This account has collected responses or payout history. Please contact support at support@validue.com so we can delete it safely without impacting other users.",
     };
   }
 
@@ -116,7 +127,7 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
   ) {
     return {
       error:
-        "This account has response or earnings history tied to other users' campaigns. Please contact support so we can delete it safely without distorting shared records.",
+        "This account has response or earnings history tied to other users' campaigns. Please contact support at support@validue.com so we can delete it safely without distorting shared records.",
     };
   }
 
@@ -215,7 +226,7 @@ export async function deleteAccount(): Promise<{ error: string } | never> {
   } catch (err) {
     console.error("[account-delete] Failed to delete account:", err);
     captureError(err, { userId, operation: "account.delete" });
-    return { error: "Account deletion failed. Please contact support." };
+    return { error: "Account deletion failed. Please contact support at support@validue.com." };
   }
 
   // Sign out

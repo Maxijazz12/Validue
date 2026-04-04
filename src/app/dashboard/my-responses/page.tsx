@@ -48,7 +48,8 @@ export default async function MyResponsesPage({
       .from("responses")
       .select("id, status, quality_score, payout_amount, money_state, disqualification_reasons, ai_feedback, created_at, campaign:campaigns!campaign_id(id, title, category, reward_amount, reward_type)")
       .eq("respondent_id", user.id)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(500),
     supabase
       .from("cashouts")
       .select("id, amount_cents, status, created_at, completed_at")

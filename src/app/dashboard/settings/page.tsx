@@ -188,7 +188,7 @@ export default async function SettingsPage({
         </h2>
         <p className="text-[14px] font-medium text-red-900/60 mb-[24px] max-w-[400px] leading-relaxed">
           Permanently delete your account and all associated data. This action
-          cannot be undone.
+          cannot be undone. If you need help, <a href="mailto:support@validue.com" className="text-red-600 underline hover:text-red-700">contact support</a>.
         </p>
         <DeleteAccountButton />
       </div>

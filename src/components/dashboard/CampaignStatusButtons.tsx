@@ -49,14 +49,20 @@ export function CompleteCampaignButton({ campaignId }: { campaignId: string }) {
 
 export function PauseCampaignButton({ campaignId }: { campaignId: string }) {
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handlePause() {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
     setLoading(true);
     setError(null);
     const result = await pauseCampaign(campaignId);
     if ("error" in result) setError(result.error);
     setLoading(false);
+    setConfirming(false);
   }
 
   return (
@@ -64,10 +70,22 @@ export function PauseCampaignButton({ campaignId }: { campaignId: string }) {
       <button
         onClick={handlePause}
         disabled={loading}
-        className="px-[16px] py-[8px] rounded-xl border border-border-light text-[13px] font-medium text-text-secondary hover:text-text-primary hover:border-border-muted transition-all duration-200 cursor-pointer bg-white disabled:opacity-50"
+        className={`px-[16px] py-[8px] rounded-xl border text-[13px] font-medium transition-all duration-200 cursor-pointer bg-white disabled:opacity-50 ${
+          confirming
+            ? "border-warning text-warning hover:bg-warning/5"
+            : "border-border-light text-text-secondary hover:text-text-primary hover:border-border-muted"
+        }`}
       >
-        {loading ? "Pausing..." : "Pause Campaign"}
+        {loading ? "Pausing..." : confirming ? "Are you sure?" : "Pause Campaign"}
       </button>
+      {confirming && !loading && (
+        <button
+          onClick={() => setConfirming(false)}
+          className="ml-[8px] text-[12px] text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors"
+        >
+          Cancel
+        </button>
+      )}
       {error && <p className="text-[12px] text-red-500 mt-[4px]">{error}</p>}
     </div>
   );
@@ -75,14 +93,20 @@ export function PauseCampaignButton({ campaignId }: { campaignId: string }) {
 
 export function ResumeCampaignButton({ campaignId }: { campaignId: string }) {
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleResume() {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
     setLoading(true);
     setError(null);
     const result = await resumeCampaign(campaignId);
     if ("error" in result) setError(result.error);
     setLoading(false);
+    setConfirming(false);
   }
 
   return (
@@ -90,10 +114,22 @@ export function ResumeCampaignButton({ campaignId }: { campaignId: string }) {
       <button
         onClick={handleResume}
         disabled={loading}
-        className="px-[20px] py-[10px] rounded-xl bg-success text-white text-[14px] font-medium hover:bg-[#16a34a] transition-all duration-200 cursor-pointer border-none disabled:opacity-50"
+        className={`px-[20px] py-[10px] rounded-xl text-[14px] font-medium transition-all duration-200 cursor-pointer border-none disabled:opacity-50 ${
+          confirming
+            ? "bg-[#16a34a] text-white"
+            : "bg-success text-white hover:bg-[#16a34a]"
+        }`}
       >
-        {loading ? "Resuming..." : "Resume Campaign"}
+        {loading ? "Resuming..." : confirming ? "Are you sure?" : "Resume Campaign"}
       </button>
+      {confirming && !loading && (
+        <button
+          onClick={() => setConfirming(false)}
+          className="ml-[8px] text-[12px] text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors"
+        >
+          Cancel
+        </button>
+      )}
       {error && <p className="text-[12px] text-red-500 mt-[4px]">{error}</p>}
     </div>
   );

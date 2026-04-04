@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
@@ -8,6 +9,8 @@ import { logOps } from "@/lib/ops-logger";
 import { createNotification } from "@/lib/notifications";
 import { durableRateLimit } from "@/lib/durable-rate-limit";
 import sql from "@/lib/db";
+
+const uuidSchema = z.string().uuid();
 import {
   assignQuestions,
   MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT,
@@ -31,6 +34,9 @@ export async function startResponse(campaignId: string): Promise<{
   responseId: string;
   assignedQuestionIds: string[] | null;
 }> {
+  const parsed = uuidSchema.safeParse(campaignId);
+  if (!parsed.success) throw new Error("Invalid campaign ID.");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -293,6 +299,10 @@ export async function saveAnswer(
   text: string,
   metadata: AnswerMetadata
 ) {
+  if (!uuidSchema.safeParse(responseId).success) throw new Error("Invalid response ID.");
+  if (!uuidSchema.safeParse(questionId).success) throw new Error("Invalid question ID.");
+  if (typeof text !== "string" || text.length > 50_000) throw new Error("Invalid answer text.");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -380,6 +390,8 @@ export async function saveAnswer(
 }
 
 export async function submitResponse(responseId: string) {
+  if (!uuidSchema.safeParse(responseId).success) throw new Error("Invalid response ID.");
+
   const supabase = await createClient();
   const {
     data: { user },

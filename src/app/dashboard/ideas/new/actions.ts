@@ -16,7 +16,10 @@ import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { durableRateLimit } from "@/lib/durable-rate-limit";
+import { z } from "zod";
 import { initialGateStatus, requiresGate } from "@/lib/reciprocal-gate";
+
+const uuidSchema = z.string().uuid();
 import {
   buildPersistedCampaignDraft,
   buildPersistedQuestionRecords,
@@ -386,7 +389,7 @@ export async function publishCampaign(
       return { error: "Campaign limit reached for this period." };
     }
     if (message.includes("password authentication failed") || message.includes("SASL")) {
-      return { error: "Database connection failed. Please contact support." };
+      return { error: "Database connection failed. Please contact support at support@validue.com." };
     }
     if (message.includes("violates foreign key")) {
       return { error: "Data integrity error. Please try again." };
@@ -487,6 +490,8 @@ export async function updateDraft(
   campaignId: string,
   draft: CampaignDraft
 ): Promise<{ id: string } | { error: string }> {
+  if (!uuidSchema.safeParse(campaignId).success) return { error: "Invalid campaign ID." };
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return { error: "Not authenticated. Please sign in again." };

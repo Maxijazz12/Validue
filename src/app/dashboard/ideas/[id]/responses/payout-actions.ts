@@ -408,7 +408,7 @@ export async function allocatePayoutsV2(
     }
     console.error("[allocatePayoutsV2] Transaction failed:", err);
     captureError(err, { campaignId, operation: "payout.allocate.v2", userId: user.id }, "fatal");
-    throw new Error("Payout allocation failed. Please contact support.");
+    throw new Error("Payout allocation failed. Please contact support at support@validue.com.");
   }
 
   // Notify respondents

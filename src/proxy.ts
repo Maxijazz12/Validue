@@ -3,7 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabasePublicEnv } from "@/lib/env";
 
 /** API routes that must remain publicly accessible (no auth). */
-const PUBLIC_API_ROUTES = ["/api/webhooks/stripe", "/api/health", "/api/admin"];
+const PUBLIC_API_ROUTES = [
+  "/api/webhooks/stripe",
+  "/api/health",
+  "/api/admin",
+  "/api/cron/",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -50,6 +55,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Protect admin routes — require authentication
+  if (pathname.startsWith("/admin") && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
   // Protect API routes — return 401 JSON (no redirect for API consumers)
   if (pathname.startsWith("/api/") && !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -66,5 +78,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*", "/auth/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/api/:path*", "/auth/:path*"],
 };

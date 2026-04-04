@@ -28,6 +28,7 @@ export default function CashoutPanel({
   const [onboardingComplete, setOnboardingComplete] = useState(initialOnboardingComplete);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [confirmingCashout, setConfirmingCashout] = useState(false);
   const needsCheck = connectReturnParam === "complete" && hasConnectAccount && !initialOnboardingComplete;
   const [checking, setChecking] = useState(needsCheck);
   const checkedRef = useRef(false);
@@ -65,8 +66,13 @@ export default function CashoutPanel({
   }
 
   function handleCashout() {
+    if (!confirmingCashout) {
+      setConfirmingCashout(true);
+      return;
+    }
     setError(null);
     setSuccess(null);
+    setConfirmingCashout(false);
     startTransition(async () => {
       const result = await requestCashout();
       if ("error" in result) {
@@ -157,9 +163,19 @@ export default function CashoutPanel({
               {error && (
                 <p className="text-[13px] text-error font-medium mb-[12px]">{error}</p>
               )}
-              <Button onClick={handleCashout} disabled={isPending}>
-                {isPending ? "Processing…" : `Cash Out $${(availableBalanceCents / 100).toFixed(2)}`}
-              </Button>
+              <div className="flex items-center gap-[8px]">
+                <Button onClick={handleCashout} disabled={isPending}>
+                  {isPending ? "Processing…" : confirmingCashout ? `Confirm cash out $${(availableBalanceCents / 100).toFixed(2)}?` : `Cash Out $${(availableBalanceCents / 100).toFixed(2)}`}
+                </Button>
+                {confirmingCashout && !isPending && (
+                  <button
+                    onClick={() => setConfirmingCashout(false)}
+                    className="text-[13px] text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </>
           )}
         </>

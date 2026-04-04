@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import sql from "@/lib/db";
 import Button from "@/components/ui/Button";
 import IdeasList, { type IdeaItem } from "@/components/dashboard/IdeasList";
 
@@ -38,17 +39,20 @@ export default async function IdeasPage() {
     .eq("creator_id", user!.id)
     .order("created_at", { ascending: false });
 
-  // Batch count matched responses for all campaigns in one query
+  // Batch count matched (profile_completed) responses per campaign via GROUP BY
   const campaignIds = (ideas || []).map((i) => i.id);
   const matchedCounts = new Map<string, number>();
   if (campaignIds.length > 0) {
-    const { data: matches } = await supabase
-      .from("responses")
-      .select("campaign_id, respondent:profiles!respondent_id(profile_completed)")
-      .in("campaign_id", campaignIds)
-      .eq("respondent.profile_completed", true);
-    for (const m of matches || []) {
-      matchedCounts.set(m.campaign_id, (matchedCounts.get(m.campaign_id) || 0) + 1);
+    const rows = await sql`
+      SELECT r.campaign_id, COUNT(*)::int AS count
+      FROM responses r
+      JOIN profiles p ON p.id = r.respondent_id
+      WHERE r.campaign_id = ANY(${campaignIds}::uuid[])
+        AND p.profile_completed = true
+      GROUP BY r.campaign_id
+    `;
+    for (const row of rows) {
+      matchedCounts.set(row.campaign_id as string, row.count as number);
     }
   }
 

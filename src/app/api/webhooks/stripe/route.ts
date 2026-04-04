@@ -425,6 +425,55 @@ export async function POST(request: Request) {
       break;
     }
 
+    /* ─── Charge Refunded ─── */
+    // If a campaign-funding charge is fully refunded, reset the welcome credit
+    // so the founder can use it on their next campaign.
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+      const paymentIntentId =
+        typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : null;
+
+      // Only handle full refunds for payment-intent charges
+      if (!paymentIntentId || !charge.refunded) break;
+
+      try {
+        // Look up the checkout session to get campaign metadata
+        const sessions = await stripe.checkout.sessions.list({
+          payment_intent: paymentIntentId,
+          limit: 1,
+        });
+        const session = sessions.data[0];
+        if (!session || session.metadata?.type !== "campaign_funding") break;
+
+        const welcomeCreditUsed = session.metadata?.welcomeCredit === "true";
+        const userId = session.metadata?.userId;
+        if (!welcomeCreditUsed || !userId) break;
+
+        // Reset welcome_credit_used so the founder can use it on their next campaign
+        await sql`
+          UPDATE subscriptions
+          SET welcome_credit_used = false, updated_at = NOW()
+          WHERE user_id = ${userId}
+            AND welcome_credit_used = true
+        `;
+
+        logOps({
+          event: "webhook.processed",
+          stripeEventId: event.id,
+          eventType: event.type,
+          result: "success",
+          detail: `Reset welcome_credit_used for user ${userId} after full refund of ${paymentIntentId}`,
+        });
+      } catch (err) {
+        // Non-fatal: log and continue. Don't return 500 (would trigger Stripe retry).
+        console.error("[stripe-webhook] Failed to reset welcome credit on refund:", err);
+        captureError(err, { stripeEventId: event.id, operation: "stripe.charge.refund_reset_credit" });
+      }
+      break;
+    }
+
     default:
       // Unhandled event type — ignore
       break;

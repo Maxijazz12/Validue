@@ -256,6 +256,11 @@ export async function requestCashout(): Promise<
     // Use a transaction to atomically deduct balance and create cashout
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
     const result = await sql.begin(async (tx: any) => {
+      // Lock the profile row to serialize concurrent cashout attempts
+      await tx`
+        SELECT id FROM profiles WHERE id = ${user.id} FOR UPDATE
+      `;
+
       // Deduct balance atomically with a check (prevents double-spend)
       const [updated] = await tx`
         UPDATE profiles

@@ -1,7 +1,11 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
+
+const uuidSchema = z.string().uuid();
 
 export type Notification = {
   id: string;
@@ -34,12 +38,17 @@ export async function getNotifications(): Promise<Notification[]> {
 }
 
 export async function markNotificationRead(id: string) {
+  if (!uuidSchema.safeParse(id).success) throw new Error("Invalid notification ID.");
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  const rl = await durableRateLimit(`notif:${user.id}`, 60_000, 30);
+  if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
 
   await supabase
     .from("notifications")
@@ -57,6 +66,9 @@ export async function markAllRead() {
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  const rl = await durableRateLimit(`notif-all:${user.id}`, 60_000, 10);
+  if (!rl.allowed) throw new Error("Too many requests. Please slow down.");
 
   await supabase
     .from("notifications")

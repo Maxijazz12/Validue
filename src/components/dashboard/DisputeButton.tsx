@@ -14,6 +14,7 @@ export default function DisputeButton({ responseId, alreadyDisputed }: Props) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   if (alreadyDisputed || success) {
     return (
@@ -35,6 +36,11 @@ export default function DisputeButton({ responseId, alreadyDisputed }: Props) {
   }
 
   function handleSubmit() {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setConfirming(false);
     setError(null);
     startTransition(async () => {
       const result = await fileDispute(responseId, reason);
@@ -53,7 +59,7 @@ export default function DisputeButton({ responseId, alreadyDisputed }: Props) {
       </p>
       <textarea
         value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        onChange={(e) => { setReason(e.target.value); setConfirming(false); }}
         placeholder="Explain what was wrong with the scoring (min 20 characters)…"
         className="w-full px-[12px] py-[8px] rounded-[8px] border border-border-light bg-white text-[13px] text-text-primary outline-none focus:border-accent resize-none h-[60px]"
         maxLength={1000}
@@ -63,12 +69,14 @@ export default function DisputeButton({ responseId, alreadyDisputed }: Props) {
         <button
           onClick={handleSubmit}
           disabled={isPending || reason.trim().length < 20}
-          className="px-[14px] py-[6px] rounded-lg bg-accent text-white text-[12px] font-medium hover:bg-accent-dark transition-colors disabled:opacity-40"
+          className={`px-[14px] py-[6px] rounded-lg text-white text-[12px] font-medium transition-colors disabled:opacity-40 ${
+            confirming ? "bg-accent-dark hover:bg-accent" : "bg-accent hover:bg-accent-dark"
+          }`}
         >
-          {isPending ? "Filing…" : "Submit Appeal"}
+          {isPending ? "Filing…" : confirming ? "Are you sure?" : "Submit Appeal"}
         </button>
         <button
-          onClick={() => { setShowForm(false); setReason(""); setError(null); }}
+          onClick={() => { setShowForm(false); setReason(""); setError(null); setConfirming(false); }}
           className="text-[12px] text-text-muted hover:text-text-primary transition-colors"
         >
           Cancel

@@ -45,7 +45,8 @@ export default async function CampaignResponsesPage({
         .select("id, status, quality_score, ai_feedback, scoring_source, scoring_confidence, scoring_dimensions, created_at, ranked_at, respondent:profiles!respondent_id(full_name, avatar_url, reputation_tier)")
         .eq("campaign_id", id)
         .in("status", ["submitted", "ranked"])
-        .order("quality_score", { ascending: false, nullsFirst: false }),
+        .order("quality_score", { ascending: false, nullsFirst: false })
+        .limit(500),
     ]);
 
   const hasExport = !!PLAN_CONFIG[sub.tier].hasExport;

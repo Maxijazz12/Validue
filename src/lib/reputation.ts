@@ -31,25 +31,13 @@ function smoothedQualityAverage(previousAvg: number, newAvg: number): number {
 export async function updateRespondentReputation(
   respondentId: string
 ): Promise<ReputationResult> {
-  // Fetch current profile for EMA baseline and tier hysteresis
-  const [profile] = await sql`
-    SELECT average_quality_score, reputation_tier
-    FROM profiles
-    WHERE id = ${respondentId}
-  `;
+  // Phase 1: aggregate reads (outside transaction — no lock contention)
 
-  if (!profile) {
-    throw new Error(`Reputation update failed: profile ${respondentId} not found`);
-  }
-
-  const previousAvg = safeNumber(profile.average_quality_score, -1);
-  const currentTier = (profile.reputation_tier as ReputationTier) ?? "new";
-
-  // Aggregate response stats
   const allResponses = await sql`
     SELECT status, quality_score
     FROM responses
     WHERE respondent_id = ${respondentId}
+    LIMIT 10000
   `;
   const submitted = allResponses.filter(
     (r) => r.status === "submitted" || r.status === "ranked"
@@ -57,21 +45,14 @@ export async function updateRespondentReputation(
   const ranked = allResponses.filter((r) => r.status === "ranked");
 
   const totalCompleted = ranked.length;
-  const totalSubmitted = submitted.length; // submitted already includes ranked
-  // Track whether any quality scores are actually present (not just null/NaN).
-  // Uses NaN as the "no valid data" sentinel instead of -1, since quality_score
-  // is always >= 0 when valid, and NaN propagates obviously through arithmetic.
+  const totalSubmitted = submitted.length;
+
   const qualityScores = ranked.map((r) => safeNumber(r.quality_score, NaN));
   const validScores = qualityScores.filter((s) => Number.isFinite(s));
   const rawAvgQualityScore =
     validScores.length > 0
       ? validScores.reduce((s, v) => s + v, 0) / validScores.length
-      : NaN; // NaN signals "no valid scores" vs genuine 0
-
-  // Apply EMA smoothing to quality score
-  const avgQualityScore = Number.isFinite(rawAvgQualityScore)
-    ? smoothedQualityAverage(previousAvg, rawAvgQualityScore)
-    : NaN;
+      : NaN;
 
   // Count flagged responses (responses with paste detection)
   let flaggedCount = 0;
@@ -81,6 +62,7 @@ export async function updateRespondentReputation(
       FROM responses
       WHERE respondent_id = ${respondentId}
         AND status = 'ranked'
+      LIMIT 10000
     `;
 
     if (rankedResponses.length > 0) {
@@ -105,53 +87,80 @@ export async function updateRespondentReputation(
   }
 
   // Get total earned — use raw SQL to bypass RLS so we see all payouts for the respondent
-  const payoutRows = await sql`SELECT amount FROM payouts WHERE respondent_id = ${respondentId}`;
+  const payoutRows = await sql`SELECT amount FROM payouts WHERE respondent_id = ${respondentId} LIMIT 10000`;
 
   const totalEarned = payoutRows.reduce(
     (s, p) => s + safeNumber(p.amount),
     0
   );
 
-  // If all quality scores are null/invalid, treat as insufficient data
-  const noValidScores = !Number.isFinite(avgQualityScore);
-  const stats: ReputationStats = {
-    totalCompleted: noValidScores ? 0 : totalCompleted,
-    avgQualityScore: noValidScores ? 0 : avgQualityScore,
-    totalEarned,
-    totalSubmitted,
-    flaggedResponseCount: flaggedCount,
-    currentTier,
-  };
+  // Phase 2: locked profile read + update in a transaction.
+  // FOR UPDATE serializes concurrent reputation updates for the same respondent —
+  // without it, two concurrent calls read the same previousAvg, apply EMA
+  // independently, and the second write silently overwrites the first.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
+  const result = await sql.begin(async (tx: any) => {
+    const [profile] = await tx`
+      SELECT average_quality_score, reputation_tier
+      FROM profiles
+      WHERE id = ${respondentId}
+      FOR UPDATE
+    `;
 
-  const result = calculateReputation(stats);
+    if (!profile) {
+      throw new Error(`Reputation update failed: profile ${respondentId} not found`);
+    }
 
-  const oldScore = safeNumber(profile?.average_quality_score, 0);
-  if (result.score !== oldScore || result.tier !== currentTier) {
-    logOps({
-      event: "reputation.updated",
-      respondentId,
-      oldScore: Math.round(oldScore * 100) / 100,
-      newScore: result.score,
-      oldTier: currentTier,
-      newTier: result.tier,
-      totalCompleted,
-    });
-  }
+    const previousAvg = safeNumber(profile.average_quality_score, -1);
+    const currentTier = (profile.reputation_tier as ReputationTier) ?? "new";
 
-  await sql`
-    UPDATE profiles
-    SET reputation_score = ${result.score},
-        reputation_tier = ${result.tier},
-        total_responses_completed = ${totalCompleted},
-        average_quality_score = ${
-          Number.isFinite(avgQualityScore)
-            ? Math.round(avgQualityScore * 100) / 100
-            : null
-        },
-        total_earned = ${Math.round(totalEarned * 100) / 100},
-        reputation_updated_at = NOW()
-    WHERE id = ${respondentId}
-  `;
+    // Apply EMA smoothing using the locked profile's current value
+    const avgQualityScore = Number.isFinite(rawAvgQualityScore)
+      ? smoothedQualityAverage(previousAvg, rawAvgQualityScore)
+      : NaN;
+
+    const noValidScores = !Number.isFinite(avgQualityScore);
+    const stats: ReputationStats = {
+      totalCompleted: noValidScores ? 0 : totalCompleted,
+      avgQualityScore: noValidScores ? 0 : avgQualityScore,
+      totalEarned,
+      totalSubmitted,
+      flaggedResponseCount: flaggedCount,
+      currentTier,
+    };
+
+    const repResult = calculateReputation(stats);
+
+    const oldScore = safeNumber(profile.average_quality_score, 0);
+    if (repResult.score !== oldScore || repResult.tier !== currentTier) {
+      logOps({
+        event: "reputation.updated",
+        respondentId,
+        oldScore: Math.round(oldScore * 100) / 100,
+        newScore: repResult.score,
+        oldTier: currentTier,
+        newTier: repResult.tier,
+        totalCompleted,
+      });
+    }
+
+    await tx`
+      UPDATE profiles
+      SET reputation_score = ${repResult.score},
+          reputation_tier = ${repResult.tier},
+          total_responses_completed = ${totalCompleted},
+          average_quality_score = ${
+            Number.isFinite(avgQualityScore)
+              ? Math.round(avgQualityScore * 100) / 100
+              : null
+          },
+          total_earned = ${Math.round(totalEarned * 100) / 100},
+          reputation_updated_at = NOW()
+      WHERE id = ${respondentId}
+    `;
+
+    return repResult;
+  });
 
   return result;
 }

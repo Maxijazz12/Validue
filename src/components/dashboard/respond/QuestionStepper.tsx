@@ -6,7 +6,42 @@ import OpenEndedAnswer, { MIN_CHARS } from "./OpenEndedAnswer";
 import MultipleChoiceAnswer from "./MultipleChoiceAnswer";
 import Button from "@/components/ui/Button";
 import { saveAnswer, submitResponse } from "@/app/dashboard/the-wall/[id]/actions";
+import { createClient } from "@/lib/supabase/client";
 import type { AnswerMetadata } from "@/lib/sanitize-metadata";
+
+function draftKey(responseId: string, questionId: string): string {
+  return `draft-response-${responseId}-${questionId}`;
+}
+
+function saveDraft(responseId: string, questionId: string, text: string): void {
+  try {
+    if (text.trim()) {
+      localStorage.setItem(draftKey(responseId, questionId), text);
+    } else {
+      localStorage.removeItem(draftKey(responseId, questionId));
+    }
+  } catch {
+    // localStorage unavailable (private browsing, storage full, etc.)
+  }
+}
+
+function loadDraft(responseId: string, questionId: string): string | null {
+  try {
+    return localStorage.getItem(draftKey(responseId, questionId));
+  } catch {
+    return null;
+  }
+}
+
+function clearDrafts(responseId: string, questionIds: string[]): void {
+  try {
+    for (const qId of questionIds) {
+      localStorage.removeItem(draftKey(responseId, qId));
+    }
+  } catch {
+    // ignore
+  }
+}
 
 export type Question = {
   id: string;
@@ -69,6 +104,13 @@ export default function QuestionStepper({
 
   // Review-before-submit mode
   const [showReview, setShowReview] = useState(false);
+  const [confirmingSubmit, setConfirmingSubmit] = useState(false);
+
+  // Draft restoration banner
+  const [restoredDraft, setRestoredDraft] = useState(false);
+
+  // Session expiry state (shown instead of redirect on submit failure)
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const question = questions[currentIndex];
   const isLast = currentIndex === questions.length - 1;
@@ -88,6 +130,40 @@ export default function QuestionStepper({
     }, 1000);
     return () => clearInterval(interval);
   }, [question]);
+
+  // Restore drafts from localStorage on first mount
+  useEffect(() => {
+    let anyRestored = false;
+    const restored = new Map(answers);
+    for (const q of questions) {
+      const saved = loadDraft(responseId, q.id);
+      if (saved && !restored.has(q.id)) {
+        restored.set(q.id, { text: saved, pasteCount: 0, timeSpentMs: 0 });
+        anyRestored = true;
+      }
+    }
+    if (anyRestored) {
+      setAnswers(restored);
+      // Pre-fill current question if it has a draft
+      const currentDraft = restored.get(questions[currentIndex]?.id);
+      if (currentDraft) setCurrentText(currentDraft.text);
+      setRestoredDraft(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally only on mount
+
+  // Auto-save current answer to localStorage on text change (debounced 1s)
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!question) return;
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      saveDraft(responseId, question.id, currentText);
+    }, 1000);
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [currentText, question, responseId]);
 
   const isValid =
     question?.type === "open"
@@ -145,16 +221,34 @@ export default function QuestionStepper({
   ]);
 
   const handleFinalSubmit = useCallback(() => {
+    if (!confirmingSubmit) {
+      setConfirmingSubmit(true);
+      return;
+    }
+    setConfirmingSubmit(false);
     startTransition(async () => {
+      // Session health check before submission
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setSessionExpired(true);
+          return;
+        }
+      } catch {
+        // If the check itself fails, let the submit attempt proceed and handle the error naturally
+      }
+
       try {
         await submitResponse(responseId);
+        clearDrafts(responseId, questions.map((q) => q.id));
         onSubmitted(Date.now() - totalStartRef.current);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Submission failed. Try again?");
         setShowReview(false);
       }
     });
-  }, [responseId, onSubmitted]);
+  }, [responseId, onSubmitted, confirmingSubmit, questions]);
 
   const handleBack = useCallback(() => {
     if (currentIndex === 0) return;
@@ -186,6 +280,12 @@ export default function QuestionStepper({
       <div>
         <h2 className="text-[18px] font-semibold text-text-primary mb-[4px]">Review your answers</h2>
         <p className="text-[13px] text-text-muted mb-[20px]">Make sure everything looks good before submitting.</p>
+
+        {sessionExpired && (
+          <div className="font-mono text-[11px] text-warning tracking-wide font-medium uppercase mb-[12px] p-[12px] rounded-[12px] bg-warning/5 border border-warning/20">
+            [ SESSION_EXPIRED: YOUR ANSWERS ARE SAVED. LOG IN AGAIN TO SUBMIT. ]
+          </div>
+        )}
 
         <div className="flex flex-col gap-[12px] mb-[24px]">
           {questions.map((q, i) => {
@@ -227,8 +327,16 @@ export default function QuestionStepper({
             disabled={isPending}
             className={`px-[24px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide !bg-accent !text-white w-full sm:w-auto ${isPending ? "opacity-50 cursor-not-allowed" : "hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"}`}
           >
-            {isPending ? "[ SUBMITTING_PAYLOAD... ]" : "[ INITIATE_TRANSFER ]"}
+            {isPending ? "[ SUBMITTING_PAYLOAD... ]" : confirmingSubmit ? "[ CONFIRM_SUBMIT? ]" : "[ INITIATE_TRANSFER ]"}
           </Button>
+          {confirmingSubmit && !isPending && (
+            <button
+              onClick={() => setConfirmingSubmit(false)}
+              className="text-[11px] font-mono text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors uppercase tracking-wide"
+            >
+              [ CANCEL ]
+            </button>
+          )}
         </div>
       </div>
     );
@@ -236,6 +344,19 @@ export default function QuestionStepper({
 
   return (
     <div>
+      {/* Restored draft banner */}
+      {restoredDraft && (
+        <div className="font-mono text-[10px] text-text-muted tracking-wide uppercase mb-[12px] p-[8px] rounded-[8px] bg-bg-subtle border border-border-light flex items-center justify-between">
+          <span>[ DRAFT_RESTORED: answers recovered from previous session ]</span>
+          <button
+            onClick={() => setRestoredDraft(false)}
+            className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer ml-[8px] transition-colors"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Checkmark flash overlay */}
       {showCheckFlash && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">

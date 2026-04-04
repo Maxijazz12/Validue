@@ -26,7 +26,8 @@ export default async function ResponsesPage() {
       .from("responses")
       .select("campaign_id, quality_score, status")
       .in("campaign_id", campaignIds)
-      .in("status", ["submitted", "ranked"]);
+      .in("status", ["submitted", "ranked"])
+      .limit(5000);
     for (const r of allResponses || []) {
       const entry = statsMap.get(r.campaign_id) || { total: 0, ranked: 0, scoreSum: 0 };
       entry.total++;
