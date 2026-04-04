@@ -12,6 +12,7 @@ import {
   hasRemainingReachBudget,
   isCampaignOpenForResponses,
 } from "@/lib/campaign-availability";
+import { shouldRequireRespondentProfile } from "@/lib/profile-role";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -277,9 +278,9 @@ export async function loadWallPageData(
       .neq("creator_id", userId),
   ]);
 
-  const respondentProfile = buildRespondentProfile(profile as ProfileRow | null);
-  const isRespondent = profile?.role === "respondent";
-  const profileIncomplete = isRespondent && !respondentProfile.profile_completed;
+  const typedProfile = profile as ProfileRow | null;
+  const respondentProfile = buildRespondentProfile(typedProfile);
+  const profileIncomplete = shouldRequireRespondentProfile(typedProfile);
   const activeCampaigns = ((campaigns as CampaignRow[] | null) ?? []).filter((campaign) =>
     isCampaignOpenForResponses(campaign) && hasRemainingReachBudget(campaign)
   );
@@ -328,10 +329,10 @@ export async function loadWallPageData(
   const currentStreak = calculateCurrentStreak((recentResponseDates as ResponseDateRow[] | null) ?? []);
 
   return {
-    profile: profile as ProfileRow | null,
+    profile: typedProfile,
     ideas,
-    userProfile: buildWallUserProfile(profile as ProfileRow | null, currentStreak),
+    userProfile: buildWallUserProfile(typedProfile, currentStreak),
     profileIncomplete,
-    showOnboarding: !!profile && !profile.onboarding_completed,
+    showOnboarding: !!typedProfile && !typedProfile.onboarding_completed,
   };
 }

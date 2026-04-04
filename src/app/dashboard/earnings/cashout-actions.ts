@@ -9,6 +9,8 @@ import { durableRateLimit } from "@/lib/durable-rate-limit";
 import stripe from "@/lib/stripe";
 import sql from "@/lib/db";
 import { claimFailedCashoutRetry } from "@/lib/cashout-retry";
+import { FEATURES } from "@/lib/feature-flags";
+import { canAccessRespondentPayouts } from "@/lib/profile-role";
 
 function cashoutIdempotencyKey(cashoutId: string, attemptCount: number): string {
   return `cashout_${cashoutId}_attempt_${Math.max(1, attemptCount)}`;
@@ -45,6 +47,8 @@ async function markSnapshotResponsesPaidOut(
 export async function createConnectOnboardingLink(): Promise<
   { url: string } | { error: string }
 > {
+  if (!FEATURES.CASHOUT) return { error: "Cashouts are currently unavailable." };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,12 +60,23 @@ export async function createConnectOnboardingLink(): Promise<
 
   // Fetch current Connect status
   const [profile] = await sql`
-    SELECT stripe_connect_account_id, stripe_connect_onboarding_complete, full_name, role
+    SELECT
+      stripe_connect_account_id,
+      stripe_connect_onboarding_complete,
+      full_name,
+      role,
+      has_responded,
+      total_responses_completed,
+      available_balance_cents,
+      pending_balance_cents,
+      total_earned
     FROM profiles WHERE id = ${user.id}
   `;
 
   if (!profile) return { error: "Profile not found" };
-  if (profile.role !== "respondent") return { error: "Only respondents can set up payouts" };
+  if (!canAccessRespondentPayouts(profile)) {
+    return { error: "Complete a response before setting up payouts." };
+  }
 
   let connectAccountId = profile.stripe_connect_account_id;
 
@@ -128,6 +143,8 @@ export async function createConnectOnboardingLink(): Promise<
 export async function checkConnectStatus(): Promise<
   { onboardingComplete: boolean; chargesEnabled: boolean } | { error: string }
 > {
+  if (!FEATURES.CASHOUT) return { error: "Cashouts are currently unavailable." };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -177,6 +194,8 @@ export async function checkConnectStatus(): Promise<
 export async function requestCashout(): Promise<
   { cashoutId: string; amountCents: number } | { error: string }
 > {
+  if (!FEATURES.CASHOUT) return { error: "Cashouts are currently unavailable." };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -192,12 +211,18 @@ export async function requestCashout(): Promise<
       stripe_connect_account_id,
       stripe_connect_onboarding_complete,
       available_balance_cents,
+      pending_balance_cents,
+      total_earned,
+      total_responses_completed,
+      has_responded,
       role
     FROM profiles WHERE id = ${user.id}
   `;
 
   if (!profile) return { error: "Profile not found" };
-  if (profile.role !== "respondent") return { error: "Only respondents can cash out" };
+  if (!canAccessRespondentPayouts(profile)) {
+    return { error: "Only accounts with respondent activity can cash out" };
+  }
 
   if (!profile.stripe_connect_account_id || !profile.stripe_connect_onboarding_complete) {
     return { error: "Please set up your bank account first" };
@@ -342,6 +367,8 @@ export async function requestCashout(): Promise<
 export async function retryCashout(
   cashoutId: string
 ): Promise<{ amountCents: number } | { error: string }> {
+  if (!FEATURES.CASHOUT) return { error: "Cashouts are currently unavailable." };
+
   const supabase = await createClient();
   const {
     data: { user },

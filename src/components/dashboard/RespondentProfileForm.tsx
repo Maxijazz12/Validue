@@ -53,8 +53,7 @@ export default function RespondentProfileForm({
       </div>
       <p className="text-[14px] text-text-secondary mb-[28px]">
         Help us match you with ideas you&apos;re qualified to answer. Better
-        matches mean higher-quality feedback for founders — and more earnings for
-        you.
+        matches mean more relevant ideas for you and cleaner signal for founders.
       </p>
 
       <form

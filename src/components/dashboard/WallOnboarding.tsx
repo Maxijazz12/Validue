@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition, useCallback } from "react";
 import { dismissOnboarding } from "@/app/dashboard/the-wall/actions";
+import { FEATURES } from "@/lib/feature-flags";
 
 type WallOnboardingProps = {
   userName: string;
@@ -157,7 +158,9 @@ export default function WallOnboarding({
               <span className="font-semibold text-text-primary">{ideaCount}</span>{" "}
               {ideaCount === 1 ? "idea" : "ideas"} being tested right now.
               {userRole === "respondent"
-                ? " See ideas matched to your background. Earn for qualified feedback."
+                ? FEATURES.RESPONDENT_PAYOUTS
+                  ? " See ideas matched to your background. Earn for qualified feedback."
+                  : " See ideas matched to your background and help founders pressure-test what they are building."
                 : " Get feedback on your idea or explore what others are building."}
             </>
           ) : (
@@ -196,7 +199,7 @@ export default function WallOnboarding({
         <ActionCard
           done={hasResponded}
           title="Answer your first idea"
-          description="Earn money sharing your expertise"
+          description={FEATURES.RESPONDENT_PAYOUTS ? "Earn money sharing your expertise" : "Share focused feedback from your own experience"}
           cta="View matched ideas"
           onClick={() => {
             document.getElementById("wall-feed")?.scrollIntoView({ behavior: "smooth" });

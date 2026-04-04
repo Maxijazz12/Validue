@@ -2,7 +2,7 @@
 
 import { useRouteActive } from "@/lib/hooks/use-route-active";
 import Avatar from "@/components/ui/Avatar";
-import { FEATURES } from "@/lib/feature-flags";
+import { FEATURES, RESPONDENT_ACTIVITY_LABEL } from "@/lib/feature-flags";
 
 const tabs = [
   {
@@ -48,7 +48,7 @@ const tabs = [
     ),
   },
   ...(FEATURES.EARNINGS_PAGE ? [{
-    label: "Earnings",
+    label: RESPONDENT_ACTIVITY_LABEL,
     href: "/dashboard/earnings",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

@@ -3,6 +3,7 @@ import WallFeed from "@/components/dashboard/WallFeed";
 import WallOnboarding from "@/components/dashboard/WallOnboarding";
 import ProfilePrompt from "@/components/dashboard/ProfilePrompt";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeProfileRole } from "@/lib/profile-role";
 import { loadWallPageData } from "./load-wall-page-data";
 
 export default async function TheWallPage() {
@@ -26,7 +27,7 @@ export default async function TheWallPage() {
       {showOnboarding && profile && (
         <WallOnboarding
           userName={profile.full_name ?? ""}
-          userRole={profile.role ?? "founder"}
+          userRole={normalizeProfileRole(profile.role)}
           hasAvatar={!!profile.avatar_url}
           hasPosted={!!profile.has_posted}
           hasResponded={!!profile.has_responded}

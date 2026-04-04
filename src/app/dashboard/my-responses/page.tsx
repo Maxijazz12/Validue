@@ -4,6 +4,7 @@ import ReputationBadge from "@/components/ui/ReputationBadge";
 import StatCard from "@/components/dashboard/StatCard";
 import MyResponsesFeed, { type ResponseItem } from "@/components/dashboard/MyResponsesFeed";
 import type { ReputationTier } from "@/lib/reputation-config";
+import { FEATURES } from "@/lib/feature-flags";
 
 export default async function MyResponsesPage() {
   const supabase = await createClient();
@@ -54,7 +55,11 @@ export default async function MyResponsesPage() {
     <>
       <div className="mb-[24px]">
         <h1 className="text-[24px] font-medium tracking-tight text-text-primary">My Responses</h1>
-        <p className="text-[14px] text-text-secondary mt-[4px]">Track your submitted responses</p>
+        <p className="text-[14px] text-text-secondary mt-[4px]">
+          {FEATURES.RESPONDENT_PAYOUTS
+            ? "Track your submitted responses and payout progress"
+            : "Track your submitted responses and any past reward activity"}
+        </p>
       </div>
 
       {/* Reputation stats */}
@@ -67,7 +72,21 @@ export default async function MyResponsesPage() {
           </StatCard>
           <StatCard label="Avg Quality" value={avgQuality} valueColor={avgQuality >= 70 ? "#22c55e" : avgQuality >= 40 ? "#E5654E" : "#ef4444"} />
           <StatCard label="Completed" value={totalCompleted} />
-          <StatCard label="Earned" value={`$${totalEarned.toFixed(2)}`} valueColor="#22c55e" />
+          <StatCard
+            label={
+              FEATURES.RESPONDENT_PAYOUTS
+                ? "Earned"
+                : totalEarned > 0
+                  ? "Past Paid"
+                  : "Mode"
+            }
+            value={
+              FEATURES.RESPONDENT_PAYOUTS || totalEarned > 0
+                ? `$${totalEarned.toFixed(2)}`
+                : "Feedback"
+            }
+            valueColor={FEATURES.RESPONDENT_PAYOUTS || totalEarned > 0 ? "#22c55e" : undefined}
+          />
         </div>
       )}
 

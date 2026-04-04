@@ -6,6 +6,10 @@ import PasswordChangeForm from "@/components/dashboard/settings/PasswordChangeFo
 import NotificationPreferences from "@/components/dashboard/settings/NotificationPreferences";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
+import {
+  getPrimaryModeLabel,
+  shouldShowRespondentProfile,
+} from "@/lib/profile-role";
 import DeleteAccountButton from "./DeleteAccountButton";
 
 async function updateProfile(formData: FormData) {
@@ -50,11 +54,11 @@ export default async function SettingsPage({
     .eq("id", user!.id)
     .single();
 
-  const isRespondent = profile?.role === "respondent";
+  const showRespondentProfile = shouldShowRespondentProfile(profile);
 
   return (
     <div className="max-w-2xl mx-auto pb-24 font-sans">
-      {showCompletePrompt && isRespondent && (
+      {showCompletePrompt && showRespondentProfile && (
         <div className="mb-[32px] p-[24px_32px] bg-white border border-brand/20 shadow-[0_8px_30px_rgba(229,101,78,0.06)] rounded-[28px] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-brand/50 to-transparent" />
           <p className="text-[16px] font-semibold tracking-tight text-text-primary mb-[4px]">
@@ -67,13 +71,13 @@ export default async function SettingsPage({
       )}
 
       {/* Floating Header */}
-      <div className="mb-[32px] pt-[8px]">
+      <div className="mb-[24px] pt-[8px]">
         <h1 className="text-[24px] font-medium tracking-tight text-text-primary">Profile</h1>
         <p className="text-[14px] text-text-secondary mt-[4px]">Manage your profile and account preferences</p>
       </div>
 
       {/* Profile section */}
-      <div className="bg-white rounded-[28px] border border-border-light/60 shadow-card-sm overflow-hidden mb-[32px]">
+      <div className="bg-white rounded-[20px] md:rounded-[28px] border border-border-light/60 shadow-card overflow-hidden mb-[24px]">
         <div className="p-[32px]">
           <div className="mb-[32px]">
             <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[6px]">Identity</span>
@@ -127,10 +131,15 @@ export default async function SettingsPage({
 
             <div className="flex flex-col gap-[8px]">
               <label className="text-[13px] font-bold uppercase tracking-[0.04em] text-text-muted">
-                Role
+                Primary mode
               </label>
-              <div className="px-[18px] py-[14px] rounded-[16px] border border-border-light/40 bg-white/50 text-[15px] font-medium text-text-secondary capitalize inline-flex">
-                {profile?.role || "founder"}
+              <div className="flex flex-col gap-[8px]">
+                <div className="px-[18px] py-[14px] rounded-[16px] border border-border-light/40 bg-white/50 text-[15px] font-medium text-text-secondary inline-flex">
+                  {getPrimaryModeLabel(profile?.role)}
+                </div>
+                <p className="text-[12px] leading-relaxed text-text-muted max-w-[420px]">
+                  This sets your default onboarding path. You can still post ideas and respond to other people&apos;s ideas from the same account.
+                </p>
               </div>
             </div>
 
@@ -145,7 +154,7 @@ export default async function SettingsPage({
       </div>
 
       {/* Respondent matching profile */}
-      {isRespondent && (
+      {showRespondentProfile && (
         <div className="mb-[32px]">
           <RespondentProfileForm
             interests={profile?.interests ?? []}
@@ -166,12 +175,11 @@ export default async function SettingsPage({
       <div className="mb-[32px]">
         <NotificationPreferences
           preferences={(profile?.notification_preferences as Record<string, boolean>) || {}}
-          role={profile?.role || "founder"}
         />
       </div>
 
       {/* Danger zone */}
-      <div className="bg-[#FFF8F8] border border-red-200/60 rounded-[28px] p-[32px] shadow-[0_8px_30px_rgba(239,68,68,0.02)]">
+      <div className="bg-[#FFF8F8] border border-red-200/60 rounded-[20px] md:rounded-[28px] p-[20px] md:p-[28px] shadow-card">
         <span className="font-mono text-[11px] font-medium tracking-wide text-red-400 uppercase block mb-[6px]">Caution</span>
         <h2 className="text-[18px] font-medium tracking-tight text-red-600 mb-[10px]">
           Danger zone

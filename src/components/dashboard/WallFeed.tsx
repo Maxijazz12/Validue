@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore, useMemo, useCallback } from "react";
 import WallCardUnified, { type WallCardProps } from "@/components/dashboard/WallCardUnified";
 import WallCardTracker from "@/components/dashboard/WallCardTracker";
+import { FEATURES } from "@/lib/feature-flags";
 
 /* ─── Re-export types for server page ─── */
 export type { WallUserProfile } from "@/components/dashboard/RespondentStatsBar";
@@ -25,7 +26,9 @@ function scoreBestMatches(idea: WallCardProps): number {
   score += (idea.matchScore / 100) * 35;
   const ageHours = (now - new Date(idea.createdAt).getTime()) / (1000 * 60 * 60);
   score += Math.max(0, 25 - ageHours * 0.35);
-  score += Math.min(idea.rewardAmount / 5, 15);
+  if (FEATURES.RESPONDENT_PAYOUTS) {
+    score += Math.min(idea.rewardAmount / 5, 15);
+  }
   const fillRatio = idea.targetResponses > 0 ? idea.currentResponses / idea.targetResponses : 0;
   score += fillRatio * 10;
   if (idea.deadline) {

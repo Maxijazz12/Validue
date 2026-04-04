@@ -15,20 +15,12 @@ const NOTIFICATION_OPTIONS: { key: NotifType; label: string; description: string
 
 type NotificationPreferencesProps = {
   preferences: Record<string, boolean>;
-  role: string;
 };
 
-export default function NotificationPreferences({ preferences, role }: NotificationPreferencesProps) {
+export default function NotificationPreferences({ preferences }: NotificationPreferencesProps) {
   const [prefs, setPrefs] = useState<Record<string, boolean>>(preferences);
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
-
-  // Filter options by role relevance
-  const options = NOTIFICATION_OPTIONS.filter((opt) => {
-    if (role === "respondent") return ["payout_earned", "quality_feedback"].includes(opt.key);
-    if (role === "founder") return ["new_response", "campaign_completed", "ranking_complete"].includes(opt.key);
-    return true;
-  });
 
   function handleToggle(key: string) {
     const next = { ...prefs, [key]: !prefs[key] };
@@ -60,7 +52,7 @@ export default function NotificationPreferences({ preferences, role }: Notificat
       </div>
 
       <div className="flex flex-col gap-[4px]">
-        {options.map((opt) => (
+        {NOTIFICATION_OPTIONS.map((opt) => (
           <label
             key={opt.key}
             className="flex items-center justify-between p-[16px] rounded-[16px] hover:bg-bg-muted/60 transition-colors cursor-pointer"

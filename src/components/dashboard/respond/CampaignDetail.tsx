@@ -204,10 +204,12 @@ export default function CampaignDetail({
       {!hasReward && (
         <div className="bg-bg-muted border border-border-light rounded-[24px] p-[24px] mb-[32px] relative overflow-hidden shadow-card">
           <span className="font-mono font-bold text-[14px] text-text-primary">
-            UNPAID FEEDBACK REQUEST
+            {FEATURES.RESPONDENT_PAYOUTS ? "UNPAID FEEDBACK REQUEST" : "FEEDBACK-ONLY RUN"}
           </span>
           <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted leading-[1.6] mt-[12px]">
-            THIS CAMPAIGN IS FOR FEEDBACK ONLY. RESPONSES HELP THE FOUNDER, BUT DO NOT EARN CASH.
+            {FEATURES.RESPONDENT_PAYOUTS
+              ? "THIS CAMPAIGN IS FOR FEEDBACK ONLY. RESPONSES HELP THE FOUNDER, BUT DO NOT EARN CASH."
+              : "RESPONDENT CASH PAYOUTS ARE CURRENTLY PAUSED. THIS RUN HELPS THE FOUNDER, BUT DOES NOT PAY OUT CASH."}
           </p>
         </div>
       )}

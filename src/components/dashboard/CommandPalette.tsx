@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { RESPONDENT_ACTIVITY_LABEL } from "@/lib/feature-flags";
 
 type QuickAction = {
   label: string;
@@ -42,7 +43,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    label: "Earnings",
+    label: RESPONDENT_ACTIVITY_LABEL,
     href: "/dashboard/earnings",
     section: "Navigate",
     icon: (

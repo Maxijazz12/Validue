@@ -2,6 +2,7 @@
 
 import { memo, useState } from "react";
 import WallReactionBar from "@/components/dashboard/WallReactionBar";
+import { FEATURES } from "@/lib/feature-flags";
 
 /* ─── Types ─── */
 
@@ -60,6 +61,7 @@ export default memo(function WallCardUnified({
   const isHighMatch = matchScore >= 75;
   const isNearlyFull = progress >= 75 && progress < 100;
   const [showMatchTip, setShowMatchTip] = useState(false);
+  const showRewardAmount = FEATURES.RESPONDENT_PAYOUTS && rewardAmount > 0;
 
   return (
       <div
@@ -102,13 +104,13 @@ export default memo(function WallCardUnified({
                 </span>
               )}
             </div>
-            {rewardAmount > 0 ? (
+            {showRewardAmount ? (
               <span className="text-[13px] font-semibold tracking-tight text-success">
                 +${rewardAmount.toFixed(2)}
               </span>
             ) : (
               <span className="px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight bg-bg-muted text-text-secondary">
-                UNPAID
+                FEEDBACK ONLY
               </span>
             )}
           </div>

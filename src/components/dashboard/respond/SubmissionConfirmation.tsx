@@ -32,7 +32,9 @@ export default function SubmissionConfirmation({
   suggestedCampaigns,
 }: SubmissionConfirmationProps) {
   const hasReward = FEATURES.RESPONDENT_PAYOUTS && rewardAmount && rewardAmount > 0;
-  const potentialEarnings = (suggestedCampaigns || []).reduce((sum, c) => sum + c.rewardAmount, 0);
+  const potentialEarnings = FEATURES.RESPONDENT_PAYOUTS
+    ? (suggestedCampaigns || []).reduce((sum, c) => sum + c.rewardAmount, 0)
+    : 0;
 
   return (
     <div className="flex items-center justify-center py-[48px]">
@@ -108,7 +110,7 @@ export default function SubmissionConfirmation({
                       ROOT.{c.creatorName.split(" ")[0].toUpperCase()} {c.category ? `[ ${c.category.toUpperCase()} ]` : ""} T-{c.estimatedMinutes}M
                     </div>
                   </div>
-                  {c.rewardAmount > 0 && (
+                  {FEATURES.RESPONDENT_PAYOUTS && c.rewardAmount > 0 && (
                     <span className="font-mono text-[10px] font-bold text-success-mid bg-success-mid/10 px-[6px] py-[4px] rounded-md shrink-0">
                       +${c.rewardAmount}
                     </span>

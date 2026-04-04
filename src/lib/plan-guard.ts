@@ -228,7 +228,7 @@ export function isSubscriptionBlocked(status: string): boolean {
  *
  * Eligibility rules (all must be true):
  * 1. User has verified email (checked upstream by auth)
- * 2. User has completed profile (full_name exists, role = founder)
+ * 2. User has completed profile (full_name exists)
  * 3. User has never created a campaign
  * 4. subsidized_campaign_used = false
  * 5. Account is < 30 days old
@@ -239,11 +239,11 @@ export async function checkSubsidyEligibility(
 ): Promise<{ eligible: boolean; reason?: string }> {
   // Check profile completeness and subsidy flag
   const [profile] = await sql`
-    SELECT full_name, role, subsidized_campaign_used, created_at
+    SELECT full_name, subsidized_campaign_used, created_at
     FROM profiles WHERE id = ${userId}
   `;
   if (!profile) return { eligible: false, reason: "Profile not found." };
-  if (!profile.full_name || profile.role !== "founder") {
+  if (!profile.full_name) {
     return { eligible: false, reason: "Complete your profile to unlock your free campaign." };
   }
   if (profile.subsidized_campaign_used) {

@@ -7,8 +7,12 @@ import { revalidatePath } from "next/cache";
 import { logOps } from "@/lib/ops-logger";
 import { createNotification } from "@/lib/notifications";
 import { captureWarning } from "@/lib/sentry";
-import { rateLimit } from "@/lib/rate-limit";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
+import {
+  buildCopiedCampaignDraft,
+  buildCopiedQuestionRecords,
+} from "@/lib/campaign-draft-persistence";
 
 export async function completeCampaign(
   campaignId: string
@@ -20,7 +24,7 @@ export async function completeCampaign(
 
   if (!user) return { error: "Not authenticated." };
 
-  const rl = rateLimit(`complete:${user.id}`, 60000, 5);
+  const rl = await durableRateLimit(`complete:${user.id}`, 60000, 5);
   if (!rl.allowed) return { error: "Too many requests. Please slow down." };
 
   try {
@@ -70,7 +74,7 @@ export async function pauseCampaign(
 
   if (!user) return { error: "Not authenticated." };
 
-  const rl = rateLimit(`pause:${user.id}`, 60000, 10);
+  const rl = await durableRateLimit(`pause:${user.id}`, 60000, 10);
   if (!rl.allowed) return { error: "Too many requests. Please slow down." };
 
   try {
@@ -104,7 +108,7 @@ export async function resumeCampaign(
 
   if (!user) return { error: "Not authenticated." };
 
-  const rl = rateLimit(`pause:${user.id}`, 60000, 10);
+  const rl = await durableRateLimit(`pause:${user.id}`, 60000, 10);
   if (!rl.allowed) return { error: "Too many requests. Please slow down." };
 
   try {
@@ -154,7 +158,7 @@ export async function retestCampaign(campaignId: string) {
   if (original.status !== "completed") return { error: "Only completed campaigns can be retested." };
 
   // Rate limit: reuse same clone bucket
-  const rl = rateLimit(`clone:${user.id}`, 3600000, 10);
+  const rl = await durableRateLimit(`clone:${user.id}`, 3600000, 10);
   if (!rl.allowed) return { error: "Too many operations. Please wait." };
 
   // Compute round number and title
@@ -168,6 +172,11 @@ export async function retestCampaign(campaignId: string) {
     .select("text, type, sort_order, options, is_baseline, category, assumption_index, anchors")
     .eq("campaign_id", campaignId)
     .order("sort_order", { ascending: true });
+  const copiedCampaign = buildCopiedCampaignDraft(original, {
+    title: newTitle,
+    rewardAmount: 0,
+  });
+  const copiedQuestions = buildCopiedQuestionRecords(questions || []);
 
   let newId: string;
 
@@ -179,29 +188,31 @@ export async function retestCampaign(campaignId: string) {
           creator_id, title, description, status, category, tags,
           estimated_minutes, reward_amount, reward_type,
           bonus_available, rewards_top_answers,
+          format,
           target_interests, target_expertise, target_age_ranges, target_location,
           key_assumptions,
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
           quality_scores, quality_score,
           parent_campaign_id, round_number
         ) VALUES (
-          ${user.id}, ${newTitle}, ${original.description}, 'draft',
-          ${original.category}, ${original.tags},
-          ${original.estimated_minutes}, 0, ${original.reward_type},
-          ${original.bonus_available}, ${original.rewards_top_answers},
-          ${original.target_interests}, ${original.target_expertise}, ${original.target_age_ranges}, ${original.target_location},
-          ${original.key_assumptions},
-          ${original.audience_occupation}, ${original.audience_industry}, ${original.audience_experience_level}, ${original.audience_niche_qualifier},
-          ${original.quality_scores}, ${original.quality_score},
+          ${user.id}, ${copiedCampaign.title}, ${copiedCampaign.summary}, 'draft',
+          ${copiedCampaign.category}, ${copiedCampaign.tags},
+          ${copiedCampaign.estimatedMinutes}, ${copiedCampaign.rewardAmount}, ${copiedCampaign.rewardType},
+          ${copiedCampaign.bonusAvailable}, ${copiedCampaign.rewardsTopAnswers},
+          ${copiedCampaign.format},
+          ${copiedCampaign.targetInterests}, ${copiedCampaign.targetExpertise}, ${copiedCampaign.targetAgeRanges}, ${copiedCampaign.targetLocation},
+          ${copiedCampaign.keyAssumptions},
+          ${copiedCampaign.audienceOccupation}, ${copiedCampaign.audienceIndustry}, ${copiedCampaign.audienceExperienceLevel}, ${copiedCampaign.audienceNicheQualifier},
+          ${copiedCampaign.qualityScoresJson}::jsonb, ${copiedCampaign.qualityScore},
           ${campaignId}, ${newRound}
         )
         RETURNING id
       `;
 
-      for (const q of questions || []) {
+      for (const question of copiedQuestions) {
         await tx`
           INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
-          VALUES (${campaign.id}, ${q.text}, ${q.type}, ${q.sort_order}, ${q.options}::jsonb, ${q.is_baseline}, ${q.category}, ${q.assumption_index}, ${q.anchors}::jsonb)
+          VALUES (${campaign.id}, ${question.text}, ${question.type}, ${question.sortOrder}, ${question.optionsJson}::jsonb, ${question.isBaseline}, ${question.category}, ${question.assumptionIndex}, ${question.anchorsJson}::jsonb)
         `;
       }
 
@@ -245,15 +256,20 @@ export async function cloneCampaign(campaignId: string) {
   if (!original) return { error: "Campaign not found." };
 
   // Rate limit: 10 clones per hour
-  const rl = rateLimit(`clone:${user.id}`, 3600000, 10);
+  const rl = await durableRateLimit(`clone:${user.id}`, 3600000, 10);
   if (!rl.allowed) return { error: "Too many duplications. Please wait." };
 
   // Fetch original questions
   const { data: questions } = await supabase
     .from("questions")
-    .select("text, type, sort_order, options, is_baseline, category")
+    .select("text, type, sort_order, options, is_baseline, category, assumption_index, anchors")
     .eq("campaign_id", campaignId)
     .order("sort_order", { ascending: true });
+  const copiedCampaign = buildCopiedCampaignDraft(original, {
+    title: `(Copy) ${original.title}`,
+    rewardAmount: 0,
+  });
+  const copiedQuestions = buildCopiedQuestionRecords(questions || []);
 
   let newId: string;
 
@@ -265,27 +281,29 @@ export async function cloneCampaign(campaignId: string) {
           creator_id, title, description, status, category, tags,
           estimated_minutes, reward_amount, reward_type,
           bonus_available, rewards_top_answers,
+          format,
           target_interests, target_expertise, target_age_ranges, target_location,
           key_assumptions,
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
           quality_scores, quality_score
         ) VALUES (
-          ${user.id}, ${"(Copy) " + original.title}, ${original.description}, 'draft',
-          ${original.category}, ${original.tags},
-          ${original.estimated_minutes}, 0, ${original.reward_type},
-          ${original.bonus_available}, ${original.rewards_top_answers},
-          ${original.target_interests}, ${original.target_expertise}, ${original.target_age_ranges}, ${original.target_location},
-          ${original.key_assumptions},
-          ${original.audience_occupation}, ${original.audience_industry}, ${original.audience_experience_level}, ${original.audience_niche_qualifier},
-          ${original.quality_scores}, ${original.quality_score}
+          ${user.id}, ${copiedCampaign.title}, ${copiedCampaign.summary}, 'draft',
+          ${copiedCampaign.category}, ${copiedCampaign.tags},
+          ${copiedCampaign.estimatedMinutes}, ${copiedCampaign.rewardAmount}, ${copiedCampaign.rewardType},
+          ${copiedCampaign.bonusAvailable}, ${copiedCampaign.rewardsTopAnswers},
+          ${copiedCampaign.format},
+          ${copiedCampaign.targetInterests}, ${copiedCampaign.targetExpertise}, ${copiedCampaign.targetAgeRanges}, ${copiedCampaign.targetLocation},
+          ${copiedCampaign.keyAssumptions},
+          ${copiedCampaign.audienceOccupation}, ${copiedCampaign.audienceIndustry}, ${copiedCampaign.audienceExperienceLevel}, ${copiedCampaign.audienceNicheQualifier},
+          ${copiedCampaign.qualityScoresJson}::jsonb, ${copiedCampaign.qualityScore}
         )
         RETURNING id
       `;
 
-      for (const q of questions || []) {
+      for (const question of copiedQuestions) {
         await tx`
-          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category)
-          VALUES (${campaign.id}, ${q.text}, ${q.type}, ${q.sort_order}, ${q.options}::jsonb, ${q.is_baseline}, ${q.category})
+          INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
+          VALUES (${campaign.id}, ${question.text}, ${question.type}, ${question.sortOrder}, ${question.optionsJson}::jsonb, ${question.isBaseline}, ${question.category}, ${question.assumptionIndex}, ${question.anchorsJson}::jsonb)
         `;
       }
 

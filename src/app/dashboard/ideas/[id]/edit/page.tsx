@@ -1,8 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import sql from "@/lib/db";
+import {
+  buildDraftFromStoredCampaign,
+  type StoredDraftCampaignRecord,
+  type StoredDraftQuestionRecord,
+} from "@/lib/campaign-draft-persistence";
 import EditDraftFlow from "./EditDraftFlow";
-import type { CampaignDraft, DraftQuestion, EvidenceCategory } from "@/lib/ai/types";
+import type { CampaignDraft } from "@/lib/ai/types";
 
 export default async function EditDraftPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,39 +34,10 @@ export default async function EditDraftPage({ params }: { params: Promise<{ id: 
     ORDER BY sort_order
   `;
 
-  const draftQuestions: DraftQuestion[] = questions.map((q, i) => ({
-    id: `q-${i}-${Date.now()}`,
-    text: q.text,
-    type: q.type as "open" | "multiple_choice",
-    options: q.options ?? null,
-    section: q.is_baseline ? "baseline" as const : (i < questions.length - 2 ? "open" as const : "followup" as const),
-    isBaseline: q.is_baseline,
-    category: (q.category as EvidenceCategory) || undefined,
-    assumptionIndex: q.assumption_index ?? undefined,
-    anchors: q.anchors ?? undefined,
-  }));
-
-  const draft: CampaignDraft = {
-    title: campaign.title,
-    summary: campaign.description || "",
-    category: campaign.category || "Other",
-    tags: campaign.tags || [],
-    assumptions: campaign.key_assumptions || [],
-    questions: draftQuestions,
-    format: campaign.format || "quick",
-    rewardPool: Number(campaign.reward_amount) || 0,
-    audience: {
-      interests: campaign.target_interests || [],
-      expertise: campaign.target_expertise || [],
-      ageRanges: campaign.target_age_ranges || [],
-      location: campaign.target_location || "",
-      occupation: campaign.audience_occupation || "",
-      industry: campaign.audience_industry || "",
-      experienceLevel: campaign.audience_experience_level || "",
-      nicheQualifier: campaign.audience_niche_qualifier || "",
-    },
-    qualityScores: campaign.quality_scores || undefined,
-  };
+  const draft: CampaignDraft = buildDraftFromStoredCampaign(
+    campaign as unknown as StoredDraftCampaignRecord,
+    questions as unknown as StoredDraftQuestionRecord[]
+  );
 
   return <EditDraftFlow campaignId={id} initialDraft={draft} />;
 }

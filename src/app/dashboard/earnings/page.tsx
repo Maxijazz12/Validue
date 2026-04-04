@@ -8,6 +8,11 @@ import DisputeButton from "./DisputeButton";
 import RetryCashoutButton from "./RetryCashoutButton";
 import type { ReputationTier } from "@/lib/reputation-config";
 import { DEFAULTS } from "@/lib/defaults";
+import {
+  FEATURES,
+  RESPONDENT_ACTIVITY_DESCRIPTION,
+  RESPONDENT_ACTIVITY_TITLE,
+} from "@/lib/feature-flags";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "Unknown date";
@@ -42,7 +47,7 @@ export default async function EarningsPage({
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("reputation_score, reputation_tier, available_balance_cents, pending_balance_cents, stripe_connect_account_id, stripe_connect_onboarding_complete")
+      .select("reputation_score, reputation_tier, total_responses_completed, available_balance_cents, pending_balance_cents, stripe_connect_account_id, stripe_connect_onboarding_complete")
       .eq("id", user.id)
       .single(),
     supabase
@@ -71,6 +76,7 @@ export default async function EarningsPage({
 
   const repTier = (profile?.reputation_tier || "new") as ReputationTier;
   const repScore = Number(profile?.reputation_score) || 0;
+  const totalResponsesCompleted = Number(profile?.total_responses_completed) || 0;
   const availableBalanceCents = Number(profile?.available_balance_cents) || 0;
   const pendingBalanceCents = Number(profile?.pending_balance_cents) || 0;
   const hasConnectAccount = !!profile?.stripe_connect_account_id;
@@ -90,6 +96,13 @@ export default async function EarningsPage({
 
   const totalPayouts = allPayouts.length;
   const hasEarnings = totalPayouts > 0;
+  const hasLegacyMoneyActivity =
+    availableBalanceCents > 0 ||
+    pendingBalanceCents > 0 ||
+    totalPaidOut > 0 ||
+    hasEarnings ||
+    (cashouts?.length ?? 0) > 0;
+  const showMoneyStats = FEATURES.RESPONDENT_PAYOUTS || hasLegacyMoneyActivity;
 
   const responseList = (recentResponses || []).map((r) => {
     const campaignRaw = r.campaign as unknown;
@@ -98,40 +111,70 @@ export default async function EarningsPage({
     ) as { id: string; title: string; reward_amount: number | null } | null;
     return { ...r, campaign };
   });
+  const hasActivityContent =
+    hasEarnings ||
+    responseList.length > 0 ||
+    (cashouts?.length ?? 0) > 0 ||
+    pendingBalanceCents > 0 ||
+    availableBalanceCents > 0;
 
   const disputedResponseIds = new Set((disputes || []).map((d) => d.response_id));
 
   return (
     <>
       <div className="mb-[24px]">
-        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">Earnings</h1>
-        <p className="text-[14px] text-text-secondary mt-[4px]">Track your earnings from responding to ideas</p>
+        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">{RESPONDENT_ACTIVITY_TITLE}</h1>
+        <p className="text-[14px] text-text-secondary mt-[4px]">{RESPONDENT_ACTIVITY_DESCRIPTION}</p>
       </div>
 
-      {/* V2 Balance cards */}
-      <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
-        <StatCard label="Available Balance" value={`$${(availableBalanceCents / 100).toFixed(2)}`} valueColor={availableBalanceCents > 0 ? "#22c55e" : undefined} />
-        <StatCard label="Locked Balance" value={`$${(pendingBalanceCents / 100).toFixed(2)}`} valueColor="#A8A29E" />
-        <StatCard label="Total Paid Out" value={`$${totalPaidOut.toFixed(2)}`} />
-        <StatCard label="Reputation" value={repScore}>
-          <div className="mt-[4px]">
-            <ReputationBadge tier={repTier} size="md" />
-          </div>
-        </StatCard>
-      </div>
+      {!FEATURES.RESPONDENT_PAYOUTS && (
+        <div className="bg-white border border-border-light rounded-[20px] md:rounded-[28px] p-[20px] md:p-[28px] mb-[24px] shadow-card">
+          <span className="text-[11px] font-medium uppercase tracking-tight text-text-muted block mb-[6px]">
+            Feedback mode
+          </span>
+          <p className="text-[14px] text-text-secondary font-medium leading-relaxed">
+            Respondent cash payouts are currently paused for new wall activity. Historical balances and payout records stay visible here so nothing already earned disappears.
+          </p>
+        </div>
+      )}
+
+      {showMoneyStats ? (
+        <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
+          <StatCard label="Available Balance" value={`$${(availableBalanceCents / 100).toFixed(2)}`} valueColor={availableBalanceCents > 0 ? "#22c55e" : undefined} />
+          <StatCard label="Locked Balance" value={`$${(pendingBalanceCents / 100).toFixed(2)}`} valueColor="#A8A29E" />
+          <StatCard label="Total Paid Out" value={`$${totalPaidOut.toFixed(2)}`} />
+          <StatCard label="Reputation" value={repScore}>
+            <div className="mt-[4px]">
+              <ReputationBadge tier={repTier} size="md" />
+            </div>
+          </StatCard>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-[12px] mb-[24px] max-md:grid-cols-1">
+          <StatCard label="Responses Logged" value={totalResponsesCompleted} />
+          <StatCard label="Reputation" value={repScore}>
+            <div className="mt-[4px]">
+              <ReputationBadge tier={repTier} size="md" />
+            </div>
+          </StatCard>
+          <StatCard label="Mode" value="Feedback" />
+        </div>
+      )}
 
       {/* Cashout panel — bank setup + cash out button */}
-      <CashoutPanel
-        availableBalanceCents={availableBalanceCents}
-        minCashoutCents={DEFAULTS.MIN_CASHOUT_BALANCE_CENTS}
-        hasConnectAccount={hasConnectAccount}
-        onboardingComplete={onboardingComplete}
-        connectReturnParam={connectParam ?? null}
-      />
+      {FEATURES.CASHOUT && (
+        <CashoutPanel
+          availableBalanceCents={availableBalanceCents}
+          minCashoutCents={DEFAULTS.MIN_CASHOUT_BALANCE_CENTS}
+          hasConnectAccount={hasConnectAccount}
+          onboardingComplete={onboardingComplete}
+          connectReturnParam={connectParam ?? null}
+        />
+      )}
 
       {/* Locked balance explainer */}
       {pendingBalanceCents > 0 && (
-        <div className="bg-white border border-border-light rounded-[24px] p-[20px] mb-[24px] shadow-card">
+        <div className="bg-white border border-border-light rounded-[20px] md:rounded-[28px] p-[20px] md:p-[28px] mb-[24px] shadow-card">
           <span className="text-[11px] font-medium uppercase tracking-tight text-text-muted block mb-[6px]">Lock Period</span>
           <p className="text-[14px] text-text-secondary font-medium">
             Locked payouts become available when their campaigns close. This can take up to 7 days.
@@ -139,71 +182,73 @@ export default async function EarningsPage({
         </div>
       )}
 
-      {/* Payout history */}
-      {hasEarnings ? (
+      {/* Activity history */}
+      {hasActivityContent ? (
         <>
-        <div>
-          <span className="text-[11px] font-medium tracking-tight text-text-muted uppercase block mb-[6px]">Ledger</span>
-          <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">
-            Payout History
-          </h2>
-          <div className="flex flex-col gap-[8px]">
-            {allPayouts.map((payout) => {
-              const statusConfig: Record<
-                string,
-                { label: string; bg: string; text: string }
-              > = {
-                pending: {
-                  label: "LOCKED",
-                  bg: "bg-warning/10",
-                  text: "text-[#D97706]",
-                },
-                processing: {
-                  label: "AVAILABLE",
-                  bg: "bg-success/10",
-                  text: "text-success",
-                },
-                completed: {
-                  label: "PAID OUT",
-                  bg: "bg-success/10",
-                  text: "text-success",
-                },
-                failed: {
-                  label: "FAILED",
-                  bg: "bg-error/10",
-                  text: "text-error",
-                },
-              };
-              const config = statusConfig[payout.status] || statusConfig.pending;
+        {hasEarnings && (
+          <div>
+            <span className="text-[11px] font-medium tracking-tight text-text-muted uppercase block mb-[6px]">Ledger</span>
+            <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">
+              Payout History
+            </h2>
+            <div className="flex flex-col gap-[8px]">
+              {allPayouts.map((payout) => {
+                const statusConfig: Record<
+                  string,
+                  { label: string; bg: string; text: string }
+                > = {
+                  pending: {
+                    label: "LOCKED",
+                    bg: "bg-warning/10",
+                    text: "text-[#D97706]",
+                  },
+                  processing: {
+                    label: "AVAILABLE",
+                    bg: "bg-success/10",
+                    text: "text-success",
+                  },
+                  completed: {
+                    label: "PAID OUT",
+                    bg: "bg-success/10",
+                    text: "text-success",
+                  },
+                  failed: {
+                    label: "FAILED",
+                    bg: "bg-error/10",
+                    text: "text-error",
+                  },
+                };
+                const config = statusConfig[payout.status] || statusConfig.pending;
 
-              return (
-                <div
-                  key={payout.id}
-                  className="bg-white border border-border-light rounded-[24px] p-[20px] flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start shadow-card-interactive transition-all duration-400"
-                >
-                  <div className="min-w-0">
-                    <span className="text-[15px] font-medium tracking-tight text-text-primary block truncate">
-                      {payout.campaign?.title || "Unknown Campaign"}
-                    </span>
-                    <span className="text-[11px] font-medium text-text-muted uppercase tracking-tight mt-[4px] block">
-                      {formatDate(payout.created_at)}
-                    </span>
+                return (
+                  <div
+                    key={payout.id}
+                    className="bg-white border border-border-light rounded-[20px] md:rounded-[28px] px-[14px] py-[20px] md:p-[28px] flex items-center justify-between gap-[12px] max-md:flex-col max-md:items-start shadow-card transition-all duration-400"
+                  >
+                    <div className="min-w-0">
+                      <span className="text-[15px] font-medium tracking-tight text-text-primary block truncate">
+                        {payout.campaign?.title || "Unknown Campaign"}
+                      </span>
+                      <span className="text-[11px] font-medium text-text-muted uppercase tracking-tight mt-[4px] block">
+                        {formatDate(payout.created_at)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-[10px] shrink-0">
+                      <span className="text-[16px] font-semibold text-text-primary">
+                        ${Number(payout.amount).toFixed(2)}
+                      </span>
+                      <span
+                        className={`px-[10px] py-[4px] rounded-md text-[11px] font-medium uppercase tracking-tight ${config.bg} ${config.text}`}
+                      >
+                        {config.label}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-[10px] shrink-0">
-                    <span className="text-[16px] font-semibold text-text-primary">
-                      ${Number(payout.amount).toFixed(2)}
-                    </span>
-                    <span
-                      className={`px-[10px] py-[4px] rounded-md text-[11px] font-medium uppercase tracking-tight ${config.bg} ${config.text}`}
-                    >
-                      {config.label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* V2: Recent responses with money state */}
         {responseList.length > 0 && (
@@ -305,7 +350,7 @@ export default async function EarningsPage({
                       <span className={`px-[8px] py-[3px] rounded-md text-[11px] font-medium uppercase tracking-tight ${config.bg} ${config.text}`}>
                         {config.label}
                       </span>
-                      {c.status === "failed" && (
+                      {FEATURES.CASHOUT && c.status === "failed" && (
                         <RetryCashoutButton cashoutId={c.id} />
                       )}
                     </div>
@@ -319,10 +364,12 @@ export default async function EarningsPage({
       ) : (
         <div className="py-[80px] text-center border border-dashed border-border-light rounded-[28px] bg-white/90">
           <p className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">
-            No earnings yet
+            {FEATURES.RESPONDENT_PAYOUTS ? "No earnings yet" : "No payout history yet"}
           </p>
           <p className="text-[14px] text-text-secondary mt-[4px] max-w-[360px] mx-auto mb-[28px]">
-            Thoughtful feedback pays. Literally. Head to The Wall and share what you know.
+            {FEATURES.RESPONDENT_PAYOUTS
+              ? "Thoughtful feedback pays. Literally. Head to The Wall and share what you know."
+              : "Head to The Wall to share feedback and keep an eye on your response history here."}
           </p>
           <Button href="/dashboard/the-wall">
             Browse The Wall

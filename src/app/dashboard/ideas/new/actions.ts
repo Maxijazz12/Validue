@@ -16,8 +16,11 @@ import { logOps } from "@/lib/ops-logger";
 import { captureError } from "@/lib/sentry";
 import { checkMultipleFields, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { durableRateLimit } from "@/lib/durable-rate-limit";
-import { rateLimit } from "@/lib/rate-limit";
 import { initialGateStatus, requiresGate } from "@/lib/reciprocal-gate";
+import {
+  buildPersistedCampaignDraft,
+  buildPersistedQuestionRecords,
+} from "@/lib/campaign-draft-persistence";
 import { hasReciprocalCampaigns } from "@/app/dashboard/ideas/new/reciprocal-actions";
 
 export async function publishCampaign(
@@ -82,6 +85,8 @@ export async function publishCampaign(
 
   // Enforce tag length limits
   draft.tags = draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text);
+  const persistedDraft = buildPersistedCampaignDraft(draft);
+  const persistedQuestions = buildPersistedQuestionRecords(draft.questions);
 
   // 3b. Enforce behavioral screening — at least 1 baseline question required
   const baselineCount = draft.questions.filter((q) => q.isBaseline).length;
@@ -132,7 +137,7 @@ export async function publishCampaign(
     ? await isFirstCampaign(user.id)
     : false;
 
-  const qualityScore = draft.qualityScores?.overall ?? 70;
+  const qualityScore = persistedDraft.qualityScore || 70;
 
   const reach = calculateReach(allowance.tier, fundingAmount, {
     isFirstMonth: firstMonth,
@@ -144,7 +149,7 @@ export async function publishCampaign(
   const planConfig = PLAN_CONFIG[allowance.tier];
 
   // 5. Prepare values
-  const format: CampaignFormat = isSubsidized ? "quick" : (draft.format === "standard" ? "standard" : "quick");
+  const format: CampaignFormat = isSubsidized ? "quick" : persistedDraft.format;
   const estimatedMinutes = format === "quick" ? 3 : 5;
 
   // Subsidized campaigns: platform-funded, no platform fee
@@ -166,10 +171,7 @@ export async function publishCampaign(
     }
   }
 
-  const keyAssumptions = draft.assumptions
-    .filter((a) => a.trim().length > 0)
-    .map((a) => enforceLength(a, 500).text);
-  if (keyAssumptions.length === 0) {
+  if (persistedDraft.keyAssumptions.length === 0) {
     return { error: "At least one assumption is required." };
   }
   // Determine initial status:
@@ -286,15 +288,15 @@ export async function publishCampaign(
           estimated_responses_low, estimated_responses_high, match_priority,
           reciprocal_gate_status
         ) VALUES (
-          ${user.id}, ${draft.title}, ${draft.summary}, ${initialStatus},
-          ${draft.category}, ${draft.tags}, ${estimatedMinutes},
-          ${effectiveRewardAmount}, ${draft.rewardType || "pool"}, ${!!draft.bonusAvailable}, ${!!draft.rewardsTopAnswers},
+          ${user.id}, ${persistedDraft.title}, ${persistedDraft.summary}, ${initialStatus},
+          ${persistedDraft.category}, ${persistedDraft.tags}, ${estimatedMinutes},
+          ${effectiveRewardAmount}, ${persistedDraft.rewardType}, ${persistedDraft.bonusAvailable}, ${persistedDraft.rewardsTopAnswers},
           ${distributableAmount}, ${targetResponses || null},
           ${format}, ${2}, ${isSubsidized}, ${needsExpiry ? expiresAt : null},
-          ${draft.audience.interests}, ${draft.audience.expertise}, ${draft.audience.ageRanges}, ${draft.audience.location || null},
-          ${keyAssumptions},
-          ${draft.audience.occupation || null}, ${draft.audience.industry || null}, ${draft.audience.experienceLevel || null}, ${draft.audience.nicheQualifier || null},
-          ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb, ${qualityScore},
+          ${persistedDraft.targetInterests}, ${persistedDraft.targetExpertise}, ${persistedDraft.targetAgeRanges}, ${persistedDraft.targetLocation},
+          ${persistedDraft.keyAssumptions},
+          ${persistedDraft.audienceOccupation}, ${persistedDraft.audienceIndustry}, ${persistedDraft.audienceExperienceLevel}, ${persistedDraft.audienceNicheQualifier},
+          ${persistedDraft.qualityScoresJson}::jsonb, ${qualityScore},
           ${reach.baselineRU}, ${reach.fundedRU}, ${reach.totalRU},
           ${reach.effectiveReach}, ${reach.campaignStrength},
           ${reach.estimatedResponsesLow}, ${reach.estimatedResponsesHigh}, ${planConfig.matchPriority},
@@ -303,20 +305,19 @@ export async function publishCampaign(
         RETURNING id
       `;
 
-      for (let i = 0; i < draft.questions.length; i++) {
-        const q = draft.questions[i];
+      for (const question of persistedQuestions) {
         await tx`
           INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
           VALUES (
             ${campaign.id},
-            ${q.text},
-            ${q.type},
-            ${i},
-            ${q.options ? JSON.stringify(q.options) : null}::jsonb,
-            ${q.isBaseline},
-            ${q.category || null},
-            ${q.assumptionIndex ?? null},
-            ${q.anchors ? JSON.stringify(q.anchors) : null}::jsonb
+            ${question.text},
+            ${question.type},
+            ${question.sortOrder},
+            ${question.optionsJson}::jsonb,
+            ${question.isBaseline},
+            ${question.category},
+            ${question.assumptionIndex},
+            ${question.anchorsJson}::jsonb
           )
         `;
       }
@@ -408,7 +409,7 @@ export async function saveDraft(
   if (error || !data.user) return { error: "Not authenticated. Please sign in again." };
   const user = data.user;
 
-  const rl = rateLimit(`save-draft:${user.id}`, 3600000, 20);
+  const rl = await durableRateLimit(`save-draft:${user.id}`, 3600000, 20);
   if (!rl.allowed) return { error: "Too many saves. Please wait before saving again." };
 
   // Content moderation
@@ -421,10 +422,8 @@ export async function saveDraft(
   const contentCheck = checkMultipleFields(contentFields);
   if (!contentCheck.allowed) return { error: contentCheck.reason ?? "Content policy violation." };
 
-  const keyAssumptions = draft.assumptions
-    .filter((a) => a.trim().length > 0)
-    .map((a) => enforceLength(a, 500).text);
-  const qualityScore = draft.qualityScores?.overall ?? 0;
+  const persistedDraft = buildPersistedCampaignDraft(draft);
+  const persistedQuestions = buildPersistedQuestionRecords(draft.questions);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -445,26 +444,25 @@ export async function saveDraft(
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
           quality_scores, quality_score
         ) VALUES (
-          ${user.id}, ${draft.title}, ${draft.summary}, 'draft',
-          ${draft.category}, ${draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text)}, ${draft.format === "standard" ? 5 : 3},
-          ${draft.rewardPool || 0}, ${draft.format || "quick"}, ${2},
-          ${draft.audience.interests}, ${draft.audience.expertise}, ${draft.audience.ageRanges}, ${draft.audience.location || null},
-          ${keyAssumptions},
-          ${draft.audience.occupation || null}, ${draft.audience.industry || null}, ${draft.audience.experienceLevel || null}, ${draft.audience.nicheQualifier || null},
-          ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb, ${qualityScore}
+          ${user.id}, ${persistedDraft.title}, ${persistedDraft.summary}, 'draft',
+          ${persistedDraft.category}, ${persistedDraft.tags}, ${persistedDraft.estimatedMinutes},
+          ${persistedDraft.rewardAmount}, ${persistedDraft.format}, ${2},
+          ${persistedDraft.targetInterests}, ${persistedDraft.targetExpertise}, ${persistedDraft.targetAgeRanges}, ${persistedDraft.targetLocation},
+          ${persistedDraft.keyAssumptions},
+          ${persistedDraft.audienceOccupation}, ${persistedDraft.audienceIndustry}, ${persistedDraft.audienceExperienceLevel}, ${persistedDraft.audienceNicheQualifier},
+          ${persistedDraft.qualityScoresJson}::jsonb, ${persistedDraft.qualityScore}
         )
         RETURNING id
       `;
 
-      for (let i = 0; i < draft.questions.length; i++) {
-        const q = draft.questions[i];
+      for (const question of persistedQuestions) {
         await tx`
           INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
           VALUES (
-            ${campaign.id}, ${q.text}, ${q.type}, ${i},
-            ${q.options ? JSON.stringify(q.options) : null}::jsonb,
-            ${q.isBaseline}, ${q.category || null}, ${q.assumptionIndex ?? null},
-            ${q.anchors ? JSON.stringify(q.anchors) : null}::jsonb
+            ${campaign.id}, ${question.text}, ${question.type}, ${question.sortOrder},
+            ${question.optionsJson}::jsonb,
+            ${question.isBaseline}, ${question.category}, ${question.assumptionIndex},
+            ${question.anchorsJson}::jsonb
           )
         `;
       }
@@ -508,49 +506,46 @@ export async function updateDraft(
   const contentCheck = checkMultipleFields(contentFields);
   if (!contentCheck.allowed) return { error: contentCheck.reason ?? "Content policy violation." };
 
-  const keyAssumptions = draft.assumptions
-    .filter((a) => a.trim().length > 0)
-    .map((a) => enforceLength(a, 500).text);
-  const qualityScore = draft.qualityScores?.overall ?? 0;
+  const persistedDraft = buildPersistedCampaignDraft(draft);
+  const persistedQuestions = buildPersistedQuestionRecords(draft.questions);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await sql.begin(async (tx: any) => {
       await tx`
         UPDATE campaigns SET
-          title = ${draft.title},
-          description = ${draft.summary},
-          category = ${draft.category},
-          tags = ${draft.tags.map((t) => enforceLength(t, MAX_LENGTHS.TAG).text)},
-          estimated_minutes = ${draft.format === "standard" ? 5 : 3},
-          reward_amount = ${draft.rewardPool || 0},
-          format = ${draft.format || "quick"},
-          target_interests = ${draft.audience.interests},
-          target_expertise = ${draft.audience.expertise},
-          target_age_ranges = ${draft.audience.ageRanges},
-          target_location = ${draft.audience.location || null},
-          key_assumptions = ${keyAssumptions},
-          audience_occupation = ${draft.audience.occupation || null},
-          audience_industry = ${draft.audience.industry || null},
-          audience_experience_level = ${draft.audience.experienceLevel || null},
-          audience_niche_qualifier = ${draft.audience.nicheQualifier || null},
-          quality_scores = ${draft.qualityScores ? JSON.stringify(draft.qualityScores) : null}::jsonb,
-          quality_score = ${qualityScore},
+          title = ${persistedDraft.title},
+          description = ${persistedDraft.summary},
+          category = ${persistedDraft.category},
+          tags = ${persistedDraft.tags},
+          estimated_minutes = ${persistedDraft.estimatedMinutes},
+          reward_amount = ${persistedDraft.rewardAmount},
+          format = ${persistedDraft.format},
+          target_interests = ${persistedDraft.targetInterests},
+          target_expertise = ${persistedDraft.targetExpertise},
+          target_age_ranges = ${persistedDraft.targetAgeRanges},
+          target_location = ${persistedDraft.targetLocation},
+          key_assumptions = ${persistedDraft.keyAssumptions},
+          audience_occupation = ${persistedDraft.audienceOccupation},
+          audience_industry = ${persistedDraft.audienceIndustry},
+          audience_experience_level = ${persistedDraft.audienceExperienceLevel},
+          audience_niche_qualifier = ${persistedDraft.audienceNicheQualifier},
+          quality_scores = ${persistedDraft.qualityScoresJson}::jsonb,
+          quality_score = ${persistedDraft.qualityScore},
           updated_at = NOW()
         WHERE id = ${campaignId}
       `;
 
       await tx`DELETE FROM questions WHERE campaign_id = ${campaignId}`;
 
-      for (let i = 0; i < draft.questions.length; i++) {
-        const q = draft.questions[i];
+      for (const question of persistedQuestions) {
         await tx`
           INSERT INTO questions (campaign_id, text, type, sort_order, options, is_baseline, category, assumption_index, anchors)
           VALUES (
-            ${campaignId}, ${q.text}, ${q.type}, ${i},
-            ${q.options ? JSON.stringify(q.options) : null}::jsonb,
-            ${q.isBaseline}, ${q.category || null}, ${q.assumptionIndex ?? null},
-            ${q.anchors ? JSON.stringify(q.anchors) : null}::jsonb
+            ${campaignId}, ${question.text}, ${question.type}, ${question.sortOrder},
+            ${question.optionsJson}::jsonb,
+            ${question.isBaseline}, ${question.category}, ${question.assumptionIndex},
+            ${question.anchorsJson}::jsonb
           )
         `;
       }
