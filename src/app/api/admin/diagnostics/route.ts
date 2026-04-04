@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       reachStats,
       overServed,
       reputationByTier,
+      respondentProfileCounts,
       reputationStats,
     ] = await Promise.all([
       // Campaign status breakdown
@@ -124,14 +125,52 @@ export async function GET(request: Request) {
       // Reputation tier breakdown
       sql`SELECT reputation_tier, COUNT(*)::int AS count
           FROM profiles
-          WHERE role = 'respondent' AND reputation_tier IS NOT NULL
+          WHERE (
+            role = 'respondent'
+            OR COALESCE(has_responded, false)
+            OR COALESCE(profile_completed, false)
+            OR COALESCE(array_length(interests, 1), 0) > 0
+            OR COALESCE(array_length(expertise, 1), 0) > 0
+            OR COALESCE(age_range, '') != ''
+            OR COALESCE(total_responses_completed, 0) > 0
+            OR COALESCE(available_balance_cents, 0) > 0
+            OR COALESCE(pending_balance_cents, 0) > 0
+            OR COALESCE(total_earned, 0) > 0
+          ) AND reputation_tier IS NOT NULL
           GROUP BY reputation_tier`,
+
+      // Primary-mode versus respondent-capable population counts
+      sql`SELECT
+            COUNT(*) FILTER (WHERE role = 'respondent')::int AS primary_mode_respondent_count,
+            COUNT(*) FILTER (
+              WHERE role = 'respondent'
+                OR COALESCE(has_responded, false)
+                OR COALESCE(profile_completed, false)
+                OR COALESCE(array_length(interests, 1), 0) > 0
+                OR COALESCE(array_length(expertise, 1), 0) > 0
+                OR COALESCE(age_range, '') != ''
+                OR COALESCE(total_responses_completed, 0) > 0
+                OR COALESCE(available_balance_cents, 0) > 0
+                OR COALESCE(pending_balance_cents, 0) > 0
+                OR COALESCE(total_earned, 0) > 0
+            )::int AS respondent_capable_count
+          FROM profiles`,
 
       // Reputation stats
       sql`SELECT
             COUNT(*) FILTER (WHERE reputation_score > 0)::int AS with_reputation,
             ROUND(AVG(CASE WHEN reputation_score > 0 THEN reputation_score END)::numeric, 1) AS avg_score
-          FROM profiles WHERE role = 'respondent'`,
+          FROM profiles
+          WHERE role = 'respondent'
+            OR COALESCE(has_responded, false)
+            OR COALESCE(profile_completed, false)
+            OR COALESCE(array_length(interests, 1), 0) > 0
+            OR COALESCE(array_length(expertise, 1), 0) > 0
+            OR COALESCE(age_range, '') != ''
+            OR COALESCE(total_responses_completed, 0) > 0
+            OR COALESCE(available_balance_cents, 0) > 0
+            OR COALESCE(pending_balance_cents, 0) > 0
+            OR COALESCE(total_earned, 0) > 0`,
     ]);
 
     const statusMap: Record<string, number> = {};
@@ -200,7 +239,15 @@ export async function GET(request: Request) {
         campaignsOverServed: overServed[0]?.count ?? 0,
       },
       reputation: {
+        population:
+          "respondent-capable profiles (respondent-first primary mode or respondent profile/activity signals)",
         byTier: tierMap,
+        primaryModeRespondentCount:
+          respondentProfileCounts[0]?.primary_mode_respondent_count ?? 0,
+        respondentCapableCount:
+          respondentProfileCounts[0]?.respondent_capable_count ?? 0,
+        respondentCapableWithReputation:
+          reputationStats[0]?.with_reputation ?? 0,
         respondentsWithReputation: reputationStats[0]?.with_reputation ?? 0,
         avgScore: Number(reputationStats[0]?.avg_score ?? 0),
       },

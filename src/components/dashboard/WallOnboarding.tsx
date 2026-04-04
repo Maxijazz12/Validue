@@ -6,7 +6,7 @@ import { FEATURES } from "@/lib/feature-flags";
 
 type WallOnboardingProps = {
   userName: string;
-  userRole: string;
+  showRespondentExperience: boolean;
   hasAvatar: boolean;
   hasPosted: boolean;
   hasResponded: boolean;
@@ -93,7 +93,7 @@ function ActionCard({
 
 export default function WallOnboarding({
   userName,
-  userRole,
+  showRespondentExperience,
   hasAvatar,
   hasPosted,
   hasResponded,
@@ -157,7 +157,7 @@ export default function WallOnboarding({
               There {ideaCount === 1 ? "is" : "are"}{" "}
               <span className="font-semibold text-text-primary">{ideaCount}</span>{" "}
               {ideaCount === 1 ? "idea" : "ideas"} being tested right now.
-              {userRole === "respondent"
+              {showRespondentExperience
                 ? FEATURES.RESPONDENT_PAYOUTS
                   ? " See ideas matched to your background. Earn for qualified feedback."
                   : " See ideas matched to your background and help founders pressure-test what they are building."
@@ -166,7 +166,7 @@ export default function WallOnboarding({
           ) : (
             <>
               The Wall is warming up.
-              {userRole === "founder"
+              {!showRespondentExperience
                 ? " Be one of the first to post an idea and attract respondents."
                 : " Complete your profile to be first in line when ideas go live."}
             </>

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   canAccessRespondentPayouts,
   getPrimaryModeLabel,
+  getRespondentCapabilityLabel,
+  getRespondentCapabilityState,
   normalizeProfileRole,
   shouldRequireRespondentProfile,
   shouldShowRespondentProfile,
@@ -69,5 +71,49 @@ describe("profile role helpers", () => {
   it("exposes clear primary mode labels", () => {
     expect(getPrimaryModeLabel("founder")).toBe("Founder-first");
     expect(getPrimaryModeLabel("respondent")).toBe("Respondent-first");
+  });
+
+  it("distinguishes respondent-ready from respondent-active accounts", () => {
+    expect(
+      getRespondentCapabilityState({
+        role: "founder",
+        interests: ["SaaS"],
+      })
+    ).toBe("ready");
+
+    expect(
+      getRespondentCapabilityState({
+        role: "founder",
+        total_responses_completed: 1,
+      })
+    ).toBe("active");
+
+    expect(
+      getRespondentCapabilityState({
+        role: "founder",
+      })
+    ).toBe("none");
+  });
+
+  it("exposes admin-friendly respondent capability labels", () => {
+    expect(
+      getRespondentCapabilityLabel({
+        role: "founder",
+        profile_completed: true,
+      })
+    ).toBe("Respondent-ready");
+
+    expect(
+      getRespondentCapabilityLabel({
+        role: "founder",
+        has_responded: true,
+      })
+    ).toBe("Respondent-active");
+
+    expect(
+      getRespondentCapabilityLabel({
+        role: "founder",
+      })
+    ).toBe("Founder-only");
   });
 });

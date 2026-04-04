@@ -45,7 +45,6 @@ const sampleDraft: CampaignDraft = {
       isBaseline: false,
       category: "willingness",
       assumptionIndex: 0,
-      anchors: null,
     },
   ],
   audience: {

@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import {
+  getPrimaryModeLabel,
+  getRespondentCapabilityLabel,
+  getRespondentCapabilityState,
+} from "@/lib/profile-role";
 
 type DiagnosticsData = Record<string, unknown>;
 type CampaignData = Record<string, unknown>;
 type UserData = {
   id: string;
-  full_name: string;
-  role: string;
-  email?: string;
+  full_name: string | null;
+  role: string | null;
+  email?: string | null;
   reputation_score: number | null;
   reputation_tier: string | null;
   available_balance_cents: number | null;
@@ -18,6 +23,11 @@ type UserData = {
   stripe_connect_account_id: string | null;
   stripe_connect_onboarding_complete: boolean;
   created_at: string;
+  has_responded: boolean | null;
+  profile_completed: boolean | null;
+  interests: string[] | null;
+  expertise: string[] | null;
+  age_range: string | null;
 };
 
 type DisputeData = {
@@ -378,21 +388,44 @@ export default function AdminPage() {
               <div className="flex flex-col gap-3">
                 {userData.map((u) => (
                   <div key={u.id} className="bg-[#111] rounded-lg p-4 border border-[#222]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[14px] font-bold text-white">{u.full_name}</span>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
-                        u.role === "respondent" ? "bg-blue-900/40 text-blue-400" : "bg-purple-900/40 text-purple-400"
-                      }`}>
-                        {u.role.toUpperCase()}
-                      </span>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="min-w-0">
+                        <span className="text-[14px] font-bold text-white block">
+                          {u.full_name || u.email || "Unnamed user"}
+                        </span>
+                        {u.email && (
+                          <span className="text-[11px] text-[#666] block truncate">
+                            {u.email}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-900/40 text-purple-300">
+                          {getPrimaryModeLabel(u.role).toUpperCase()}
+                        </span>
+                        <span
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                            getRespondentCapabilityState(u) === "active"
+                              ? "bg-blue-900/40 text-blue-400"
+                              : getRespondentCapabilityState(u) === "ready"
+                                ? "bg-amber-900/40 text-amber-300"
+                                : "bg-[#333] text-[#A8A29E]"
+                          }`}
+                        >
+                          {getRespondentCapabilityLabel(u).toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[12px] text-[#A8A29E]">
                       <span>ID: <span className="text-[#666]">{u.id}</span></span>
+                      <span>Primary mode: {getPrimaryModeLabel(u.role)}</span>
                       <span>Reputation: {u.reputation_score ?? "—"} ({u.reputation_tier ?? "new"})</span>
                       <span>Available: ${((u.available_balance_cents ?? 0) / 100).toFixed(2)}</span>
                       <span>Pending: ${((u.pending_balance_cents ?? 0) / 100).toFixed(2)}</span>
                       <span>Total earned: ${Number(u.total_earned ?? 0).toFixed(2)}</span>
                       <span>Responses: {u.total_responses_completed ?? 0}</span>
+                      <span>Respondent capability: {getRespondentCapabilityLabel(u)}</span>
+                      <span>Profile completed: {u.profile_completed ? "Yes" : "No"}</span>
                       <span>Connect: {u.stripe_connect_account_id ? (u.stripe_connect_onboarding_complete ? "Active" : "Incomplete") : "Not set up"}</span>
                       <span>Joined: {new Date(u.created_at).toLocaleDateString()}</span>
                     </div>

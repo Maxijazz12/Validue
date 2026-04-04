@@ -1,3 +1,8 @@
+/**
+ * `profiles.role` stores the account's preferred primary mode for onboarding
+ * and default UI copy. It is not the sole authorization boundary for
+ * respondent capabilities on multi-mode accounts.
+ */
 export type ProfileRole = "founder" | "respondent";
 
 export type ProfileRoleSignals = {
@@ -12,6 +17,8 @@ export type ProfileRoleSignals = {
   pending_balance_cents?: number | null;
   total_earned?: number | null;
 };
+
+export type RespondentCapabilityState = "active" | "ready" | "none";
 
 function toNumber(value: number | string | null | undefined): number {
   const parsed = Number(value);
@@ -82,6 +89,29 @@ export function canAccessRespondentPayouts(
   profile: ProfileRoleSignals | null | undefined
 ): boolean {
   return prefersRespondentExperience(profile) || hasRespondentActivity(profile);
+}
+
+export function getRespondentCapabilityState(
+  profile: ProfileRoleSignals | null | undefined
+): RespondentCapabilityState {
+  if (canAccessRespondentPayouts(profile)) return "active";
+  if (shouldShowRespondentProfile(profile)) return "ready";
+  return "none";
+}
+
+export function getRespondentCapabilityLabel(
+  profile: ProfileRoleSignals | null | undefined
+): string {
+  const state = getRespondentCapabilityState(profile);
+
+  switch (state) {
+    case "active":
+      return "Respondent-active";
+    case "ready":
+      return "Respondent-ready";
+    default:
+      return "Founder-only";
+  }
 }
 
 export function getPrimaryModeLabel(

@@ -13,6 +13,7 @@ import {
   isCampaignOpenForResponses,
 } from "@/lib/campaign-availability";
 import { shouldRequireRespondentProfile } from "@/lib/profile-role";
+import { calculateCurrentResponseStreak } from "@/lib/response-activity";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -82,6 +83,7 @@ type ReactionRow = {
 
 type ResponseDateRow = {
   created_at: string;
+  submitted_duration_ms: number | null;
 };
 
 type FirstQuestionMapValue = {
@@ -220,31 +222,6 @@ function buildWallIdeas(
   });
 }
 
-function calculateCurrentStreak(rows: ResponseDateRow[]): number {
-  if (rows.length === 0) return 0;
-
-  const uniqueDays = [...new Set(rows.map((row) => new Date(row.created_at).toISOString().split("T")[0]))]
-    .sort()
-    .reverse();
-  const today = new Date().toISOString().split("T")[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-
-  if (uniqueDays[0] !== today && uniqueDays[0] !== yesterday) {
-    return 0;
-  }
-
-  let streak = 1;
-  for (let index = 1; index < uniqueDays.length; index++) {
-    const previousDay = new Date(uniqueDays[index - 1]);
-    const currentDay = new Date(uniqueDays[index]);
-    const diffDays = Math.round((previousDay.getTime() - currentDay.getTime()) / 86400000);
-    if (diffDays !== 1) break;
-    streak += 1;
-  }
-
-  return streak;
-}
-
 function buildWallUserProfile(profile: ProfileRow | null, currentStreak: number): WallUserProfile {
   return {
     reputation_score: safeNumber(profile?.reputation_score),
@@ -306,7 +283,7 @@ export async function loadWallPageData(
       : Promise.resolve({ data: [] as ReactionRow[] }),
     supabase
       .from("responses")
-      .select("created_at")
+      .select("created_at, submitted_duration_ms")
       .eq("respondent_id", userId)
       .in("status", ["submitted", "ranked"])
       .order("created_at", { ascending: false })
@@ -326,7 +303,9 @@ export async function loadWallPageData(
     reactionCountsMap,
     userReactionsMap
   );
-  const currentStreak = calculateCurrentStreak((recentResponseDates as ResponseDateRow[] | null) ?? []);
+  const currentStreak = calculateCurrentResponseStreak(
+    (recentResponseDates as ResponseDateRow[] | null) ?? []
+  );
 
   return {
     profile: typedProfile,

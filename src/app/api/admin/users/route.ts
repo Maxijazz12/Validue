@@ -38,6 +38,7 @@ export async function GET(request: Request) {
           p.available_balance_cents, p.pending_balance_cents, p.total_earned,
           p.total_responses_completed, p.stripe_connect_account_id,
           p.stripe_connect_onboarding_complete, p.created_at,
+          p.has_responded, p.profile_completed, p.interests, p.expertise, p.age_range,
           u.email
         FROM profiles p
         LEFT JOIN auth.users u ON u.id = p.id
@@ -52,6 +53,7 @@ export async function GET(request: Request) {
           p.available_balance_cents, p.pending_balance_cents, p.total_earned,
           p.total_responses_completed, p.stripe_connect_account_id,
           p.stripe_connect_onboarding_complete, p.created_at,
+          p.has_responded, p.profile_completed, p.interests, p.expertise, p.age_range,
           u.email
         FROM profiles p
         LEFT JOIN auth.users u ON u.id = p.id
