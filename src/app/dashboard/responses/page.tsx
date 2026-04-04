@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import SectionHeader from "@/components/ui/SectionHeader";
 import ResponsesOverviewList, { type CampaignWithStats } from "@/components/dashboard/ResponsesOverviewList";
 
 export default async function ResponsesPage() {
@@ -57,8 +56,9 @@ export default async function ResponsesPage() {
 
   return (
     <>
-      <div className="mb-[32px]">
-        <SectionHeader size="page" label="All Responses" title="Responses" subtitle="See feedback on your ideas" />
+      <div className="mb-[24px]">
+        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">Responses</h1>
+        <p className="text-[14px] text-text-secondary mt-[4px]">See feedback on your ideas</p>
       </div>
 
       {hasCampaigns ? (

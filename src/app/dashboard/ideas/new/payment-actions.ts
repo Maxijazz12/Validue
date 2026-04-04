@@ -7,7 +7,7 @@ import { getSubscription, isFirstMonth, isFirstCampaign } from "@/lib/plan-guard
 import { validateFunding } from "@/lib/reach";
 import { WELCOME_BONUS, getPlanConfig } from "@/lib/plans";
 import { env } from "@/lib/env";
-import { captureError } from "@/lib/sentry";
+import { captureError, captureWarning } from "@/lib/sentry";
 import {
   reconcileReservedPlatformCredit,
   resolveFundingCredits,
@@ -144,12 +144,13 @@ export async function createFundingSession(
   let appliedPlatformCreditCents = 0;
   let chargeAmountCents = 0;
   let platformSubsidyCents = 0;
+  let previousCheckoutSessionId: string | null = null;
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
     await sql.begin(async (tx: any) => {
       const [lockedCampaign] = await tx`
-        SELECT reserved_platform_credit_cents, reserved_platform_credit_expires_at
+        SELECT reserved_platform_credit_cents, reserved_platform_credit_expires_at, reserved_checkout_session_id
         FROM campaigns
         WHERE id = ${campaign.id}
           AND creator_id = ${user.id}
@@ -160,6 +161,9 @@ export async function createFundingSession(
       if (!lockedCampaign) {
         throw new Error("Campaign does not need funding.");
       }
+
+      previousCheckoutSessionId =
+        lockedCampaign.reserved_checkout_session_id ?? null;
 
       const [creditRow] = await tx`
         SELECT platform_credit_cents, platform_credit_expires_at
@@ -250,6 +254,22 @@ export async function createFundingSession(
   } catch (err) {
     console.error("[createFundingSession] Reservation error:", err);
     return { error: "Failed to prepare campaign funding. Please try again." };
+  }
+
+  if (previousCheckoutSessionId) {
+    try {
+      await stripe.checkout.sessions.expire(previousCheckoutSessionId);
+    } catch (err) {
+      console.warn(
+        "[createFundingSession] Failed to expire previous checkout session:",
+        err
+      );
+      captureWarning("Failed to expire previous funding checkout session", {
+        campaignId,
+        userId: user.id,
+        operation: "campaign.funding.expire_previous_session",
+      });
+    }
   }
 
   if (chargeAmountCents === 0) {

@@ -83,7 +83,7 @@ export default function CashoutPanel({
   if (!hasConnectAccount) {
     return (
       <div className="bg-white border border-border-light rounded-[24px] p-[20px] mb-[24px] shadow-card">
-        <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">
+        <span className="text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">
           Payout Setup
         </span>
         <p className="text-[14px] text-text-secondary font-medium mb-[16px]">
@@ -103,7 +103,7 @@ export default function CashoutPanel({
   if (!onboardingComplete) {
     return (
       <div className="bg-white border border-warning/20 rounded-[24px] p-[20px] mb-[24px] shadow-card">
-        <span className="font-mono text-[11px] font-medium tracking-wide text-warning uppercase block mb-[6px]">
+        <span className="text-[11px] font-medium tracking-wide text-warning uppercase block mb-[6px]">
           Setup Incomplete
         </span>
         {checking ? (
@@ -130,7 +130,7 @@ export default function CashoutPanel({
   // Fully set up — show cashout button
   return (
     <div className="bg-white border border-border-light rounded-[24px] p-[20px] mb-[24px] shadow-card">
-      <span className="font-mono text-[11px] font-medium tracking-wide text-success uppercase block mb-[6px]">
+      <span className="text-[11px] font-medium tracking-wide text-success uppercase block mb-[6px]">
         Ready to Cash Out
       </span>
       {success ? (
@@ -140,7 +140,7 @@ export default function CashoutPanel({
           {availableBalanceCents < minCashoutCents ? (
             <p className="text-[14px] text-text-secondary font-medium">
               You need{" "}
-              <span className="font-bold font-mono text-text-primary">
+              <span className="font-bold text-text-primary">
                 ${((minCashoutCents - availableBalanceCents) / 100).toFixed(2)}
               </span>{" "}
               more to reach the ${(minCashoutCents / 100).toFixed(2)} minimum.
@@ -149,7 +149,7 @@ export default function CashoutPanel({
             <>
               <p className="text-[14px] text-text-secondary font-medium mb-[16px]">
                 Cash out your{" "}
-                <span className="font-bold font-mono text-success">
+                <span className="font-bold text-success">
                   ${(availableBalanceCents / 100).toFixed(2)}
                 </span>{" "}
                 available balance to your bank account.

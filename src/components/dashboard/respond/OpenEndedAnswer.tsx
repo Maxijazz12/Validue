@@ -83,14 +83,14 @@ export default function OpenEndedAnswer({
         onPaste={handlePaste}
         placeholder={placeholder}
         rows={5}
-        className="w-full px-[20px] py-[16px] rounded-[16px] border border-black/10 bg-white text-[15px] text-text-primary leading-[1.6] resize-y outline-none focus:border-accent transition-all duration-300 placeholder:text-text-muted font-sans"
+        className="w-full px-[20px] py-[16px] rounded-[16px] border border-border-light bg-white text-[15px] text-text-primary leading-[1.6] resize-y outline-none focus:border-accent transition-all duration-300 placeholder:text-text-muted font-sans"
       />
 
       {/* Response anchors — fade after 100 chars */}
       {showAnchors && (
         <div className="flex flex-wrap gap-[6px] mt-[12px] transition-opacity duration-300" style={{ opacity: charCount > 60 ? 0.4 : 1 }}>
           {anchors.map((anchor, i) => (
-            <span key={i} className="font-mono text-[9px] font-bold uppercase tracking-[1px] text-text-muted bg-black/5 border border-black/10 px-[8px] py-[3px] rounded-md">
+            <span key={i} className="font-mono text-[9px] font-bold uppercase tracking-[1px] text-text-muted bg-bg-muted border border-border-light px-[8px] py-[3px] rounded-md">
               [ {anchor} ]
             </span>
           ))}

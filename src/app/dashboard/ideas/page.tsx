@@ -13,12 +13,12 @@ function getAudienceLabel(idea: {
     (idea.target_expertise && idea.target_expertise.length > 0);
 
   if (!hasTargeting) {
-    return { text: "Open audience", color: "text-slate" };
+    return { text: "Open audience", color: "text-text-muted" };
   }
 
   const total = idea.current_responses ?? 0;
   if (total === 0) {
-    return { text: "Awaiting responses", color: "text-slate" };
+    return { text: "Awaiting responses", color: "text-text-muted" };
   }
 
   const ratio = total > 0 ? idea.matched_responses / total : 0;
@@ -34,7 +34,7 @@ export default async function IdeasPage() {
 
   const { data: ideas } = await supabase
     .from("campaigns")
-    .select("id, title, status, reward_amount, reward_type, current_responses, target_responses, target_interests, target_expertise, created_at")
+    .select("id, title, description, status, reward_amount, reward_type, current_responses, target_responses, target_interests, target_expertise, created_at")
     .eq("creator_id", user!.id)
     .order("created_at", { ascending: false });
 
@@ -62,6 +62,7 @@ export default async function IdeasPage() {
     return {
       id: idea.id,
       title: idea.title,
+      description: idea.description,
       status: idea.status,
       reward_amount: Number(idea.reward_amount) || 0,
       reward_type: idea.reward_type,
@@ -72,6 +73,7 @@ export default async function IdeasPage() {
       matched_responses: idea.matched_responses,
       audienceText: audience.text,
       audienceColor: audience.color,
+      created_at: idea.created_at,
     };
   });
 

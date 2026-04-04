@@ -165,6 +165,33 @@ describe("assignQuestions", () => {
     expect(result!.questionIds.length).toBe(3);
   });
 
+  it("caps baseline questions so partial assignments still include core assumption questions", () => {
+    const withManyBaselines: CampaignQuestion[] = [
+      makeQuestion({ id: "b1", isBaseline: true, assumptionIndex: null, category: null, sortOrder: 1 }),
+      makeQuestion({ id: "b2", isBaseline: true, assumptionIndex: null, category: null, sortOrder: 2 }),
+      makeQuestion({ id: "b3", isBaseline: true, assumptionIndex: null, category: null, sortOrder: 3 }),
+      makeQuestion({ id: "o1", type: "open", assumptionIndex: 0, category: "behavior", sortOrder: 4 }),
+      makeQuestion({ id: "m1", type: "multiple_choice", assumptionIndex: 1, category: "need", sortOrder: 5 }),
+      makeQuestion({ id: "m2", type: "multiple_choice", assumptionIndex: 2, category: "willingness_to_pay", sortOrder: 6 }),
+      makeQuestion({ id: "m3", type: "multiple_choice", assumptionIndex: 0, category: "frequency", sortOrder: 7 }),
+    ];
+
+    const result = assignQuestions(withManyBaselines, emptyCoverage, baseProfile, baseTargeting, {
+      assignCount: 4,
+    });
+
+    expect(result).not.toBeNull();
+    const assignedQuestions = withManyBaselines.filter((question) =>
+      result!.questionIds.includes(question.id)
+    );
+    expect(assignedQuestions.filter((question) => question.isBaseline)).toHaveLength(1);
+    expect(
+      assignedQuestions.some(
+        (question) => !question.isBaseline && question.assumptionIndex !== null
+      )
+    ).toBe(true);
+  });
+
   it("handles incomplete respondent profile gracefully", () => {
     const incompleteProfile: RespondentProfile = {
       interests: [],

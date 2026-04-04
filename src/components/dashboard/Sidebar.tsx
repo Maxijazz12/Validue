@@ -158,14 +158,14 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
   const railContent = (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center shrink-0 px-[8px] py-[20px] gap-[10px]">
-        <Link href="/" className="shrink-0 no-underline w-[44px] flex items-center justify-center">
-          <Image src="/logo-icon.svg" alt="" width={22} height={22} />
-        </Link>
+      <Link href="/" className="flex items-center shrink-0 no-underline px-[20px] py-[20px] gap-[12px]">
+        <span className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">
+          <Image src="/logo-icon.svg" alt="" width={20} height={20} />
+        </span>
         <span className={`text-[16px] font-bold tracking-[1px] text-white/90 whitespace-nowrap transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0"}`}>
           Validue
         </span>
-      </div>
+      </Link>
 
       {/* Search trigger */}
       <div className="shrink-0 px-[8px] pb-[8px]">
@@ -173,7 +173,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
           onClick={() => {
             window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
           }}
-          className="group relative flex items-center gap-[10px] rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-colors cursor-pointer bg-transparent border-none w-full px-[12px] py-[9px]"
+          className="group relative flex items-center gap-[12px] rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-colors cursor-pointer bg-transparent border-none w-full px-[12px] py-[9px]"
           aria-label="Search"
         >
           <span className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">{icons.search}</span>
@@ -201,7 +201,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
         {/* Notifications */}
         <a
           href="/dashboard/notifications"
-          className="group relative flex items-center gap-[10px] rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.04] no-underline transition-colors px-[12px] py-[9px]"
+          className="group relative flex items-center gap-[12px] rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.04] no-underline transition-colors px-[12px] py-[9px]"
           aria-label="Notifications"
         >
           <span className="relative shrink-0 w-[20px] h-[20px] flex items-center justify-center">
@@ -221,7 +221,7 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
         </a>
 
         {/* User row */}
-        <div className="flex items-center gap-[10px] rounded-xl text-white/30 px-[12px] py-[9px]">
+        <div className="flex items-center gap-[12px] rounded-xl px-[12px] py-[9px]">
           <a
             href="/dashboard/settings"
             className="group relative shrink-0 w-[20px] h-[20px] flex items-center justify-center no-underline"
@@ -234,11 +234,11 @@ export default function Sidebar({ userName, userAvatar, unreadCount = 0, totalEa
               </span>
             )}
           </a>
-          <span className={`text-[13px] font-semibold tracking-wide text-white/30 whitespace-nowrap truncate min-w-0 flex-1 transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0"}`}>{userName}</span>
+          <span className={`text-[13px] font-semibold tracking-wide text-white/60 whitespace-nowrap truncate min-w-0 flex-1 transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0"}`}>{userName}</span>
           <div className={`ml-auto flex items-center gap-[2px] shrink-0 transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
             <button
               onClick={handleLogout}
-              className="p-[6px] rounded-lg text-white/20 hover:text-white/60 hover:bg-white/[0.04] transition-all cursor-pointer bg-transparent border-none"
+              className="p-[6px] rounded-lg text-white/60 hover:text-white/80 hover:bg-white/[0.06] transition-all cursor-pointer bg-transparent border-none"
               aria-label="Log out"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

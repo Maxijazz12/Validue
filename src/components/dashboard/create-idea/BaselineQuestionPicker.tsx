@@ -58,16 +58,16 @@ export default function BaselineQuestionPicker({
         <div className="p-[32px] pb-[24px] border-b border-white/40 border-dashed">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-mono text-[14px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">
-                [ SWAP BASELINE NODE ]
+              <h2 className="text-[16px] font-medium tracking-tight text-text-primary mb-[4px]">
+                Swap Baseline Question
               </h2>
-              <p className="font-mono text-[11px] text-text-muted uppercase tracking-wider">
-                Select replacement from standardized library.
+              <p className="text-[13px] text-text-muted">
+                Pick a replacement from the question library.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary transition-all cursor-pointer border-none bg-transparent"
+              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-text-muted hover:bg-bg-muted hover:text-text-secondary transition-all cursor-pointer border-none bg-transparent"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -129,7 +129,7 @@ export default function BaselineQuestionPicker({
                   {bq.options.map((opt) => (
                     <span
                       key={opt}
-                      className="font-mono text-[11px] font-medium uppercase tracking-wide px-[10px] py-[4px] rounded-full border border-black/5 bg-black/5 text-text-primary"
+                      className="font-mono text-[11px] font-medium uppercase tracking-wide px-[10px] py-[4px] rounded-full border border-border-light bg-bg-muted text-text-primary"
                     >
                       {opt}
                     </span>

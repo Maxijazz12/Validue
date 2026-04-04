@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { claimFailedCashoutRetry } from "@/lib/cashout-retry";
+import type { SqlRunner } from "@/lib/postgres-types";
 import {
   getTestDb,
   closeTestDb,
@@ -63,7 +64,12 @@ describe("cashout retry claiming", () => {
 
     const claim = async () =>
       sql.begin(async (tx) =>
-        claimFailedCashoutRetry(tx, cashout.id as string, respondentId, 500)
+        claimFailedCashoutRetry(
+          tx as unknown as SqlRunner,
+          cashout.id as string,
+          respondentId,
+          500
+        )
       );
 
     const results = await Promise.allSettled([claim(), claim()]);
@@ -108,7 +114,12 @@ describe("cashout retry claiming", () => {
 
     await expect(
       sql.begin(async (tx) =>
-        claimFailedCashoutRetry(tx, cashout.id as string, respondentId, 500)
+        claimFailedCashoutRetry(
+          tx as unknown as SqlRunner,
+          cashout.id as string,
+          respondentId,
+          500
+        )
       )
     ).rejects.toThrow("INSUFFICIENT_BALANCE");
 

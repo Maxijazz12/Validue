@@ -60,7 +60,7 @@ export default function FundCampaignButton({
       <div className="flex items-center gap-[8px]">
         {needsAmount && (
           <div className="relative">
-            <span className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[14px] text-slate">
+            <span className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[14px] text-text-muted">
               $
             </span>
             <input
@@ -87,7 +87,7 @@ export default function FundCampaignButton({
                 : `Pay & Go Live — $${rewardAmount.toFixed(2)}`)}
         </button>
       </div>
-      <span className="text-[11px] text-slate">Stripe is used only if a charge is required</span>
+      <span className="text-[11px] text-text-muted">Stripe is used only if a charge is required</span>
       {error && (
         <span className="text-[12px] text-red-500">{error}</span>
       )}

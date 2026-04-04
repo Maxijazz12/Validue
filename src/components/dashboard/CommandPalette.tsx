@@ -174,21 +174,21 @@ export default function CommandPalette() {
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
             placeholder="Search actions, pages..."
-            className="flex-1 text-[15px] text-text-primary placeholder:text-slate outline-none bg-transparent"
+            className="flex-1 text-[15px] text-text-primary placeholder:text-text-muted outline-none bg-transparent"
           />
         </div>
 
         {/* Results */}
         <div className="max-h-[320px] overflow-y-auto py-[8px]">
           {filtered.length === 0 && (
-            <p className="text-[13px] text-slate text-center py-[24px]">
+            <p className="text-[13px] text-text-muted text-center py-[24px]">
               No results found
             </p>
           )}
 
           {Array.from(sections.entries()).map(([section, items]) => (
             <div key={section}>
-              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-slate px-[20px] py-[6px]">
+              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-text-muted px-[20px] py-[6px]">
                 {section}
               </p>
               {items.map((item) => {

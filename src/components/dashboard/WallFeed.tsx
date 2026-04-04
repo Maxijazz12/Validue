@@ -93,7 +93,7 @@ export default function WallFeed({
         <h1 className="text-[24px] font-medium tracking-tight text-text-primary">
           The Wall
         </h1>
-        <p className="text-[14px] text-text-secondary mt-[2px]">Ideas looking for honest feedback</p>
+        <p className="text-[14px] text-text-secondary mt-[4px]">Ideas looking for honest feedback</p>
       </div>
 
       {/* Pane Controller (Upgraded to V2 Precision layout) */}

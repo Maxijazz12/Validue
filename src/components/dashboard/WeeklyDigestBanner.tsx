@@ -73,7 +73,7 @@ export default function WeeklyDigestBanner({ digest }: { digest: WeeklyDigest })
       {/* Dismiss */}
       <button
         onClick={handleDismiss}
-        className="text-slate hover:text-text-secondary bg-transparent border-none cursor-pointer p-[4px] transition-colors shrink-0"
+        className="text-text-muted hover:text-text-secondary bg-transparent border-none cursor-pointer p-[4px] transition-colors shrink-0"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />

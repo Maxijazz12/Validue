@@ -63,9 +63,9 @@ function TrendIndicator({ direction, label }: { direction: "up" | "down" | "flat
 
 export default function StatCard({ label, value, detail, valueColor, progress, children, trend, sparkline }: StatCardProps) {
   return (
-    <div className="flex flex-col w-full bg-white border border-border-light shadow-card-interactive rounded-[24px] p-[20px] transition-all duration-400 relative overflow-hidden group">
+    <div className="flex flex-col w-full bg-white border border-border-light shadow-card rounded-[20px] p-[16px] md:p-[20px] transition-all duration-400 relative overflow-hidden group">
       <div className="flex items-start justify-between gap-[8px]">
-        <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide">
+        <span className="text-[12px] font-medium text-text-secondary tracking-tight">
           {label}
         </span>
         {sparkline && sparkline.length >= 2 && (
@@ -74,7 +74,7 @@ export default function StatCard({ label, value, detail, valueColor, progress, c
       </div>
       <div className="flex items-baseline gap-[6px] mt-[6px]">
         <span
-          className="font-mono text-[28px] font-bold tracking-tight"
+          className="text-[20px] font-semibold tracking-tight"
           style={valueColor ? { color: valueColor } : { color: "var(--color-text-primary)" }}
         >
           {value}
@@ -94,7 +94,7 @@ export default function StatCard({ label, value, detail, valueColor, progress, c
         </div>
       )}
       {detail && (
-        <div className="font-mono text-[10px] text-text-muted tracking-wide mt-[4px]">{detail}</div>
+        <div className="text-[10px] text-text-muted font-medium tracking-tight mt-[4px]">{detail}</div>
       )}
     </div>
   );

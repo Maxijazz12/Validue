@@ -82,7 +82,7 @@ function DemographicPills({
   items: { label: string; count: number }[];
 }) {
   if (items.length === 0) {
-    return <span className="text-[12px] text-slate">No data</span>;
+    return <span className="text-[12px] text-text-muted">No data</span>;
   }
   return (
     <div className="flex flex-wrap gap-[6px]">
@@ -118,7 +118,7 @@ export default function CampaignAnalytics({
 
   if (loading) {
     return (
-      <div className="bg-white/90 border border-border-light rounded-[24px] p-[32px]">
+      <div className="bg-white border border-border-light rounded-[28px] p-[32px] shadow-card">
         <div className="flex items-center gap-[8px]">
           <div className="w-[5px] h-[5px] bg-accent/50 rounded-full animate-pulse" />
           <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">Loading telemetry...</span>
@@ -132,12 +132,12 @@ export default function CampaignAnalytics({
   const hasScores = data.scoreDistribution.some((d) => d.count > 0);
 
   return (
-    <div className="bg-white border border-border-light shadow-card rounded-[24px] overflow-hidden transition-all duration-400">
+    <div className="bg-white border border-border-light shadow-card rounded-[28px] overflow-hidden transition-all duration-400">
       {/* Header — always visible */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-[24px_32px] max-md:p-[20px] text-left cursor-pointer hover:bg-white/40 transition-colors bg-transparent border-none"
+        className="w-full flex items-center justify-between p-[24px_32px] max-md:p-[20px] text-left cursor-pointer hover:bg-bg-muted/40 transition-colors duration-300 bg-transparent border-none"
       >
         <div className="flex items-center gap-[10px]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E5654E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -161,10 +161,10 @@ export default function CampaignAnalytics({
       </button>
 
       {expanded && (
-        <div className="border-t border-white/40 p-[24px_32px] max-md:p-[20px]">
+        <div className="border-t border-border-light/40 p-[24px_32px] max-md:p-[20px]">
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-[16px] mb-[32px]">
-            <div className="p-[20px] rounded-[16px] bg-white/40 border border-border-light shadow-sm relative overflow-hidden">
+            <div className="p-[20px] rounded-[20px] bg-white border border-border-light shadow-card relative overflow-hidden">
               <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
                 Avg time/rep
               </span>
@@ -172,7 +172,7 @@ export default function CampaignAnalytics({
                 {data.avgTimePerResponse > 0 ? `${data.avgTimePerResponse}s` : "—"}
               </div>
             </div>
-            <div className="p-[20px] rounded-[16px] bg-white/40 border border-border-light shadow-sm relative overflow-hidden">
+            <div className="p-[20px] rounded-[20px] bg-white border border-border-light shadow-card relative overflow-hidden">
               <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
                 Pattern matches
               </span>

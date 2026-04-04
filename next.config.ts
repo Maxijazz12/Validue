@@ -4,9 +4,9 @@ import { withSentryConfig } from "@sentry/nextjs";
 // CSP directives — kept readable, joined at build time
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval needed for Next.js dev; Sentry SDK
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`, // unsafe-eval only in dev (HMR)
   "style-src 'self' 'unsafe-inline'", // Tailwind injects inline styles
-  "img-src 'self' data: blob: *.supabase.co",
+  "img-src 'self' data: blob: ooamtvochbfkpvwhvged.supabase.co",
   "font-src 'self'",
   "connect-src 'self' *.supabase.co *.ingest.sentry.io",
   "frame-src 'none'",

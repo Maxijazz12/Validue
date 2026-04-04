@@ -68,9 +68,6 @@ export const DEFAULTS = {
   /** Maximum allowed funding amount */
   MAX_FUNDING_AMOUNT: 10_000,
 
-  /** Minimum target responses for a campaign */
-  MIN_TARGET_RESPONSES: 1,
-
   /** Maximum target responses for a campaign */
   MAX_TARGET_RESPONSES: 10_000,
 

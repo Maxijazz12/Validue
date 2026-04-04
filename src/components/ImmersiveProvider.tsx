@@ -3,10 +3,7 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 
-const IMMERSIVE_ROUTES = [
-  "/dashboard/my-responses",
-  "/dashboard/earnings",
-];
+const IMMERSIVE_ROUTES: string[] = [];
 
 function isImmersiveRoute(pathname: string): boolean {
   return IMMERSIVE_ROUTES.some(

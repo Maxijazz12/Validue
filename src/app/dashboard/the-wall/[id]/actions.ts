@@ -19,7 +19,6 @@ import { hasRemainingReachBudget } from "@/lib/campaign-availability";
 import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
 
 import { sanitizeMetadata, type AnswerMetadata } from "@/lib/sanitize-metadata";
-export type { AnswerMetadata };
 
 function elapsedMsSince(createdAt: string | null): number {
   if (!createdAt) return 0;

@@ -7,16 +7,17 @@ import {
   isCampaignOpenForResponses,
 } from "@/lib/campaign-availability";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
+import { rateLimit } from "@/lib/rate-limit";
 import { logOps } from "@/lib/ops-logger";
-import { checkGate, RECIPROCAL_REQUIRED, RECIPROCAL_QUESTIONS_PER_RESPONSE, type GateStatus } from "@/lib/reciprocal-gate";
+import { RECIPROCAL_REQUIRED, RECIPROCAL_QUESTIONS_PER_RESPONSE } from "@/lib/reciprocal-gate";
 import {
   assignQuestions,
+  MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT,
   type CampaignQuestion,
   type AssumptionCoverageCount,
 } from "@/lib/question-assignment";
-import type { RespondentProfile } from "@/lib/wall-ranking";
+import { computeMatchScore, type RespondentProfile } from "@/lib/wall-ranking";
 import sql from "@/lib/db";
-import { DEFAULTS } from "@/lib/defaults";
 import { getSubscription } from "@/lib/plan-guard";
 import type { PlanTier } from "@/lib/plans";
 
@@ -60,7 +61,6 @@ type ReciprocalCampaignRow = {
   reach_served: number | null;
   effective_reach_units: number | null;
   total_reach_units: number | null;
-  economics_version: number | null;
   target_interests: string[] | null;
   target_expertise: string[] | null;
   target_age_ranges: string[] | null;
@@ -80,7 +80,7 @@ type ReciprocalQuestionRow = {
 
 async function loadRespondentProfile(userId: string): Promise<RespondentProfile> {
   const [profile] = await sql`
-    SELECT interests, expertise, age_range, reputation_score, total_responses_completed
+    SELECT interests, expertise, age_range, profile_completed, reputation_score, total_responses_completed
     FROM profiles
     WHERE id = ${userId}
   `;
@@ -89,7 +89,7 @@ async function loadRespondentProfile(userId: string): Promise<RespondentProfile>
     interests: (profile?.interests as string[]) ?? [],
     expertise: (profile?.expertise as string[]) ?? [],
     age_range: (profile?.age_range as string | null) ?? null,
-    profile_completed: Array.isArray(profile?.interests) && profile.interests.length > 0,
+    profile_completed: !!profile?.profile_completed,
     reputation_score: Number(profile?.reputation_score ?? 0),
     total_responses_completed: Number(profile?.total_responses_completed ?? 0),
   };
@@ -109,7 +109,6 @@ async function getEligibleReciprocalCampaigns(
       c.reach_served,
       c.effective_reach_units,
       c.total_reach_units,
-      c.economics_version,
       c.target_interests,
       c.target_expertise,
       c.target_age_ranges,
@@ -128,7 +127,7 @@ async function getEligibleReciprocalCampaigns(
     LIMIT 30
   `;
 
-  return campaigns.filter(
+  return ([...campaigns] as ReciprocalCampaignRow[]).filter(
     (campaign) =>
       isCampaignOpenForResponses(campaign) &&
       hasRemainingReachBudget(campaign)
@@ -162,8 +161,7 @@ async function reserveReciprocalResponse(
   userId: string,
   assignedQuestionIds: string[]
 ): Promise<string | null> {
-  const moneyState =
-    campaign.economics_version === 2 ? "pending_qualification" : null;
+  const moneyState = "pending_qualification";
 
   const [response] = await sql`
     INSERT INTO responses (
@@ -227,10 +225,37 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
 
   if (!user) return [];
 
+  const rl = rateLimit(`recip-fetch:${user.id}`, 60000, 5);
+  if (!rl.allowed) return [];
+
+  // Clean up stale reciprocal in_progress responses (> 30 min) to prevent orphan buildup
+  await sql`
+    UPDATE responses
+    SET status = 'abandoned'
+    WHERE respondent_id = ${user.id}
+      AND status = 'in_progress'
+      AND is_partial = true
+      AND created_at < NOW() - INTERVAL '30 minutes'
+  `;
+
   const campaigns = await getEligibleReciprocalCampaigns(user.id);
   if (campaigns.length === 0) return [];
 
   const respondentProfile = await loadRespondentProfile(user.id);
+
+  // Sort by targeting match score (best match first), then by fill need
+  campaigns.sort((a, b) => {
+    const scoreA = computeMatchScore(
+      { target_interests: (a.target_interests as string[]) ?? [], target_expertise: (a.target_expertise as string[]) ?? [], target_age_ranges: (a.target_age_ranges as string[]) ?? [], tags: (a.tags as string[]) ?? [] },
+      respondentProfile
+    );
+    const scoreB = computeMatchScore(
+      { target_interests: (b.target_interests as string[]) ?? [], target_expertise: (b.target_expertise as string[]) ?? [], target_age_ranges: (b.target_age_ranges as string[]) ?? [], tags: (b.tags as string[]) ?? [] },
+      respondentProfile
+    );
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return (a.current_responses ?? 0) - (b.current_responses ?? 0);
+  });
 
   const assignments: ReciprocalAssignment[] = [];
 
@@ -244,7 +269,7 @@ export async function fetchReciprocalAssignments(): Promise<ReciprocalAssignment
       ORDER BY sort_order ASC
     ` as ReciprocalQuestionRow[];
 
-    if (!campaignQuestions || campaignQuestions.length < 3) continue;
+    if (!campaignQuestions || campaignQuestions.length < MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT) continue;
 
     const questions: CampaignQuestion[] = campaignQuestions.map((q) => ({
       id: q.id,
@@ -321,8 +346,20 @@ export async function saveReciprocalAnswer(
 
   if (!user) return { success: false, error: "Not authenticated" };
 
+  const rl = rateLimit(`recip-save:${user.id}`, 60000, 60);
+  if (!rl.allowed) return { success: false, error: "Too many requests. Please slow down." };
+
   // Content moderation
   const { text: safeText } = enforceLength(text, MAX_LENGTHS.ANSWER_TEXT);
+
+  // Look up question type to apply appropriate validation
+  const [question] = await sql`
+    SELECT type FROM questions WHERE id = ${questionId} LIMIT 1
+  `;
+  if (question?.type === "open" && safeText.length < 10) {
+    return { success: false, error: "Answer too short." };
+  }
+
   const contentCheck = checkContent(safeText);
   if (!contentCheck.allowed) {
     logOps({
@@ -366,6 +403,10 @@ export async function saveReciprocalAnswer(
       success: false,
       error: "Reciprocal assignment is missing its questions. Please reload.",
     };
+  }
+
+  if (!assignedIds.includes(questionId)) {
+    return { success: false, error: "Question not in assignment." };
   }
 
   // Upsert answer
@@ -425,101 +466,3 @@ export async function saveReciprocalAnswer(
   }
 }
 
-/**
- * Increment the reciprocal gate counter for a campaign and activate it
- * if the gate is now cleared. Called after a founder completes a reciprocal
- * response during the create flow.
- *
- * Returns the updated gate state so the UI can show progress.
- */
-export async function incrementReciprocalGate(campaignId: string): Promise<{
-  completed: number;
-  required: number;
-  remaining: number;
-  cleared: boolean;
-}> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-
-  // Verify campaign belongs to user and has a pending gate
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("id, creator_id, reciprocal_gate_status, reciprocal_responses_completed")
-    .eq("id", campaignId)
-    .eq("creator_id", user.id)
-    .single();
-
-  if (!campaign) throw new Error("Campaign not found");
-
-  if (campaign.reciprocal_gate_status !== "pending") {
-    const gateStatus: GateStatus | null =
-      campaign.reciprocal_gate_status === "cleared" ||
-      campaign.reciprocal_gate_status === "exempt"
-        ? campaign.reciprocal_gate_status
-        : null;
-    const gate = checkGate(
-      gateStatus,
-      campaign.reciprocal_responses_completed ?? 0
-    );
-    return {
-      completed: gate.completed,
-      required: gate.required,
-      remaining: gate.remaining,
-      cleared: gate.canPublish,
-    };
-  }
-
-  // Atomically increment counter in DB and read back the authoritative value.
-  // Prevents concurrent increments from computing the same newCount in app code.
-  const [updated] = await sql`
-    UPDATE campaigns
-    SET reciprocal_responses_completed = COALESCE(reciprocal_responses_completed, 0) + 1
-    WHERE id = ${campaignId}
-      AND reciprocal_gate_status = 'pending'
-    RETURNING reciprocal_responses_completed
-  `;
-
-  const newCount = updated?.reciprocal_responses_completed ?? (campaign.reciprocal_responses_completed ?? 0) + 1;
-  const gate = checkGate("pending", newCount);
-
-  if (gate.canPublish) {
-    // Gate cleared — activate if no funding is pending (i.e. pending_gate only).
-    // For pending_funding campaigns, clear the gate but leave status for webhook to activate after payment.
-    await sql`
-      UPDATE campaigns
-      SET reciprocal_gate_status = 'cleared',
-          status = CASE
-            WHEN status = 'pending_gate' THEN 'active'
-            WHEN status = 'pending_funding' AND funded_at IS NOT NULL THEN 'active'
-            ELSE status
-          END,
-          expires_at = CASE
-            WHEN status = 'pending_gate'
-              OR (status = 'pending_funding' AND funded_at IS NOT NULL)
-              THEN NOW() + (${DEFAULTS.CAMPAIGN_EXPIRY_DAYS} * INTERVAL '1 day')
-            ELSE expires_at
-          END
-      WHERE id = ${campaignId}
-        AND reciprocal_gate_status = 'pending'
-        AND status IN ('pending_gate', 'pending_funding')
-    `;
-
-    logOps({
-      event: "reciprocal_gate.cleared",
-      campaignId,
-      userId: user.id,
-      completedCount: newCount,
-    });
-  }
-
-  return {
-    completed: gate.completed,
-    required: gate.required,
-    remaining: gate.remaining,
-    cleared: gate.canPublish,
-  };
-}

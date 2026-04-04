@@ -17,11 +17,11 @@ type Props = {
 /* ─── Progress Stages (shown for paid tier / skeleton) ─── */
 
 const PROGRESS_STAGES = [
-  { label: "SYNC_VARS", icon: "read" },
-  { label: "GENERATE_NODES", icon: "questions" },
-  { label: "COMPILE_MATRIX", icon: "audience" },
-  { label: "VERIFY_INTEGRITY", icon: "quality" },
-  { label: "OPTIMIZE_SYNTAX", icon: "polish" },
+  { label: "Reading", icon: "read" },
+  { label: "Questions", icon: "questions" },
+  { label: "Audience", icon: "audience" },
+  { label: "Quality", icon: "quality" },
+  { label: "Polish", icon: "polish" },
 ] as const;
 
 /* ─── Main Component ─── */
@@ -45,9 +45,9 @@ export default function GeneratingStep({ assignments, onReciprocalComplete }: Pr
           </svg>
         </div>
         <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-success">
-          [ COMPILATION COMPLETE ]
+          Done
         </p>
-        <p className="font-mono text-[10px] text-text-muted mt-[8px] tracking-wide">
+        <p className="text-[13px] text-text-muted mt-[8px]">
           Loading your campaign draft...
         </p>
       </div>
@@ -151,7 +151,7 @@ function PaidGeneratingView() {
             );
           })}
         </div>
-        <div className="h-[2px] rounded-full bg-bg-muted overflow-hidden mt-2">
+        <div className="h-[3px] rounded-full bg-bg-muted overflow-hidden mt-2">
           <div
             className="h-full rounded-full bg-accent transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)]"
             style={{ width: `${progressPercent}%` }}
@@ -160,7 +160,7 @@ function PaidGeneratingView() {
       </div>
 
       {/* Skeleton glass preview */}
-      <div className="w-full max-w-[500px] mb-[40px] rounded-[24px] border border-border-light p-[32px] bg-white shadow-card relative overflow-hidden">
+      <div className="w-full max-w-[500px] mb-[40px] rounded-[20px] md:rounded-[28px] border border-border-light p-[20px] md:p-[28px] bg-white shadow-card relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand/5 to-transparent h-[150%] -translate-y-full animate-[scan_3s_linear_infinite]" />
         <div className={`h-[24px] rounded-[6px] mb-[12px] transition-all duration-500 ${
           stageIndex >= 0 ? "bg-accent/20 w-[80%]" : "bg-accent/5 w-[80%]"
@@ -189,35 +189,35 @@ function PaidGeneratingView() {
 
       {stageIndex >= 3 && (
         <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted mb-[24px] animate-pulse">
-          Synthesis nearly complete... compiling matrix data
+          Almost there — finalizing your draft
         </p>
       )}
 
       {/* Fact card */}
       <div className="w-full max-w-[520px] text-center relative mt-12 border-t border-black/5 pt-[24px]">
         <div className="font-mono text-[9px] font-bold tracking-[0.2em] text-text-muted uppercase mb-[16px]">
-          [ INITIALIZATION TRIVIA ]
+          While you wait
         </div>
         <div
           className={`font-mono text-[13px] leading-[1.8] text-text-primary font-medium min-h-[60px] transition-opacity duration-300 ${
             fading ? "opacity-0" : "opacity-100"
           }`}
         >
-          &gt; {quote.text}
+          &ldquo;{quote.text}&rdquo;
         </div>
         <div
-          className={`font-mono text-[11px] text-text-muted mt-[12px] uppercase tracking-widest transition-opacity duration-300 ${
+          className={`text-[12px] text-text-muted mt-[12px] transition-opacity duration-300 ${
             fading ? "opacity-0" : "opacity-100"
           }`}
         >
-          {"// "}{quote.source}
+          — {quote.source}
         </div>
         <button
           onClick={showNext}
           type="button"
           className="mt-[24px] bg-transparent border-none text-text-muted text-[10px] uppercase font-mono font-medium cursor-pointer hover:text-text-primary transition-all duration-200 tracking-wide"
         >
-          [ RELOAD TRIVIA ]
+          Another one
         </button>
       </div>
     </div>
@@ -273,6 +273,7 @@ function ReciprocalFlow({
   const [completedAssignments, setCompletedAssignments] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skippable, setSkippable] = useState(false);
   const questionStartTime = useRef(0);
 
   useEffect(() => {
@@ -305,6 +306,7 @@ function ReciprocalFlow({
 
       if (!result.success) {
         setError(result.error ?? "We couldn't save that answer. Please try again.");
+        setSkippable(true);
         setSaving(false);
         return;
       }
@@ -331,6 +333,29 @@ function ReciprocalFlow({
     [current, saving, isLastQuestion, onComplete]
   );
 
+  const handleSkipCampaign = useCallback(() => {
+    if (!current) return;
+    const currentAssignment = current.assignmentIndex;
+    // Find the first question from the next assignment
+    const nextIndex = allQuestions.findIndex(
+      (q, i) => i > currentIndex && q.assignmentIndex !== currentAssignment
+    );
+    setError(null);
+    setSkippable(false);
+    if (nextIndex === -1) {
+      // No more assignments — complete the flow
+      onComplete();
+    } else {
+      setTransitioning(true);
+      setTimeout(() => {
+        setCurrentIndex(nextIndex);
+        setAnswer("");
+        setSaving(false);
+        setTransitioning(false);
+      }, 300);
+    }
+  }, [current, currentIndex, allQuestions, onComplete]);
+
   const handleMCQSelect = useCallback(
     (option: string) => {
       handleSubmitAnswer(option);
@@ -354,7 +379,7 @@ function ReciprocalFlow({
       {/* Header */}
       <div className="w-full max-w-[560px] text-center mb-[32px]">
         <div className="font-mono text-[9px] font-bold tracking-[0.2em] text-text-muted uppercase mb-[8px]">
-          [ GENERATING YOUR CAMPAIGN ]
+          Building your campaign
         </div>
         <p className="font-mono text-[12px] text-text-secondary leading-relaxed">
           While we build your survey, help other founders by answering a few questions.
@@ -363,8 +388,17 @@ function ReciprocalFlow({
       </div>
 
       {error && (
-        <div className="w-full max-w-[560px] mb-[20px] rounded-[14px] border border-[#ef4444]/20 bg-[#ef4444]/8 px-[14px] py-[10px] text-[13px] text-[#991b1b]">
-          {error}
+        <div className="w-full max-w-[560px] mb-[20px] rounded-[14px] border border-[#ef4444]/20 bg-[#ef4444]/8 px-[14px] py-[10px] text-[13px] text-[#991b1b] flex items-center justify-between gap-[12px]">
+          <span>{error}</span>
+          {skippable && (
+            <button
+              type="button"
+              onClick={handleSkipCampaign}
+              className="shrink-0 px-[12px] py-[4px] rounded-full border border-[#ef4444]/30 bg-white text-[11px] font-mono font-medium uppercase tracking-wide text-[#991b1b] cursor-pointer hover:bg-[#ef4444]/10 transition-colors duration-200"
+            >
+              Skip campaign
+            </button>
+          )}
         </div>
       )}
 
@@ -387,13 +421,13 @@ function ReciprocalFlow({
       {/* Campaign context label */}
       <div className="w-full max-w-[520px] mb-[12px]">
         <span className="font-mono text-[9px] font-bold tracking-[0.15em] text-text-muted uppercase">
-          {"// "}Re: {current.campaignTitle}
+          {current.campaignTitle}
         </span>
       </div>
 
       {/* Question card */}
       <div
-        className={`w-full max-w-[520px] rounded-[20px] border border-border-light p-[28px] bg-white shadow-card transition-all duration-300 ${
+        className={`w-full max-w-[520px] rounded-[20px] md:rounded-[28px] border border-border-light px-[14px] py-[20px] md:p-[28px] bg-white shadow-card transition-all duration-300 ${
           transitioning ? "opacity-0 translate-y-[8px]" : "opacity-100 translate-y-0"
         }`}
       >
@@ -437,7 +471,7 @@ function ReciprocalFlow({
                 onClick={handleOpenSubmit}
                 className="px-[20px] py-[8px] rounded-full bg-accent text-white font-mono text-[11px] font-medium uppercase tracking-wide border border-transparent cursor-pointer hover:bg-white hover:text-text-primary hover:border-accent transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {saving ? "[ SAVING... ]" : "[ SUBMIT ]"}
+                {saving ? "Saving..." : "Submit"}
               </button>
             </div>
           </div>

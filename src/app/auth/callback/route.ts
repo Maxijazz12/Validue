@@ -1,22 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeAuthRedirectPath } from "@/lib/auth-redirect";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const type = searchParams.get("type");
-  const rawNext = searchParams.get("next") ?? "/dashboard/the-wall";
-
-  // Prevent open-redirect: only allow whitelisted path prefixes
-  const ALLOWED_PREFIXES = ["/dashboard", "/auth/reset-password"];
-  const DEFAULT_REDIRECT = "/dashboard/the-wall";
-
-  const next =
-    rawNext.startsWith("/") &&
-    !rawNext.startsWith("//") &&
-    ALLOWED_PREFIXES.some((prefix) => rawNext.startsWith(prefix))
-      ? rawNext
-      : DEFAULT_REDIRECT;
+  const next = sanitizeAuthRedirectPath(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();

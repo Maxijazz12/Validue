@@ -129,7 +129,7 @@ export default function NotificationPanel() {
           <button
             onClick={handleMarkAllRead}
             disabled={isPending}
-            className="text-[13px] text-slate hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors disabled:opacity-50"
+            className="text-[13px] text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors duration-300 disabled:opacity-50"
           >
             Mark all as read
           </button>
@@ -153,10 +153,10 @@ export default function NotificationPanel() {
             <button
               key={notif.id}
               onClick={() => handleClick(notif)}
-              className={`flex items-start gap-[16px] p-[20px] rounded-[24px] border text-left w-full cursor-pointer transition-all duration-400 group shadow-card-interactive ${
+              className={`flex items-start gap-[16px] p-[20px] rounded-[24px] border text-left w-full cursor-pointer transition-all duration-400 group shadow-card hover:shadow-card-hover hover:-translate-y-[1px] ${
                 notif.read_at
-                  ? "bg-white/90 border-white/40"
-                  : "bg-white border-border-light border-l-[4px] border-l-brand"
+                  ? "bg-white/90 border-border-light/40"
+                  : "bg-white border-border-light border-l-[3px] border-l-brand"
               }`}
             >
               <NotificationIcon type={notif.type} />

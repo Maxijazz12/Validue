@@ -378,4 +378,32 @@ describe("distributeSubsidizedPayouts", () => {
     const allocations = distributeSubsidizedPayouts(responses, quals);
     expect(allocations).toHaveLength(2);
   });
+
+  it("caps paid slots at SUBSIDY_TARGET_RESPONSES (5), excess get $0 with budget exhausted reason", () => {
+    const responses = Array.from({ length: 8 }, (_, i) =>
+      makeResponse(String.fromCharCode(97 + i), 60 + i)
+    );
+    const quals = responses.map((r) => makeQualResult(r.responseId));
+    const allocations = distributeSubsidizedPayouts(responses, quals);
+
+    const paid = allocations.filter((a) => a.suggestedAmount > 0);
+    const unpaid = allocations.filter((a) => a.suggestedAmount === 0);
+
+    expect(paid).toHaveLength(5);
+    expect(unpaid).toHaveLength(3);
+
+    // Paid slots get flat $0.45
+    for (const a of paid) {
+      expect(a.suggestedAmount).toBe(0.45);
+      expect(a.qualified).toBe(true);
+      expect(a.disqualificationReasons).toEqual([]);
+    }
+
+    // Unpaid slots are marked not qualified with budget exhaustion reason
+    for (const a of unpaid) {
+      expect(a.suggestedAmount).toBe(0);
+      expect(a.qualified).toBe(false);
+      expect(a.disqualificationReasons).toContain("Subsidy budget exhausted");
+    }
+  });
 });

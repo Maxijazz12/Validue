@@ -79,12 +79,6 @@ type ReactionRow = {
   user_id: string;
 };
 
-type RecentResponderRow = {
-  campaign_id: string;
-  created_at: string;
-  respondent: { full_name: string | null; avatar_url: string | null } | null;
-};
-
 type ResponseDateRow = {
   created_at: string;
 };
@@ -94,11 +88,6 @@ type FirstQuestionMapValue = {
   text: string;
   type: string;
   options: string[] | null;
-};
-
-type AvatarStackItem = {
-  name: string;
-  avatar: string | null;
 };
 
 type WallPageData = {
@@ -155,45 +144,13 @@ function buildReactionMaps(rows: ReactionRow[], userId: string) {
   return { reactionCountsMap, userReactionsMap };
 }
 
-function buildRecentResponderMaps(rows: RecentResponderRow[]) {
-  const respondentMap = new Map<string, AvatarStackItem[]>();
-  const activityMap = new Map<string, string>();
-  const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
-
-  for (const response of rows) {
-    const respondents = respondentMap.get(response.campaign_id) || [];
-    if (respondents.length < 5) {
-      respondents.push({
-        name: response.respondent?.full_name || "Anonymous",
-        avatar: response.respondent?.avatar_url || null,
-      });
-      respondentMap.set(response.campaign_id, respondents);
-    }
-
-    if (
-      !activityMap.has(response.campaign_id) &&
-      new Date(response.created_at).getTime() > thirtyMinutesAgo
-    ) {
-      const minutesAgo = Math.max(
-        1,
-        Math.round((Date.now() - new Date(response.created_at).getTime()) / 60000)
-      );
-      activityMap.set(response.campaign_id, `${minutesAgo}m ago`);
-    }
-  }
-
-  return { respondentMap, activityMap };
-}
-
 function buildWallIdeas(
   campaigns: CampaignRow[],
   respondentProfile: RespondentProfile,
   profile: ProfileRow | null,
   firstQuestionMap: Map<string, FirstQuestionMapValue>,
   reactionCountsMap: Map<string, Record<string, number>>,
-  userReactionsMap: Map<string, string[]>,
-  respondentMap: Map<string, AvatarStackItem[]>,
-  activityMap: Map<string, string>
+  userReactionsMap: Map<string, string[]>
 ): WallCardProps[] {
   const userInterests = profile?.interests ?? [];
   const userExpertise = profile?.expertise ?? [];
@@ -255,10 +212,8 @@ function buildWallIdeas(
       firstQuestion: firstQuestionMap.get(campaign.id) ?? null,
       reactionCounts: reactionCountsMap.get(campaign.id) || {},
       userReactions: userReactionsMap.get(campaign.id) || [],
-      recentRespondents: respondentMap.get(campaign.id) || [],
-      lastActivityLabel: activityMap.get(campaign.id) ?? null,
       isSubsidized: !!campaign.is_subsidized,
-      economicsVersion: campaign.economics_version ?? 1,
+      economicsVersion: campaign.economics_version ?? 2,
       format: campaign.format ?? null,
     };
   });
@@ -333,7 +288,6 @@ export async function loadWallPageData(
   const [
     { data: firstQuestions },
     { data: allReactions },
-    { data: recentResponders },
     { data: recentResponseDates },
   ] = await Promise.all([
     campaignIds.length > 0
@@ -349,14 +303,6 @@ export async function loadWallPageData(
           .select("campaign_id, reaction_type, user_id")
           .in("campaign_id", campaignIds)
       : Promise.resolve({ data: [] as ReactionRow[] }),
-    campaignIds.length > 0
-      ? supabase
-          .from("responses")
-          .select("campaign_id, created_at, respondent:profiles!respondent_id(full_name, avatar_url)")
-          .in("campaign_id", campaignIds)
-          .eq("status", "submitted")
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] as RecentResponderRow[] }),
     supabase
       .from("responses")
       .select("created_at")
@@ -371,18 +317,13 @@ export async function loadWallPageData(
     (allReactions as ReactionRow[] | null) ?? [],
     userId
   );
-  const { respondentMap, activityMap } = buildRecentResponderMaps(
-    (recentResponders as RecentResponderRow[] | null) ?? []
-  );
   const ideas = buildWallIdeas(
     activeCampaigns,
     respondentProfile,
     profile as ProfileRow | null,
     firstQuestionMap,
     reactionCountsMap,
-    userReactionsMap,
-    respondentMap,
-    activityMap
+    userReactionsMap
   );
   const currentStreak = calculateCurrentStreak((recentResponseDates as ResponseDateRow[] | null) ?? []);
 

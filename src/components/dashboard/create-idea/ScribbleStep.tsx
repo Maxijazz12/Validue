@@ -62,17 +62,17 @@ export default function ScribbleStep({
   return (
     <div className="w-full flex flex-col h-full min-h-[75vh]">
       {/* Header */}
-      <div className="mb-[32px] flex flex-col gap-2">
-        <h1 className="text-[20px] md:text-[24px] font-bold tracking-tight text-text-primary font-mono uppercase">
-          [ SYS.INITIALIZE_NODE ]
+      <div className="mb-[24px]">
+        <h1 className="text-[24px] font-medium tracking-tight text-text-primary">
+          New Idea
         </h1>
-        <p className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase">
-          Awaiting raw input variables for validation synthesis.
+        <p className="text-[14px] text-text-secondary mt-[4px]">
+          Describe what you&apos;re building and who it&apos;s for
         </p>
       </div>
 
       {/* Scribble Glass Pane */}
-      <div className="flex-1 flex flex-col bg-white border border-border-light shadow-card rounded-[32px] p-[40px] md:p-[56px] relative overflow-hidden group transition-all duration-700 hover:shadow-card-hover">
+      <div className="flex-1 flex flex-col bg-white border border-border-light shadow-card rounded-[20px] md:rounded-[28px] p-[20px] md:p-[28px] relative overflow-hidden group transition-all duration-700 hover:shadow-card-hover">
         {/* Glowing top line */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand/30 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-1000" />
 
@@ -81,7 +81,7 @@ export default function ScribbleStep({
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="[ ENTER RAW CONCEPT ] — describe the problem, target demographic, and validation metrics."
+            placeholder="What's the idea? Describe the problem you're solving, who it's for, and what you're unsure about."
             disabled={isGenerating}
             className="w-full flex-1 min-h-[240px] text-[16px] md:text-[18px] leading-[1.7] text-text-primary font-sans font-normal tracking-[0.01em] placeholder:text-text-muted/60 outline-none resize-none bg-transparent disabled:opacity-50"
           />
@@ -90,7 +90,7 @@ export default function ScribbleStep({
           {text.trim().length < 10 && (
             <div className="mt-8">
               <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted mb-[12px]">
-                Or load pre-configured template:
+                Or start from an example:
               </p>
               <div className="flex gap-[16px] overflow-x-auto pb-[16px] hide-scrollbar" style={{ scrollSnapType: "x mandatory" }}>
                 {EXAMPLE_IDEAS.map((example) => (
@@ -107,7 +107,7 @@ export default function ScribbleStep({
                       {example.title}
                     </p>
                     <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted mt-[16px]">
-                      {example.responses} EXECUTIONS
+                      {example.responses} responses
                     </p>
                   </button>
                 ))}
@@ -125,8 +125,8 @@ export default function ScribbleStep({
               }`}
             >
               {text.trim().length < 50
-                ? `[ ${50 - text.trim().length} BYTES REQ ]`
-                : `[ STABLE : ${text.trim().length} BYTES ]`}
+                ? `${50 - text.trim().length} more characters needed`
+                : `${text.trim().length} characters`}
             </span>
 
             <button
@@ -134,7 +134,7 @@ export default function ScribbleStep({
               disabled={!canSubmit}
               className="inline-flex items-center gap-[12px] px-[32px] py-[16px] rounded-full text-[12px] font-medium uppercase tracking-wide bg-accent text-white hover:bg-white hover:text-text-primary hover:shadow-[0_0_32px_rgba(229,101,78,0.2)] hover:border-brand/30 transition-all duration-500 cursor-pointer border border-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-accent disabled:hover:text-white"
             >
-              [ INITIATE _SYNTHESIS ]
+              Generate Campaign
             </button>
           </div>
         </div>

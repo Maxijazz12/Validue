@@ -136,7 +136,7 @@ export default async function SettingsPage({
 
             <button
               type="submit"
-              className="self-start inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-accent text-white transition-all duration-500 hover:bg-accent-dark hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4)] cursor-pointer mt-[12px]"
+              className="self-start inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-medium tracking-wide bg-accent text-white transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-accent-dark hover:shadow-[0_8px_24px_-8px_rgba(28,25,23,0.3)] hover:-translate-y-[1px] cursor-pointer mt-[12px]"
             >
               Save Changes
             </button>

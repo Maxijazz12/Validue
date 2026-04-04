@@ -23,9 +23,9 @@ function DimensionBar({
   return (
     <div className="flex items-center gap-[12px]">
       <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted w-[90px] shrink-0">
-        {"// "}{label}
+        {label}
       </span>
-      <div className="flex-1 h-[2px] bg-black/5 overflow-hidden">
+      <div className="flex-1 h-[2px] bg-bg-muted overflow-hidden">
         <div
           className="h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)]"
           style={{ width: `${score}%`, background: color }}
@@ -59,13 +59,13 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       </div>
 
       <h3 className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary mb-[20px]">
-        [ SIGNAL STRENGTH ]
+        Signal Strength
       </h3>
 
       {/* Overall score bar */}
       <div className="mb-[24px]">
         <div className="flex items-center justify-between mb-[8px]">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">ESTIMATED INTEGRITY</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">Quality Score</span>
           <div className="flex items-center gap-[6px]">
             <span
                className="w-[6px] h-[6px] rounded-full animate-pulse"
@@ -79,7 +79,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
             </span>
           </div>
         </div>
-        <div className="h-[2px] bg-black/5 overflow-hidden">
+        <div className="h-[3px] bg-bg-muted overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{
@@ -93,7 +93,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Dimension breakdown */}
       {result.dimensions && (
         <div className="flex flex-col gap-[6px] mb-[16px]">
-          <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-slate mb-[2px]">
+          <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-text-muted mb-[2px]">
             Breakdown
           </span>
           <DimensionBar label="Audience" score={result.dimensions.audienceClarity} />
@@ -106,25 +106,25 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Quick stats */}
       <div className="grid grid-cols-2 gap-[12px] mb-[20px]">
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}ACTIVE NODES</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">Questions</span>
           <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.questions.length}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}ASSUMPTIONS</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">Assumptions</span>
           <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.assumptions.length}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}OPEN PROBES</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">Open-ended</span>
           <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.questions.filter((q) => q.type === "open").length}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{"// "}QUANT METRICS</span>
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">Multiple choice</span>
           <span className="font-mono text-[14px] font-bold text-text-primary">
             {draft.questions.filter((q) => q.type === "multiple_choice").length}
           </span>
@@ -134,7 +134,7 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
       {/* Coaching tips */}
       <div className="border-t border-black/5 pt-[20px] flex flex-col gap-[12px]">
         <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
-          [ LOG_OUTPUT ]
+          Tips
         </span>
 
         {warnings.map((tip, i) => (
@@ -206,13 +206,13 @@ export default function SignalStrengthMeter({ draft }: SignalStrengthMeterProps)
         ))}
 
         {hiddenCount > 0 && (
-          <p className="text-[10px] text-slate mt-[2px]">
+          <p className="text-[10px] text-text-muted mt-[2px]">
             + {hiddenCount} more {hiddenCount === 1 ? "suggestion" : "suggestions"}
           </p>
         )}
 
         {result.tips.length === 0 && (
-          <p className="text-[11px] text-slate">
+          <p className="text-[11px] text-text-muted">
             Looking good. Small improvements to your questions can meaningfully increase response quality.
           </p>
         )}

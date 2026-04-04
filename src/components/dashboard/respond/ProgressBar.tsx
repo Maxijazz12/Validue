@@ -36,7 +36,7 @@ export default function ProgressBar({
             [ NODE_{currentIndex + 1} / {total} ]
           </span>
           {questionLabel && (
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[1px] px-[8px] py-[3px] rounded-md border border-black/10 bg-black/5 text-text-muted">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[1px] px-[8px] py-[3px] rounded-md border border-border-light bg-bg-muted text-text-muted">
               {questionLabel}
             </span>
           )}
@@ -59,7 +59,7 @@ export default function ProgressBar({
                   ? "bg-text-muted"
                   : i === currentIndex
                     ? "bg-accent animate-pulse"
-                    : "bg-black/5"
+                    : "bg-bg-muted"
               }`}
             />
           </div>

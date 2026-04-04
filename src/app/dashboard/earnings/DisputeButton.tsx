@@ -17,7 +17,7 @@ export default function DisputeButton({ responseId, alreadyDisputed }: Props) {
 
   if (alreadyDisputed || success) {
     return (
-      <span className="font-mono text-[10px] font-medium text-text-muted uppercase tracking-wide">
+      <span className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
         {success ? "Dispute filed" : "Disputed"}
       </span>
     );
@@ -27,7 +27,7 @@ export default function DisputeButton({ responseId, alreadyDisputed }: Props) {
     return (
       <button
         onClick={() => setShowForm(true)}
-        className="font-mono text-[10px] font-medium text-text-muted uppercase tracking-wide hover:text-accent transition-colors"
+        className="text-[10px] font-medium text-text-muted uppercase tracking-wide hover:text-accent transition-colors"
       >
         Appeal
       </button>

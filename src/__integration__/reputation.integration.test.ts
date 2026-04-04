@@ -15,7 +15,6 @@ import {
 } from "./helpers";
 import {
   calculateReputation,
-  TIER_CONFIG,
   type ReputationStats,
 } from "@/lib/reputation-config";
 import { DEFAULTS } from "@/lib/defaults";
@@ -370,7 +369,7 @@ describe("Reputation DB integration", () => {
     });
 
     const q1 = await seedQuestion(campaign.id, "Q1", "open", 0);
-    const q2 = await seedQuestion(campaign.id, "Q2", "open", 1);
+    await seedQuestion(campaign.id, "Q2", "open", 1);
 
     // 4 ranked responses with varying quality
     const scores = [85, 70, 60, 90];

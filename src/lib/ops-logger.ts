@@ -191,6 +191,14 @@ type CashoutInitiated = {
   stripeTransferId: string;
 };
 
+type DisputeOverturned = {
+  event: "admin.dispute.overturned";
+  disputeId: string;
+  responseId: string;
+  respondentId: string;
+  amountCents: number;
+};
+
 type OpsEvent =
   | CampaignPublished
   | CampaignFunded
@@ -213,7 +221,8 @@ type OpsEvent =
   | ReciprocalGateCleared
   | ReciprocalGateColdStartExempt
   | ConnectAccountCreated
-  | CashoutInitiated;
+  | CashoutInitiated
+  | DisputeOverturned;
 
 /* ─── Logger ─── */
 

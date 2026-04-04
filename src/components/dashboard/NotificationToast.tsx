@@ -182,7 +182,7 @@ export default function NotificationToast({ userId }: { userId: string }) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-semibold text-text-primary">{toast.title}</p>
-          {toast.body && <p className="text-[12px] text-slate mt-[1px]">{toast.body}</p>}
+          {toast.body && <p className="text-[12px] text-text-muted mt-[1px]">{toast.body}</p>}
           {toast.amount && (
             <span className="inline-block mt-[2px] font-mono font-bold text-[14px] text-success-mid">
               +${toast.amount}

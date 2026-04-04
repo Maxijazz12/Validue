@@ -28,7 +28,7 @@ export default function Button({
   className = "",
   ...props
 }: Props) {
-  const classes = `inline-flex items-center justify-center px-[28px] py-[14px] rounded-xl text-[14px] font-medium font-sans cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${variantClasses[variant]} ${className}`;
+  const classes = `inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-medium font-sans cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${variantClasses[variant]} ${className}`;
 
   if ("href" in props && props.href) {
     const { href, ...rest } = props as AnchorProps;

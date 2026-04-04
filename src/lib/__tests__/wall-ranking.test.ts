@@ -3,6 +3,7 @@ import {
   computeMatchScore,
   computeRewardScore,
   computeMomentumScore,
+  computeFreshnessScore,
   computeWallScore,
   sortByWallScore,
   type WallCampaign,
@@ -128,6 +129,50 @@ describe("computeMomentumScore", () => {
     const score = computeMomentumScore(100, 50);
     expect(score).toBeGreaterThanOrEqual(20);
     expect(score).toBeLessThanOrEqual(22);
+  });
+});
+
+describe("computeFreshnessScore", () => {
+  it("returns 100 for a campaign created right now", () => {
+    const now = Date.now();
+    const createdAt = new Date(now).toISOString();
+    expect(computeFreshnessScore(createdAt, now)).toBe(100);
+  });
+
+  it("returns ~57 after 48 hours (preserves first 48h)", () => {
+    const now = Date.now();
+    const createdAt = new Date(now - 48 * 60 * 60 * 1000).toISOString();
+    const score = computeFreshnessScore(createdAt, now);
+    expect(score).toBeGreaterThanOrEqual(55);
+    expect(score).toBeLessThanOrEqual(70);
+  });
+
+  it("returns ~6 after 14 days", () => {
+    const now = Date.now();
+    const createdAt = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const score = computeFreshnessScore(createdAt, now);
+    expect(score).toBeGreaterThanOrEqual(4);
+    expect(score).toBeLessThanOrEqual(8);
+  });
+
+  it("returns 0 for invalid date", () => {
+    expect(computeFreshnessScore("not-a-date")).toBe(0);
+  });
+
+  it("returns 0 for very old campaigns", () => {
+    const now = Date.now();
+    const createdAt = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString();
+    expect(computeFreshnessScore(createdAt, now)).toBe(0);
+  });
+
+  it("decays monotonically over time", () => {
+    const now = Date.now();
+    const scores = [0, 24, 48, 72, 120, 240, 336].map((hours) =>
+      computeFreshnessScore(new Date(now - hours * 60 * 60 * 1000).toISOString(), now)
+    );
+    for (let i = 1; i < scores.length; i++) {
+      expect(scores[i]).toBeLessThanOrEqual(scores[i - 1]);
+    }
   });
 });
 

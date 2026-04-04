@@ -355,20 +355,20 @@ export default function CreateIdeaFlow() {
         {showRestore ? (
           <>
             <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-primary">
-              [ UNSAVED DRAFT FOUND ]
+              You have an unsaved draft
             </p>
             <div className="flex items-center gap-[8px] shrink-0">
               <button
                 onClick={handleRestore}
                 className="px-[16px] py-[8px] rounded-full bg-accent text-white font-mono text-[11px] font-medium uppercase tracking-wide border border-transparent cursor-pointer hover:bg-white hover:text-text-primary hover:border-accent hover:shadow-md transition-all duration-300"
               >
-                [ RESTORE ]
+                Restore
               </button>
               <button
                 onClick={handleDiscardRestore}
                 className="px-[16px] py-[8px] rounded-full font-mono text-[11px] uppercase tracking-wide font-medium text-text-muted bg-transparent border border-border-light cursor-pointer hover:border-accent hover:text-text-primary transition-all duration-300"
               >
-                [ PURGE ]
+                Discard
               </button>
             </div>
           </>
@@ -377,13 +377,13 @@ export default function CreateIdeaFlow() {
 
       {error && (
         <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-error/10 border border-error/20 flex items-center justify-between gap-[12px]">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-error">[ ERR: {error} ]</span>
+          <span className="text-[13px] font-medium text-error">{error}</span>
           {error.includes("Upgrade") && (
             <Link
               href="/#pricing"
               className="shrink-0 px-[16px] py-[8px] rounded-full bg-error text-white font-mono text-[11px] uppercase tracking-wide font-medium no-underline hover:shadow-[0_0_16px_rgba(239,68,68,0.3)] transition-all duration-300"
             >
-              [ ELEVATE PERMISSIONS ]
+              Upgrade Plan
             </Link>
           )}
         </div>

@@ -1,27 +1,35 @@
 import { describe, it, expect } from "vitest";
+import { sanitizeMetadata, sanitizeCounter } from "../sanitize-metadata";
 
-// sanitizeMetadata is private in the server action file. Test the logic directly.
-type AnswerMetadata = {
-  pasteDetected: boolean;
-  pasteCount: number;
-  timeSpentMs: number;
-  charCount: number;
-};
+describe("sanitizeCounter", () => {
+  it("returns 0 for NaN", () => {
+    expect(sanitizeCounter(NaN)).toBe(0);
+  });
 
-function sanitizeCounter(value: number): number {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric < 0) return 0;
-  return Math.floor(numeric);
-}
+  it("returns 0 for Infinity", () => {
+    expect(sanitizeCounter(Infinity)).toBe(0);
+  });
 
-function sanitizeMetadata(m: AnswerMetadata, text: string): AnswerMetadata {
-  return {
-    pasteDetected: m.pasteDetected === true,
-    pasteCount: sanitizeCounter(m.pasteCount),
-    timeSpentMs: sanitizeCounter(m.timeSpentMs),
-    charCount: text.length,
-  };
-}
+  it("returns 0 for negative values", () => {
+    expect(sanitizeCounter(-10)).toBe(0);
+  });
+
+  it("floors decimal values", () => {
+    expect(sanitizeCounter(5.7)).toBe(5);
+  });
+
+  it("passes through valid integers", () => {
+    expect(sanitizeCounter(42)).toBe(42);
+  });
+
+  it("coerces string numbers", () => {
+    expect(sanitizeCounter("12000" as unknown as number)).toBe(12000);
+  });
+
+  it("returns 0 for undefined", () => {
+    expect(sanitizeCounter(undefined as unknown as number)).toBe(0);
+  });
+});
 
 describe("sanitizeMetadata", () => {
   it("passes through valid counters and recomputes charCount from text", () => {

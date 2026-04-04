@@ -82,14 +82,14 @@ function QuestionCard({
             }`}
           >
             {question.isBaseline
-              ? "[ BASELINE_NODE ]"
+              ? "Baseline"
               : question.type === "open"
-                ? "[ OPEN_NODE ]"
-                : "[ MULTI_NODE ]"}
+                ? "Open-ended"
+                : "Multiple choice"}
           </span>
           {question.category && (
-            <span className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
-              {"// "}{question.category}
+            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide">
+              {question.category}
             </span>
           )}
         </div>
@@ -119,7 +119,7 @@ function QuestionCard({
                 onClick={saveEdit}
                 className="font-mono text-[11px] font-medium uppercase tracking-wide text-white px-[16px] py-[8px] rounded-full bg-accent hover:bg-brand hover:shadow-[0_0_12px_rgba(229,101,78,0.3)] transition-all cursor-pointer border-none"
               >
-                [ COMMIT ]
+                Save
               </button>
               <button
                 onClick={() => {
@@ -128,7 +128,7 @@ function QuestionCard({
                 }}
                 className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted px-[16px] py-[8px] rounded-full hover:text-text-primary hover:bg-white transition-all cursor-pointer border border-transparent hover:border-border-light"
               >
-                [ REVERT ]
+                Cancel
               </button>
             </div>
           </div>
@@ -166,7 +166,7 @@ function QuestionCard({
         <button
           onClick={onMoveUp}
           disabled={index === 0}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-text-muted hover:bg-bg-muted hover:text-text-secondary disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
           title="Move up"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -178,7 +178,7 @@ function QuestionCard({
         <button
           onClick={onMoveDown}
           disabled={index === total - 1}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-text-muted hover:bg-bg-muted hover:text-text-secondary disabled:opacity-20 disabled:hover:bg-transparent transition-all cursor-pointer border-none bg-transparent"
           title="Move down"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -190,7 +190,7 @@ function QuestionCard({
         {!question.isBaseline && (
           <button
             onClick={onRegenerate}
-            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-bg-muted hover:text-text-secondary transition-all cursor-pointer border-none bg-transparent"
+            className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-text-muted hover:bg-bg-muted hover:text-text-secondary transition-all cursor-pointer border-none bg-transparent"
             title="Regenerate from templates (free)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -234,7 +234,7 @@ function QuestionCard({
         {/* Delete */}
         <button
           onClick={onDelete}
-          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-slate hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border-none bg-transparent"
+          className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-text-muted hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border-none bg-transparent"
           title="Delete question"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -412,7 +412,7 @@ export default function SurveyEditor({
             />
           ))}
           {sectionQs.length === 0 && (
-            <p className="text-[13px] text-slate py-[16px] text-center">
+            <p className="text-[13px] text-text-muted py-[16px] text-center">
               No questions in this section.
             </p>
           )}
@@ -422,40 +422,40 @@ export default function SurveyEditor({
   }
 
   return (
-    <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
+    <div className="bg-white border border-border-light shadow-card rounded-[20px] md:rounded-[28px] px-[14px] py-[20px] md:p-[28px]">
       <div className="flex items-end justify-between mb-[28px]">
         <div>
           <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary mb-[8px]">
-            [ 02: VALIDATION TOPOLOGY ]
+            Questions
           </h2>
-          <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-muted">
-            Edit node sequences or run automated regeneration protocol.
+          <p className="text-[13px] text-text-muted">
+            Edit questions or regenerate them from your idea.
           </p>
         </div>
       </div>
 
       {rewriteError && (
         <div className="mb-[24px] px-[20px] py-[16px] rounded-[16px] bg-error/10 border border-error/20">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-error">[ ERR: {rewriteError} ]</span>
+          <span className="text-[13px] font-medium text-error">{rewriteError}</span>
         </div>
       )}
 
       <div className="flex flex-col gap-[40px]">
         {renderSection(
-          "[ CORE_QUALITATIVE ]",
-          "Open-ended probes analyzing core pain points.",
+          "Core Questions",
+          "Open-ended questions exploring the main pain points.",
           openQs,
           "open"
         )}
         {renderSection(
-          "[ TARGETED_PROBES ]",
-          "Follow-up sequence evaluating solution specific behaviors.",
+          "Follow-ups",
+          "Targeted questions about specific behaviors and preferences.",
           followupQs,
           "followup"
         )}
         {renderSection(
-          "[ STANDARDIZED_METRICS ]",
-          "Immutable quant signals pulled from standardized library.",
+          "Baseline Metrics",
+          "Standardized questions for benchmarking.",
           baselineQs,
           "baseline"
         )}

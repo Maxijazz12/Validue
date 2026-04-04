@@ -48,27 +48,26 @@ export async function createNotifications(
 ): Promise<number> {
   if (notifications.length === 0) return 0;
 
-  try {
-    await sql.begin(async (tx) => {
-      for (const notification of notifications) {
-        await tx`
-          INSERT INTO notifications (user_id, type, title, body, campaign_id, amount, link)
-          VALUES (
-            ${notification.userId},
-            ${notification.type},
-            ${notification.title},
-            ${notification.body ?? null},
-            ${notification.campaignId ?? null},
-            ${notification.amount ?? null},
-            ${notification.link ?? null}
-          )
-        `;
-      }
-    });
-
-    return notifications.length;
-  } catch (err) {
-    console.error("[notifications] createNotifications failed:", err);
-    return 0;
+  let succeeded = 0;
+  for (const notification of notifications) {
+    try {
+      await sql`
+        INSERT INTO notifications (user_id, type, title, body, campaign_id, amount, link)
+        VALUES (
+          ${notification.userId},
+          ${notification.type},
+          ${notification.title},
+          ${notification.body ?? null},
+          ${notification.campaignId ?? null},
+          ${notification.amount ?? null},
+          ${notification.link ?? null}
+        )
+      `;
+      succeeded++;
+    } catch (err) {
+      console.error("[notifications] createNotification failed for user", notification.userId, err);
+    }
   }
+
+  return succeeded;
 }

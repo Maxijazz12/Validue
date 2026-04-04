@@ -1,9 +1,5 @@
 import { settleLockedCampaignPayouts } from "@/lib/campaign-settlement";
-
-type SqlRunner = (
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<Array<Record<string, unknown>>>;
+import type { SqlRunner } from "@/lib/postgres-types";
 
 type CampaignCompletionOptions = {
   campaignId: string;

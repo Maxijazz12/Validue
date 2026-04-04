@@ -26,6 +26,7 @@ export default function RankButton({
     total: number;
   } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isRanking = isPending || rankingStatus === "ranking";
 
@@ -36,8 +37,13 @@ export default function RankButton({
     }
   }, []);
 
-  // Clean up polling on unmount
-  useEffect(() => clearPolling, [clearPolling]);
+  // Clean up polling and pending timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearPolling();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [clearPolling]);
 
   function startPolling() {
     clearPolling();
@@ -56,7 +62,7 @@ export default function RankButton({
     setProgress(null);
 
     // Start polling after a short delay to let the first response start scoring
-    setTimeout(startPolling, 1500);
+    timeoutRef.current = setTimeout(startPolling, 1500);
 
     startTransition(async () => {
       try {

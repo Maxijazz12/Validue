@@ -81,11 +81,8 @@ export interface CampaignDraft {
   rewardPool?: number;
   /** V2: campaign format — defaults to 'quick' */
   format?: "quick" | "standard";
-  /** @deprecated V1 only — ignored for economics_version 2 campaigns */
   rewardType?: "pool" | "top_only";
-  /** @deprecated V1 only — ignored for economics_version 2 campaigns */
   bonusAvailable?: boolean;
-  /** @deprecated V1 only — ignored for economics_version 2 campaigns */
   rewardsTopAnswers?: boolean;
 }
 

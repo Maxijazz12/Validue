@@ -115,7 +115,7 @@ export default function ResponseList({
               }`}
             >
               {tab.label}
-              <span className="ml-[4px] text-slate font-normal">
+              <span className="ml-[4px] text-text-muted font-normal">
                 {tab.count}
               </span>
             </button>
@@ -124,7 +124,7 @@ export default function ResponseList({
 
         {/* Sort dropdown */}
         <div className="flex items-center gap-[6px]">
-          <span className="text-[12px] text-slate">Sort by</span>
+          <span className="text-[12px] text-text-muted">Sort by</span>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOption)}
@@ -139,7 +139,7 @@ export default function ResponseList({
 
       {/* Response cards */}
       {sorted.length === 0 ? (
-        <div className="text-center py-[32px] text-[13px] text-slate">
+        <div className="text-center py-[32px] text-[13px] text-text-muted">
           No responses match this filter.
         </div>
       ) : (

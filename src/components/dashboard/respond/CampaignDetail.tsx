@@ -29,6 +29,8 @@ type CampaignDetailProps = {
   hasSubmitted: boolean;
   isActive: boolean;
   isLoading: boolean;
+  isSubsidized?: boolean;
+  economicsVersion?: number;
   onStart: () => void;
 };
 
@@ -55,6 +57,8 @@ export default function CampaignDetail({
   hasSubmitted,
   isActive,
   isLoading,
+  isSubsidized,
+  economicsVersion: _economicsVersion,
   onStart,
 }: CampaignDetailProps) {
   const progress =
@@ -64,7 +68,7 @@ export default function CampaignDetail({
           100
         )
       : 0;
-  const hasReward = FEATURES.RESPONDENT_PAYOUTS && campaign.rewardAmount > 0;
+  const hasReward = FEATURES.RESPONDENT_PAYOUTS && (campaign.rewardAmount > 0 || !!isSubsidized);
 
   const canStart = isActive && !isOwnCampaign && !isFull && !hasSubmitted;
 
@@ -89,9 +93,9 @@ export default function CampaignDetail({
       </Link>
 
       {/* Title */}
-      <div className="bg-white rounded-[24px] border border-border-light p-[32px] max-md:p-[20px] mb-[16px] relative overflow-hidden shadow-card-sm">
+      <div className="bg-white rounded-[28px] border border-border-light p-[32px] max-md:p-[20px] mb-[16px] relative overflow-hidden shadow-card">
         <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
-        <h1 className="text-[28px] font-bold tracking-tight text-text-primary">{campaign.title}</h1>
+        <h1 className="text-[28px] font-medium tracking-tight text-text-primary">{campaign.title}</h1>
       </div>
 
       {/* Creator */}
@@ -112,7 +116,7 @@ export default function CampaignDetail({
           {campaign.tags.map((tag) => (
             <span
               key={tag}
-              className="font-mono text-[11px] font-medium uppercase tracking-wide px-[8px] py-[4px] rounded-md border border-black/10 bg-black/5 text-text-muted"
+              className="font-mono text-[11px] font-medium uppercase tracking-wide px-[8px] py-[4px] rounded-md border border-border-light bg-bg-muted text-text-muted"
             >
               {tag}
             </span>
@@ -123,7 +127,7 @@ export default function CampaignDetail({
       {/* Info cards */}
       <div className="grid grid-cols-3 gap-[16px] mb-[24px] max-md:grid-cols-1">
         {/* Questions */}
-        <div className="bg-white border border-border-light rounded-[20px] p-[20px] relative overflow-hidden shadow-card-sm">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] relative overflow-hidden shadow-card">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
           <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-[12px]">
             [ QUESTIONS ]
@@ -137,7 +141,7 @@ export default function CampaignDetail({
         </div>
 
         {/* Time */}
-        <div className="bg-white border border-border-light rounded-[20px] p-[20px] relative overflow-hidden shadow-card-sm">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] relative overflow-hidden shadow-card">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-accent/10 to-transparent" />
           <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-[12px]">
             [ EST_TIME ]
@@ -148,7 +152,7 @@ export default function CampaignDetail({
         </div>
 
         {/* Progress */}
-        <div className="bg-white border border-border-light rounded-[20px] p-[20px] relative overflow-hidden shadow-card-sm">
+        <div className="bg-white border border-border-light rounded-[24px] p-[20px] relative overflow-hidden shadow-card">
           <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
           <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-[12px]">
             [ RESPONSES ]
@@ -161,7 +165,7 @@ export default function CampaignDetail({
               /{campaign.targetResponses}
             </span>
           </div>
-          <div className="h-[2px] w-full bg-black/5 overflow-hidden mt-[16px]">
+          <div className="h-[3px] w-full bg-bg-muted overflow-hidden mt-[16px]">
             <div
               className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.2,0.9,0.3,1)] ${
                 progress >= 75 ? "bg-brand" : "bg-accent"
@@ -174,7 +178,7 @@ export default function CampaignDetail({
 
       {/* Reward section */}
       {hasReward && (
-        <div className="bg-accent border border-transparent rounded-[20px] p-[20px] mb-[32px] relative overflow-hidden shadow-[0_8px_32px_rgba(28,25,23,0.15)]">
+        <div className="bg-accent border border-transparent rounded-[24px] p-[24px] mb-[32px] relative overflow-hidden shadow-[0_8px_32px_rgba(28,25,23,0.15)]">
           <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-success/40 to-transparent" />
           <div className="flex items-center gap-[12px] flex-wrap mb-[12px]">
             <span className="font-mono font-bold text-[14px] text-white">
@@ -198,7 +202,7 @@ export default function CampaignDetail({
       )}
 
       {!hasReward && (
-        <div className="bg-bg-muted border border-border-light rounded-[20px] p-[20px] mb-[32px] relative overflow-hidden shadow-card-sm">
+        <div className="bg-bg-muted border border-border-light rounded-[24px] p-[24px] mb-[32px] relative overflow-hidden shadow-card">
           <span className="font-mono font-bold text-[14px] text-text-primary">
             UNPAID FEEDBACK REQUEST
           </span>
@@ -210,7 +214,7 @@ export default function CampaignDetail({
 
       {/* Blocker or CTA */}
       {blockerMessage ? (
-        <div className="text-center p-[20px] rounded-[16px] bg-black/5 border border-black/5">
+        <div className="text-center p-[20px] rounded-[24px] bg-bg-muted border border-border-light">
           <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">{blockerMessage}</p>
           {hasSubmitted && (
             <Link
@@ -225,8 +229,8 @@ export default function CampaignDetail({
         <Button
           onClick={onStart}
           disabled={!canStart || isLoading}
-          className={`w-full py-[16px] font-mono text-[12px] tracking-wide uppercase font-medium text-center !bg-accent !text-white transition-all duration-300 rounded-[16px] ${
-            !canStart || isLoading ? "opacity-50 cursor-not-allowed" : "hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
+          className={`w-full py-[16px] font-mono text-[12px] tracking-wide uppercase font-medium text-center !bg-accent !text-white transition-all duration-400 !rounded-full ${
+            !canStart || isLoading ? "opacity-50 cursor-not-allowed" : "hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)] hover:-translate-y-[1px]"
           }`}
         >
           {isLoading ? "[ INITIALIZING... ]" : "[ START_RESPONDING ]"}

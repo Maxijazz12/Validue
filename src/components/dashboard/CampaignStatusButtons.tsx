@@ -37,7 +37,7 @@ export function CompleteCampaignButton({ campaignId }: { campaignId: string }) {
       {confirming && !loading && (
         <button
           onClick={() => setConfirming(false)}
-          className="ml-[8px] text-[12px] text-slate hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors"
+          className="ml-[8px] text-[12px] text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer transition-colors"
         >
           Cancel
         </button>

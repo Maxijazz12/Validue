@@ -136,6 +136,8 @@ export default async function RespondPage({
         bonusAvailable: !!campaign.bonus_available,
         rewardsTopAnswers: !!campaign.rewards_top_answers,
         rewardType: campaign.reward_type,
+        isSubsidized: !!campaign.is_subsidized,
+        economicsVersion: campaign.economics_version ?? undefined,
       }}
       questions={(questions || []).map((q) => ({
         id: q.id,

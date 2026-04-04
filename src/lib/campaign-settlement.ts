@@ -1,7 +1,4 @@
-type SqlRunner = (
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<Array<Record<string, unknown>>>;
+import type { SqlRunner } from "@/lib/postgres-types";
 
 export type CampaignPayoutSettlement = {
   lockedCount: number;
@@ -28,7 +25,8 @@ export async function settleLockedCampaignPayouts(
   `;
 
   const lockedCount = lockedRespondents.reduce(
-    (sum, row) => sum + (Number(row.locked_count) || 0),
+    (sum: number, row: Record<string, unknown>) =>
+      sum + (Number(row.locked_count) || 0),
     0
   );
 

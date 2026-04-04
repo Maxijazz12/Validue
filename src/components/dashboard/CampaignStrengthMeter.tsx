@@ -57,7 +57,7 @@ function InfoIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-slate cursor-help"
+      className="text-text-muted cursor-help"
     >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
@@ -121,7 +121,7 @@ export default function CampaignStrengthMeter({
           >
             {strength}
           </span>
-          <span className="text-[14px] text-slate font-normal">/10</span>
+          <span className="text-[14px] text-text-muted font-normal">/10</span>
         </div>
       </div>
 

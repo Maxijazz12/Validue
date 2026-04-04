@@ -138,7 +138,7 @@ export default memo(function WallCardUnified({
         </div>
 
         {/* Footer Bottom Half */}
-        <div className={`mt-auto ${isHero ? "pt-[28px]" : "pt-[20px] md:pt-[28px]"}`}>
+        <div className={`mt-auto ${isHero ? "pt-[24px]" : "pt-[16px] md:pt-[24px]"}`}>
           {/* Progression Header */}
           <div className="flex items-end justify-between mb-[8px]">
             <span className={`flex items-center gap-[6px] font-medium tracking-tight text-text-secondary ${isHero ? "text-[12px]" : "text-[11px] md:text-[12px]"}`}>
@@ -183,9 +183,9 @@ export default memo(function WallCardUnified({
 
             <a
               href={`/dashboard/the-wall/${id}`}
-              className={`font-mono uppercase tracking-wide font-medium text-text-primary hover:text-text-secondary hover:bg-bg-muted transition-all no-underline flex items-center gap-1.5 border-none rounded-full bg-transparent ${isHero ? "text-[11px] px-[12px] py-[6px]" : "text-[11px] px-[8px] py-[4px] md:text-[11px] md:px-[12px] md:py-[6px] ml-auto"}`}
+              className={`uppercase tracking-wide font-semibold text-text-primary hover:text-success transition-all duration-300 no-underline flex items-center gap-1.5 border-none rounded-full bg-transparent ${isHero ? "text-[11px] px-[14px] py-[6px]" : "text-[11px] px-[8px] py-[4px] md:text-[11px] md:px-[14px] md:py-[6px] ml-auto"}`}
             >
-              [ RESPOND ]
+              Respond
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </a>
           </div>

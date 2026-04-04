@@ -14,6 +14,8 @@ const {
   checkCountPlausibility,
 } = _testExports;
 
+const emptyEvidenceMap = new Map<number, AssumptionEvidence[]>();
+
 /* ─── Helpers ─── */
 
 function makeVerdict(overrides: Partial<DecisionBrief["assumptionVerdicts"][0]> = {}) {
@@ -142,7 +144,7 @@ describe("checkQuoteGrounding", () => {
       quotes: [{ text: "I currently spend $20/month on similar tools", respondentLabel: "R1" }],
     });
     const evidence = [makeEvidence("I currently spend $20/month on similar tools and it works great")];
-    const result = checkQuoteGrounding(verdict, evidence);
+    const result = checkQuoteGrounding(verdict, evidence, emptyEvidenceMap);
     expect(result).toHaveLength(0);
   });
 
@@ -151,7 +153,7 @@ describe("checkQuoteGrounding", () => {
       quotes: [{ text: "This product would save me hours every week", respondentLabel: "R1" }],
     });
     const evidence = [makeEvidence("I spend about 30 minutes dealing with this problem")];
-    const result = checkQuoteGrounding(verdict, evidence);
+    const result = checkQuoteGrounding(verdict, evidence, emptyEvidenceMap);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe("quote_not_found");
   });
@@ -161,7 +163,7 @@ describe("checkQuoteGrounding", () => {
       quotes: [{ text: "I SPEND A LOT on this", respondentLabel: "R1" }],
     });
     const evidence = [makeEvidence("i spend a lot on this kind of thing")];
-    const result = checkQuoteGrounding(verdict, evidence);
+    const result = checkQuoteGrounding(verdict, evidence, emptyEvidenceMap);
     expect(result).toHaveLength(0);
   });
 
@@ -170,13 +172,13 @@ describe("checkQuoteGrounding", () => {
       quotes: [{ text: "Yes", respondentLabel: "R1" }],
     });
     const evidence = [makeEvidence("Something completely different")];
-    const result = checkQuoteGrounding(verdict, evidence);
+    const result = checkQuoteGrounding(verdict, evidence, emptyEvidenceMap);
     expect(result).toHaveLength(0); // skipped, not failed
   });
 
   it("handles empty quotes array", () => {
     const verdict = makeVerdict({ quotes: [] });
-    const result = checkQuoteGrounding(verdict, []);
+    const result = checkQuoteGrounding(verdict, [], emptyEvidenceMap);
     expect(result).toHaveLength(0);
   });
 });

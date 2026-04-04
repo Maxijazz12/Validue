@@ -26,7 +26,7 @@ export default function SubscriptionBanner() {
       </p>
       <button
         onClick={() => setVisible(false)}
-        className="text-slate hover:text-text-primary bg-transparent border-none cursor-pointer p-[4px]"
+        className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer p-[4px]"
         aria-label="Dismiss"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

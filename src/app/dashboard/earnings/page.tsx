@@ -110,8 +110,8 @@ export default async function EarningsPage({
 
       {/* V2 Balance cards */}
       <div className="grid grid-cols-4 gap-[12px] mb-[24px] max-md:grid-cols-2">
-        <StatCard label="Available Balance" value={`$${(availableBalanceCents / 100).toFixed(2)}`} valueColor="#22c55e" />
-        <StatCard label="Locked Balance" value={`$${(pendingBalanceCents / 100).toFixed(2)}`} valueColor="#F59E0B" />
+        <StatCard label="Available Balance" value={`$${(availableBalanceCents / 100).toFixed(2)}`} valueColor={availableBalanceCents > 0 ? "#22c55e" : undefined} />
+        <StatCard label="Locked Balance" value={`$${(pendingBalanceCents / 100).toFixed(2)}`} valueColor="#A8A29E" />
         <StatCard label="Total Paid Out" value={`$${totalPaidOut.toFixed(2)}`} />
         <StatCard label="Reputation" value={repScore}>
           <div className="mt-[4px]">
@@ -132,7 +132,7 @@ export default async function EarningsPage({
       {/* Locked balance explainer */}
       {pendingBalanceCents > 0 && (
         <div className="bg-white border border-border-light rounded-[24px] p-[20px] mb-[24px] shadow-card">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted block mb-[6px]">Lock Period</span>
+          <span className="text-[11px] font-medium uppercase tracking-tight text-text-muted block mb-[6px]">Lock Period</span>
           <p className="text-[14px] text-text-secondary font-medium">
             Locked payouts become available when their campaigns close. This can take up to 7 days.
           </p>
@@ -143,7 +143,7 @@ export default async function EarningsPage({
       {hasEarnings ? (
         <>
         <div>
-          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">Ledger</span>
+          <span className="text-[11px] font-medium tracking-tight text-text-muted uppercase block mb-[6px]">Ledger</span>
           <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">
             Payout History
           </h2>
@@ -185,16 +185,16 @@ export default async function EarningsPage({
                     <span className="text-[15px] font-medium tracking-tight text-text-primary block truncate">
                       {payout.campaign?.title || "Unknown Campaign"}
                     </span>
-                    <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide mt-[4px] block">
+                    <span className="text-[11px] font-medium text-text-muted uppercase tracking-tight mt-[4px] block">
                       {formatDate(payout.created_at)}
                     </span>
                   </div>
                   <div className="flex items-center gap-[10px] shrink-0">
-                    <span className="font-mono text-[16px] font-bold text-text-primary">
+                    <span className="text-[16px] font-semibold text-text-primary">
                       ${Number(payout.amount).toFixed(2)}
                     </span>
                     <span
-                      className={`px-[10px] py-[4px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}
+                      className={`px-[10px] py-[4px] rounded-md text-[11px] font-medium uppercase tracking-tight ${config.bg} ${config.text}`}
                     >
                       {config.label}
                     </span>
@@ -208,7 +208,7 @@ export default async function EarningsPage({
         {/* V2: Recent responses with money state */}
         {responseList.length > 0 && (
           <div className="mt-[32px]">
-            <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">Pipeline</span>
+            <span className="text-[11px] font-medium tracking-tight text-text-muted uppercase block mb-[6px]">Pipeline</span>
             <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">Recent Responses</h2>
             <div className="flex flex-col gap-[8px]">
               {responseList.map((r) => {
@@ -237,14 +237,14 @@ export default async function EarningsPage({
                       </span>
                       <div className="flex items-center gap-[8px] shrink-0">
                         {amount > 0 && (
-                          <span className="font-mono text-[13px] font-bold text-text-primary">
+                          <span className="text-[13px] font-semibold text-text-primary">
                             ${amount.toFixed(2)}
                           </span>
                         )}
                         {(state === "not_qualified" || isUnpaidResponse) && (
-                          <span className="font-mono text-[13px] text-text-muted">$0.00</span>
+                          <span className="text-[13px] text-text-muted font-medium">$0.00</span>
                         )}
-                        <span className={`px-[8px] py-[3px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}>
+                        <span className={`px-[8px] py-[3px] rounded-md text-[11px] font-medium uppercase tracking-tight ${config.bg} ${config.text}`}>
                           {config.label}
                         </span>
                       </div>
@@ -276,7 +276,7 @@ export default async function EarningsPage({
         {/* Cashout history */}
         {cashouts && cashouts.length > 0 && (
           <div className="mt-[32px]">
-            <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase block mb-[6px]">Withdrawals</span>
+            <span className="text-[11px] font-medium tracking-tight text-text-muted uppercase block mb-[6px]">Withdrawals</span>
             <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[16px]">Cashout History</h2>
             <div className="flex flex-col gap-[8px]">
               {cashouts.map((c) => {
@@ -294,15 +294,15 @@ export default async function EarningsPage({
                       <span className="text-[14px] font-medium tracking-tight text-text-primary block">
                         Cashout to bank
                       </span>
-                      <span className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide mt-[2px] block">
+                      <span className="text-[11px] font-medium text-text-muted uppercase tracking-tight mt-[2px] block">
                         {formatDate(c.created_at)}
                       </span>
                     </div>
                     <div className="flex items-center gap-[8px] shrink-0">
-                      <span className="font-mono text-[14px] font-bold text-text-primary">
+                      <span className="text-[14px] font-semibold text-text-primary">
                         ${(c.amount_cents / 100).toFixed(2)}
                       </span>
-                      <span className={`px-[8px] py-[3px] rounded-md font-mono text-[11px] font-medium uppercase tracking-wide ${config.bg} ${config.text}`}>
+                      <span className={`px-[8px] py-[3px] rounded-md text-[11px] font-medium uppercase tracking-tight ${config.bg} ${config.text}`}>
                         {config.label}
                       </span>
                       {c.status === "failed" && (
@@ -317,8 +317,7 @@ export default async function EarningsPage({
         )}
         </>
       ) : (
-        <div className="py-[120px] text-center border border-dashed border-border-light rounded-[32px] bg-white/90">
-          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4 block">Balance Empty</span>
+        <div className="py-[80px] text-center border border-dashed border-border-light rounded-[28px] bg-white/90">
           <p className="text-[20px] font-medium tracking-tight text-text-primary mb-[4px]">
             No earnings yet
           </p>

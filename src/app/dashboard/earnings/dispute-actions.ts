@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { checkContent } from "@/lib/content-filter";
 import { rateLimit } from "@/lib/rate-limit";
 import { captureError } from "@/lib/sentry";
 import sql from "@/lib/db";
@@ -22,6 +23,9 @@ export async function fileDispute(
 
   const rl = rateLimit(`dispute:${user.id}`, 3_600_000, 5); // 5 per hour
   if (!rl.allowed) return { error: "Too many disputes. Try again later." };
+
+  const contentCheck = checkContent(reason);
+  if (!contentCheck.allowed) return { error: contentCheck.reason ?? "Content violates community guidelines." };
 
   if (!reason.trim() || reason.trim().length < 20) {
     return { error: "Please explain why you disagree (at least 20 characters)." };

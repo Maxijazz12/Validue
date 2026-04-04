@@ -18,11 +18,17 @@ import { computeMatchScore, type RespondentProfile } from "./wall-ranking";
 export const MIN_ASSIGNED = 3;
 export const MAX_ASSIGNED = 5;
 
+/** Minimum total questions in a campaign before partial assignment kicks in */
+export const MIN_QUESTIONS_FOR_PARTIAL_ASSIGNMENT = 6;
+
 /** Minimum open-ended questions per assignment */
 const MIN_OPEN = 1;
 
 /** Minimum MCQ questions per assignment */
 const MIN_MCQ = 2;
+
+/** Keep screening in the mix without crowding out core assumption questions */
+const MAX_BASELINE_ASSIGNED = 1;
 
 /* ─── Types ─── */
 
@@ -177,7 +183,7 @@ export function assignQuestions(
         assignedCategories,
         assignedAssumptions
       );
-      if (s > bestScore) {
+      if (s > bestScore || (s === bestScore && Math.random() > 0.5)) {
         bestScore = s;
         bestIdx = i;
       }
@@ -194,17 +200,44 @@ export function assignQuestions(
     if (q.assumptionIndex !== null) assignedAssumptions.add(q.assumptionIndex);
   }
 
-  // Step 1: Guarantee minimums
+  // Step 0: Always include baseline (screening) questions first
+  const baselineQuestions = available.filter((q) => q.isBaseline);
+  const assignedIds = new Set<string>();
+  const baselinePool = [...baselineQuestions];
+  const baselineLimit = Math.min(targetCount, MAX_BASELINE_ASSIGNED);
+  for (let i = 0; i < baselineLimit; i++) {
+    const bq = pickBest(baselinePool);
+    if (!bq) break;
+    if (assigned.length >= targetCount) break;
+    addToAssigned(bq);
+    assignedIds.add(bq.id);
+  }
+  // Remove baseline questions from type pools so they aren't double-picked
+  const removeAssigned = (pool: CampaignQuestion[]) => {
+    for (let i = pool.length - 1; i >= 0; i--) {
+      if (assignedIds.has(pool[i].id)) pool.splice(i, 1);
+    }
+  };
+  removeAssigned(openPool);
+  removeAssigned(mcqPool);
 
-  // At least MIN_OPEN open-ended questions
-  const openNeeded = Math.min(MIN_OPEN, openPool.length);
+  // Step 1: Guarantee type minimums
+
+  // At least MIN_OPEN open-ended questions (beyond any baselines already assigned)
+  const openNeeded = Math.min(
+    Math.max(0, MIN_OPEN - assigned.filter((q) => q.type === "open").length),
+    openPool.length
+  );
   for (let i = 0; i < openNeeded; i++) {
     const q = pickBest(openPool);
     if (q) addToAssigned(q);
   }
 
-  // At least MIN_MCQ MCQ questions
-  const mcqNeeded = Math.min(MIN_MCQ, mcqPool.length);
+  // At least MIN_MCQ MCQ questions (beyond any baselines already assigned)
+  const mcqNeeded = Math.min(
+    Math.max(0, MIN_MCQ - assigned.filter((q) => q.type === "multiple_choice").length),
+    mcqPool.length
+  );
   for (let i = 0; i < mcqNeeded; i++) {
     const q = pickBest(mcqPool);
     if (q) addToAssigned(q);

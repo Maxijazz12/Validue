@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { checkContent, enforceLength, MAX_LENGTHS } from "@/lib/content-filter";
 import { logOps } from "@/lib/ops-logger";
+import { INTEREST_OPTIONS, EXPERTISE_OPTIONS } from "@/lib/constants";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function updateRespondentProfile(formData: FormData) {
   const supabase = await createClient();
@@ -13,8 +15,15 @@ export async function updateRespondentProfile(formData: FormData) {
 
   if (!user) redirect("/auth/login");
 
-  const interests = formData.getAll("interests") as string[];
-  const expertise = formData.getAll("expertise") as string[];
+  const rl = rateLimit(`profile:${user.id}`, 60000, 10);
+  if (!rl.allowed) redirect("/dashboard/settings?error=rate-limit");
+
+  const interests = (formData.getAll("interests") as string[])
+    .filter((i) => (INTEREST_OPTIONS as readonly string[]).includes(i))
+    .slice(0, 10);
+  const expertise = (formData.getAll("expertise") as string[])
+    .filter((e) => (EXPERTISE_OPTIONS as readonly string[]).includes(e))
+    .slice(0, 10);
   const ageRange = (formData.get("ageRange") as string) || null;
   const location = (formData.get("location") as string) || null;
   const rawOccupation = (formData.get("occupation") as string) || null;

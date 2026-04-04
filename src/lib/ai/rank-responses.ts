@@ -108,23 +108,33 @@ export async function scoreResponseWithAI(
 ): Promise<ResponseScore> {
   const client = getClient();
 
-  const response = await client.messages.create({
-    model: MODELS.light,
-    max_tokens: 512,
-    system: cachedSystem(RANKING_SYSTEM_PROMPT),
-    tools: cachedTools([SCORE_RESPONSE_TOOL]),
-    tool_choice: { type: "tool", name: "score_response" },
-    messages: [
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response;
+  try {
+    response = await client.messages.create(
       {
-        role: "user",
-        content: buildRankingPrompt(
-          campaignTitle,
-          campaignDescription,
-          answersWithMeta
-        ),
+        model: MODELS.light,
+        max_tokens: 512,
+        system: cachedSystem(RANKING_SYSTEM_PROMPT),
+        tools: cachedTools([SCORE_RESPONSE_TOOL]),
+        tool_choice: { type: "tool", name: "score_response" },
+        messages: [
+          {
+            role: "user",
+            content: buildRankingPrompt(
+              campaignTitle,
+              campaignDescription,
+              answersWithMeta
+            ),
+          },
+        ],
       },
-    ],
-  });
+      { signal: controller.signal }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 
   // Extract tool use result
   const toolBlock = response.content.find((b) => b.type === "tool_use");

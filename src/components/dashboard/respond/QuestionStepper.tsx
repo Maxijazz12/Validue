@@ -6,7 +6,7 @@ import OpenEndedAnswer, { MIN_CHARS } from "./OpenEndedAnswer";
 import MultipleChoiceAnswer from "./MultipleChoiceAnswer";
 import Button from "@/components/ui/Button";
 import { saveAnswer, submitResponse } from "@/app/dashboard/the-wall/[id]/actions";
-import type { AnswerMetadata } from "@/app/dashboard/the-wall/[id]/actions";
+import type { AnswerMetadata } from "@/lib/sanitize-metadata";
 
 export type Question = {
   id: string;
@@ -185,7 +185,7 @@ export default function QuestionStepper({
     return (
       <div>
         <h2 className="text-[18px] font-semibold text-text-primary mb-[4px]">Review your answers</h2>
-        <p className="text-[13px] text-slate mb-[20px]">Make sure everything looks good before submitting.</p>
+        <p className="text-[13px] text-text-muted mb-[20px]">Make sure everything looks good before submitting.</p>
 
         <div className="flex flex-col gap-[12px] mb-[24px]">
           {questions.map((q, i) => {
@@ -194,7 +194,7 @@ export default function QuestionStepper({
               <div key={q.id} className="bg-white border border-border-light rounded-xl p-[16px]">
                 <div className="flex items-start justify-between gap-[12px]">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-slate mb-[4px]">Question {i + 1}</p>
+                    <p className="text-[12px] text-text-muted mb-[4px]">Question {i + 1}</p>
                     <p className="text-[14px] font-medium text-text-primary mb-[6px]">{q.text}</p>
                     <p className="text-[13px] text-text-secondary whitespace-pre-wrap">
                       {answer?.text || <span className="italic text-border-muted">No answer</span>}
@@ -202,7 +202,7 @@ export default function QuestionStepper({
                   </div>
                   <button
                     onClick={() => { setShowReview(false); setCurrentIndex(i); setCurrentText(answer?.text || ""); }}
-                    className="text-[12px] text-slate hover:text-text-primary bg-transparent border-none cursor-pointer shrink-0 transition-colors"
+                    className="text-[12px] text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer shrink-0 transition-colors"
                   >
                     Edit
                   </button>
@@ -219,7 +219,7 @@ export default function QuestionStepper({
         )}
 
         <div className="flex items-center justify-between gap-[12px]">
-          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-black/10 hover:border-black/30 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setShowReview(false)} className="px-[20px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-border-light hover:border-border-muted w-full sm:w-auto">
             [ RETURN ]
           </Button>
           <Button
@@ -299,8 +299,8 @@ export default function QuestionStepper({
           variant="outline"
           onClick={handleBack}
           disabled={currentIndex === 0}
-          className={`px-[20px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-black/10 transition-colors w-full sm:w-auto ${
-            currentIndex === 0 ? "opacity-40 cursor-not-allowed" : "hover:border-black/30 bg-white"
+          className={`px-[20px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-border-light transition-colors w-full sm:w-auto ${
+            currentIndex === 0 ? "opacity-40 cursor-not-allowed" : "hover:border-border-muted bg-white"
           }`}
         >
           [ PREVIOUS_NODE ]
@@ -311,7 +311,7 @@ export default function QuestionStepper({
           disabled={!isValid || isPending}
           className={`px-[24px] py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide transition-all duration-300 w-full sm:w-auto ${
             !isValid || isPending 
-              ? "opacity-50 cursor-not-allowed bg-black/5 text-text-muted border border-black/5" 
+              ? "opacity-50 cursor-not-allowed bg-bg-muted text-text-muted border border-border-light" 
               : "!bg-accent !text-white hover:!bg-accent-dark hover:shadow-[0_8px_24px_rgba(28,25,23,0.2)]"
           }`}
         >

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import {
-  getTestDb,
   closeTestDb,
   canConnectToTestDb,
   cleanupAll,
@@ -9,7 +8,6 @@ import {
   seedRespondent,
   seedCampaign,
   seedQuestion,
-  seedAnswer,
   testId,
 } from "./helpers";
 import {
@@ -126,7 +124,7 @@ describe("Subsidized Payouts", () => {
   it("caps paid slots at SUBSIDY_TARGET_RESPONSES", async () => {
     if (!dbAvailable) return;
 
-    const campaign = await seedCampaign({
+    await seedCampaign({
       creatorId: FOUNDER,
       status: "active",
       rewardAmount: 10,

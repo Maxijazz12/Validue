@@ -110,6 +110,15 @@ export async function canCreateCampaign(
   userId: string
 ): Promise<CampaignAllowance> {
   const sub = await getSubscription(userId);
+
+  // Block campaign creation for inactive subscriptions
+  if (sub.status === "canceled") {
+    return { allowed: false, reason: "Your subscription has been canceled. Please resubscribe to create campaigns.", tier: sub.tier, used: 0, limit: 0, isFirstMonth: false };
+  }
+  if (sub.status === "past_due") {
+    return { allowed: false, reason: "Your subscription payment is past due. Please update your payment method.", tier: sub.tier, used: 0, limit: 0, isFirstMonth: false };
+  }
+
   const firstMonth = sub.tier === "free" ? await isFirstMonth(userId) : false;
 
   const baseLimit = PLAN_CONFIG[sub.tier].campaignsPerMonth;
@@ -187,6 +196,29 @@ export async function canCreateCampaign(
     limit: effectiveLimit,
     isFirstMonth: firstMonth,
   };
+}
+
+/* ─── Pure Business Logic (exported for testability) ─── */
+
+/** Returns true if account age (ms) is within the subsidy eligibility window */
+export function isAccountEligibleForSubsidy(accountAgeMs: number): boolean {
+  return accountAgeMs <= DEFAULTS.SUBSIDY_ELIGIBILITY_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/** Returns true if the platform-wide monthly subsidy cap has been reached */
+export function isSubsidyCapReached(subsidizedLast30Days: number): boolean {
+  return subsidizedLast30Days * DEFAULTS.SUBSIDY_BUDGET_PER_CAMPAIGN >= DEFAULTS.SUBSIDY_MONTHLY_CAP;
+}
+
+/** Computes the effective campaign limit for a given tier and first-month status */
+export function computeEffectiveLimit(tier: PlanTier, isFirstMonth: boolean): number {
+  const baseLimit = PLAN_CONFIG[tier].campaignsPerMonth;
+  return tier === "free" && isFirstMonth ? WELCOME_BONUS.campaignsFirstMonth : baseLimit;
+}
+
+/** Returns true if a subscription status blocks campaign creation */
+export function isSubscriptionBlocked(status: string): boolean {
+  return status === "canceled" || status === "past_due";
 }
 
 /* ─── V2: Subsidy Eligibility ─── */

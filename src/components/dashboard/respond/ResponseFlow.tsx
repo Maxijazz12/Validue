@@ -36,6 +36,8 @@ type ResponseFlowProps = {
     bonusAvailable: boolean;
     rewardsTopAnswers: boolean;
     rewardType: string | null;
+    isSubsidized?: boolean;
+    economicsVersion?: number;
   };
   questions: Question[];
   existingResponse: { id: string; status: string } | null;
@@ -156,6 +158,8 @@ export default function ResponseFlow({
           hasSubmitted={existingResponse?.status === "submitted"}
           isActive={isActive}
           isLoading={isPending}
+          isSubsidized={campaign.isSubsidized}
+          economicsVersion={campaign.economicsVersion}
           onStart={handleStart}
         />
       )}

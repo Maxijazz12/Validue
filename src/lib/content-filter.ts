@@ -120,6 +120,8 @@ export function enforceLength(
 
 /** Max lengths for fields without existing validation */
 export const MAX_LENGTHS = {
+  TITLE: 200,
+  SUMMARY: 2000,
   PROFILE_NAME: 100,
   TAG: 50,
   ANSWER_TEXT: 10_000,

@@ -52,7 +52,8 @@ function checkVerdictCountConsistency(verdict: AssumptionVerdict): GroundingFail
  */
 function checkQuoteGrounding(
   verdict: AssumptionVerdict,
-  evidence: AssumptionEvidence[]
+  evidence: AssumptionEvidence[],
+  allEvidence: Map<number, AssumptionEvidence[]>
 ): GroundingFailure[] {
   const failures: GroundingFailure[] = [];
 
@@ -66,11 +67,20 @@ function checkQuoteGrounding(
 
     const found = evidenceTexts.some((text) => text.includes(normalized));
     if (!found) {
-      failures.push({
-        type: "quote_not_found",
-        assumptionIndex: verdict.assumptionIndex,
-        detail: `Quote "${quote.text.slice(0, 60)}..." not found in evidence`,
-      });
+      // Before flagging as ungrounded, check all other assumptions' evidence
+      // (the synthesis prompt includes evidence for ALL assumptions)
+      const foundElsewhere = Array.from(allEvidence.entries()).some(
+        ([idx, ev]) =>
+          idx !== verdict.assumptionIndex &&
+          ev.some((e) => e.answerText.toLowerCase().includes(normalized))
+      );
+      if (!foundElsewhere) {
+        failures.push({
+          type: "quote_not_found",
+          assumptionIndex: verdict.assumptionIndex,
+          detail: `Quote "${quote.text.slice(0, 60)}..." not found in evidence`,
+        });
+      }
     }
   }
 
@@ -116,8 +126,8 @@ export function checkGrounding(
     const countFail = checkVerdictCountConsistency(verdict);
     if (countFail) failures.push(countFail);
 
-    // Check 2: quote grounding
-    const quoteFails = checkQuoteGrounding(verdict, evidence);
+    // Check 2: quote grounding (pass full evidence map for cross-assumption check)
+    const quoteFails = checkQuoteGrounding(verdict, evidence, evidenceByAssumption);
     failures.push(...quoteFails);
 
     // Check 3: count plausibility

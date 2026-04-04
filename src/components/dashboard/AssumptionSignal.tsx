@@ -72,7 +72,7 @@ export default function AssumptionSignal({ campaignId, assumptions, initialCover
           Assumption Signal
         </h2>
         {isActive && (
-          <span className="text-[10px] text-slate">
+          <span className="text-[10px] text-text-muted">
             Updated {formatTimeAgo(lastUpdated)}
           </span>
         )}
@@ -87,7 +87,7 @@ export default function AssumptionSignal({ campaignId, assumptions, initialCover
           return (
             <div key={i} className="border border-bg-muted rounded-xl p-[16px]">
               <div className="flex items-start gap-[10px] mb-[10px]">
-                <span className="text-[12px] text-slate font-mono w-[20px] shrink-0 mt-[2px]">
+                <span className="text-[12px] text-text-muted font-mono w-[20px] shrink-0 mt-[2px]">
                   {i + 1}.
                 </span>
                 <p className="text-[14px] text-text-primary leading-[1.5] flex-1">{a}</p>
@@ -120,7 +120,7 @@ export default function AssumptionSignal({ campaignId, assumptions, initialCover
                   </div>
                 </div>
               ) : (
-                <p className="ml-[30px] text-[11px] text-slate">No evidence yet</p>
+                <p className="ml-[30px] text-[11px] text-text-muted">No evidence yet</p>
               )}
             </div>
           );

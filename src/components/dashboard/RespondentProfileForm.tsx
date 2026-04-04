@@ -121,7 +121,7 @@ export default function RespondentProfileForm({
               type="text"
               defaultValue={initialLocation}
               placeholder="e.g. New York, USA"
-              className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-slate"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-text-muted"
             />
           </div>
 
@@ -135,7 +135,7 @@ export default function RespondentProfileForm({
               type="text"
               defaultValue={initialOccupation}
               placeholder="e.g. Software Engineer"
-              className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-slate"
+              className="w-full px-[16px] py-[12px] rounded-xl border border-border-light bg-white text-[15px] text-text-primary font-sans outline-none transition-all duration-200 focus:border-border-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)] placeholder:text-text-muted"
             />
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function RespondentProfileForm({
           <button
             type="submit"
             disabled={saving}
-            className="self-start inline-flex items-center justify-center px-[24px] py-[12px] rounded-xl text-[14px] font-medium bg-accent text-white hover:bg-accent hover:shadow-card-hover hover:-translate-y-[1px] transition-all duration-200 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="self-start inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-medium bg-accent text-white hover:bg-accent-dark hover:shadow-[0_8px_24px_-8px_rgba(28,25,23,0.3)] hover:-translate-y-[1px] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : "Save Matching Profile"}
           </button>

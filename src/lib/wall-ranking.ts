@@ -119,9 +119,10 @@ export function computeRewardScore(campaign: WallCampaign): number {
  * V2: Exponential freshness decay — preserves first 48h, steeper late decay.
  * Half-life ~83 hours. Reaches ~6 by day 14.
  */
-export function computeFreshnessScore(createdAt: string): number {
+export function computeFreshnessScore(createdAt: string, now?: number): number {
   const hoursOld =
-    (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+    ((now ?? Date.now()) - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  if (isNaN(hoursOld)) return 0;
   return Math.max(0, Math.round(100 * Math.exp(-hoursOld / 120)));
 }
 

@@ -1,7 +1,4 @@
-type SqlRunner = (
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<Array<Record<string, unknown>>>;
+import type { SqlRunner } from "@/lib/postgres-types";
 
 export type CashoutRetryClaim = {
   attemptCount: number;

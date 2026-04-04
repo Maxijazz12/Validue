@@ -10,5 +10,6 @@ export function sanitizeForPrompt(text: string): string {
   // and other control characters. Strip the outer quotes so it reads naturally
   // but retains internal escaping.
   const encoded = JSON.stringify(text);
-  return encoded.slice(1, -1); // Remove surrounding quotes
+  // Also neutralize triple-dash fences used as prompt delimiters
+  return encoded.slice(1, -1).replace(/---/g, "\u2014");
 }

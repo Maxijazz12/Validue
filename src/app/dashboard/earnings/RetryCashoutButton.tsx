@@ -22,7 +22,7 @@ export default function RetryCashoutButton({ cashoutId }: { cashoutId: string })
 
   if (success) {
     return (
-      <span className="font-mono text-[11px] font-medium text-success">Retry successful!</span>
+      <span className="text-[11px] font-medium text-success">Retry successful!</span>
     );
   }
 
@@ -31,11 +31,11 @@ export default function RetryCashoutButton({ cashoutId }: { cashoutId: string })
       <button
         onClick={handleRetry}
         disabled={isPending}
-        className="font-mono text-[11px] font-medium text-accent hover:text-accent-dark transition-colors disabled:opacity-50"
+        className="text-[11px] font-medium text-accent hover:text-accent-dark transition-colors disabled:opacity-50"
       >
         {isPending ? "Retrying…" : "Retry"}
       </button>
-      {error && <span className="font-mono text-[10px] text-error">{error}</span>}
+      {error && <span className="text-[10px] text-error">{error}</span>}
     </span>
   );
 }

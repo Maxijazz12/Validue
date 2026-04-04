@@ -59,10 +59,10 @@ export default function AudienceTargetingPanel({
   }
 
   return (
-    <div className="bg-white border border-border-light shadow-card rounded-[32px] p-[32px] md:p-[40px]">
+    <div className="bg-white border border-border-light shadow-card rounded-[20px] md:rounded-[28px] px-[14px] py-[20px] md:p-[28px]">
       <div className="flex items-center justify-between mb-[4px]">
         <h2 className="font-mono text-[12px] font-medium uppercase tracking-wide text-text-primary">
-          [ 03: TARGET MATRIX ]
+          Audience Targeting
         </h2>
         {scribbleText && (
           <button
@@ -81,19 +81,19 @@ export default function AudienceTargetingPanel({
                   <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
                   <path d="M19 15l.5 1.5L21 17.5l-1.5.5L19 19.5l-.5-1.5L17 17.5l1.5-.5L19 15z" />
                 </svg>
-                [ AI OPTIMIZE ]
+                AI Suggest
               </>
             )}
           </button>
         )}
       </div>
-      <p className="font-mono text-[11px] uppercase font-medium tracking-wide text-text-muted mb-[28px]">
-        Define routing parameters for respondent demographic nodes.
+      <p className="text-[13px] text-text-muted mb-[28px]">
+        Who should see and respond to this campaign.
       </p>
 
       {suggestError && (
         <div className="mb-[16px] px-[20px] py-[16px] rounded-[16px] bg-error/10 border border-error/20">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-error">[ ERR: {suggestError} ]</span>
+          <span className="text-[13px] font-medium text-error">{suggestError}</span>
         </div>
       )}
 

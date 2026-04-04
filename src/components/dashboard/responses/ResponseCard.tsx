@@ -126,17 +126,17 @@ export default function ResponseCard({
   return (
     <div
       id={`response-${responseId}`}
-      className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
+      className={`bg-white border rounded-[24px] overflow-hidden transition-all duration-400 shadow-card hover:shadow-card-hover hover:-translate-y-[1px] ${
         highlighted ? "ring-2 ring-brand/40 ring-offset-2" : ""
       } ${
-        isTop ? "border-accent-warm-muted/40 shadow-[0_2px_12px_rgba(232,193,176,0.08)]" : "border-border-light hover:border-border-muted"
+        isTop ? "border-brand/20" : "border-border-light"
       }`}
     >
       {/* Header — always visible */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-[12px] p-[16px] text-left cursor-pointer hover:bg-bg-muted transition-colors duration-200"
+        className="w-full flex items-center gap-[12px] p-[20px] text-left cursor-pointer hover:bg-bg-muted/40 transition-colors duration-300"
       >
         {/* Rank */}
         <div
@@ -159,7 +159,7 @@ export default function ResponseCard({
               </span>
               {respondentTier && <ReputationBadge tier={respondentTier} />}
             </span>
-            <span className="text-[11px] text-slate">
+            <span className="text-[11px] text-text-muted">
               {formatDate(submittedAt)}
             </span>
           </div>
@@ -210,7 +210,7 @@ export default function ResponseCard({
 
       {/* Expanded — dimensions + answers */}
       {expanded && (
-        <div className="border-t border-border-light p-[16px]">
+        <div className="border-t border-border-light/60 p-[20px]">
           {/* Mobile feedback */}
           {aiFeedback && (
             <p className="text-[12px] text-text-secondary mb-[12px] md:hidden italic">
@@ -220,7 +220,7 @@ export default function ResponseCard({
 
           {/* Dimension bars */}
           {dimensions && (
-            <div className="grid grid-cols-2 gap-[8px] mb-[16px] p-[12px] rounded-xl bg-bg-muted">
+            <div className="grid grid-cols-2 gap-[8px] mb-[16px] p-[16px] rounded-[16px] bg-bg-muted/60 border border-border-light/40">
               {DIMENSION_CONFIG.map((d) => {
                 const value = dimensions[d.key];
                 return (
@@ -256,11 +256,11 @@ export default function ResponseCard({
                   <span className="text-[11px] font-semibold uppercase tracking-[0.5px] px-[6px] py-[1px] rounded-full bg-bg-muted text-text-secondary">
                     Q{i + 1}
                   </span>
-                  <span className="text-[11px] text-slate">
+                  <span className="text-[11px] text-text-muted">
                     {answer.questionType === "open" ? "Open-ended" : "Multiple choice"}
                   </span>
                   {answer.timeSpentMs > 0 && (
-                    <span className="text-[10px] text-slate">
+                    <span className="text-[10px] text-text-muted">
                       · {formatTime(answer.timeSpentMs)}
                     </span>
                   )}

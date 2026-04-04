@@ -4,7 +4,7 @@ import { normalizeTier } from "@/lib/plans";
 import { DEFAULTS } from "@/lib/defaults";
 import type Stripe from "stripe";
 import { logOps } from "@/lib/ops-logger";
-import { captureError } from "@/lib/sentry";
+import { captureError, captureWarning } from "@/lib/sentry";
 import { env } from "@/lib/env";
 import { getStatusAfterFunding, type GateStatus } from "@/lib/reciprocal-gate";
 
@@ -45,6 +45,11 @@ export async function POST(request: Request) {
     /* ─── Campaign Funding ─── */
     case "checkout.session.completed": {
       const session = event.data.object;
+      const sessionId = session.id;
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id ?? null;
 
       // Subscription checkouts are handled by customer.subscription.created
       if (session.mode === "subscription") break;
@@ -60,15 +65,37 @@ export async function POST(request: Request) {
         const userId = session.metadata?.userId;
         const welcomeCreditUsed = session.metadata?.welcomeCredit === "true";
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TransactionSql loses call signature
-        const fundedStatus = await sql.begin(async (tx: any) => {
+        const completion = await sql.begin(async (tx: any) => {
           const [campaign] = await tx`
-            SELECT reciprocal_gate_status
+            SELECT status, reciprocal_gate_status, reserved_checkout_session_id
             FROM campaigns
             WHERE id = ${campaignId}
-              AND status = 'pending_funding'
             FOR UPDATE
           `;
-          if (!campaign) return null;
+          if (!campaign) {
+            return {
+              kind: "stale" as const,
+              reason: "campaign_not_found" as const,
+              reservedCheckoutSessionId: null,
+            };
+          }
+
+          const reservedCheckoutSessionId =
+            campaign.reserved_checkout_session_id ?? null;
+          if (campaign.status !== "pending_funding") {
+            return {
+              kind: "stale" as const,
+              reason: "campaign_not_pending" as const,
+              reservedCheckoutSessionId,
+            };
+          }
+          if (!reservedCheckoutSessionId || reservedCheckoutSessionId !== sessionId) {
+            return {
+              kind: "stale" as const,
+              reason: "session_mismatch" as const,
+              reservedCheckoutSessionId,
+            };
+          }
 
           const nextStatus = getStatusAfterFunding(
             (campaign.reciprocal_gate_status as GateStatus | null) ?? null
@@ -78,7 +105,7 @@ export async function POST(request: Request) {
           await tx`
             UPDATE campaigns
             SET funded_at = NOW(),
-                stripe_payment_intent_id = ${(session.payment_intent as string) || null},
+                stripe_payment_intent_id = ${paymentIntentId},
                 reserved_platform_credit_cents = 0,
                 reserved_platform_credit_expires_at = NULL,
                 reserved_checkout_session_id = NULL,
@@ -100,26 +127,74 @@ export async function POST(request: Request) {
             `;
           }
 
-          return nextStatus;
+          return {
+            kind: "funded" as const,
+            fundedStatus: nextStatus,
+          };
         });
 
-        if (!fundedStatus) {
+        if (completion.kind !== "funded") {
+          if (!paymentIntentId) {
+            captureWarning("Stale funding checkout completed without payment_intent", {
+              campaignId,
+              stripeEventId: event.id,
+              operation: "stripe.campaign.stale_checkout_missing_payment_intent",
+            });
+            logOps({
+              event: "webhook.processed",
+              stripeEventId: event.id,
+              eventType: event.type,
+              result: "no_op",
+              detail: `Ignored stale checkout ${sessionId} for campaign ${campaignId} (${completion.reason})`,
+            });
+            break;
+          }
+
+          try {
+            await stripe.refunds.create(
+              {
+                payment_intent: paymentIntentId,
+                reason: "duplicate",
+                metadata: {
+                  campaignId,
+                  checkoutSessionId: sessionId,
+                  staleReason: completion.reason,
+                },
+              },
+              {
+                idempotencyKey: `stale_checkout_refund_${sessionId}`,
+              }
+            );
+          } catch (refundErr) {
+            console.error(
+              "[stripe-webhook] Failed to refund stale checkout session:",
+              refundErr
+            );
+            captureError(refundErr, {
+              campaignId,
+              stripeEventId: event.id,
+              operation: "stripe.campaign.refund_stale_checkout",
+            });
+            return Response.json({ error: "Refund failed" }, { status: 500 });
+          }
+
           logOps({
             event: "webhook.processed",
             stripeEventId: event.id,
             eventType: event.type,
-            result: "no_op",
-            detail: `Campaign ${campaignId} no longer pending funding`,
+            result: "success",
+            detail: `Refunded stale checkout ${sessionId} for campaign ${campaignId} (${completion.reason})`,
           });
           break;
         }
 
+        const fundedStatus = completion.fundedStatus;
         logOps({
           event: "campaign.funded",
           campaignId,
           rewardAmount: (session.amount_total ?? 0) / 100,
           distributableAmount: 0, // Already calculated at campaign creation
-          stripePaymentIntentId: (session.payment_intent as string) || undefined,
+          stripePaymentIntentId: paymentIntentId ?? undefined,
           welcomeCreditUsed,
         });
         logOps({

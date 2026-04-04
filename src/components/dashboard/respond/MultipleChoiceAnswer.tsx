@@ -47,11 +47,11 @@ export default function MultipleChoiceAnswer({
             className={`w-full text-left px-[20px] py-[16px] rounded-[16px] font-sans text-[15px] transition-all duration-300 border cursor-pointer flex items-center gap-[12px] ${
               selected
                 ? "border-accent bg-accent text-white shadow-[0_8px_24px_rgba(28,25,23,0.15)]"
-                : "border-black/10 bg-white text-text-primary hover:border-black/30 hover:bg-white"
+                : "border-border-light bg-white text-text-primary hover:border-border-muted hover:bg-white"
             }`}
           >
             <div className={`w-[16px] h-[16px] rounded-sm border shrink-0 flex items-center justify-center transition-colors ${
-              selected ? "border-white/30 bg-white/20" : "border-black/20 bg-black/5"
+              selected ? "border-white/30 bg-white/20" : "border-border-light bg-bg-muted"
             }`}>
               {selected && <div className="w-[8px] h-[8px] bg-white rounded-sm" />}
             </div>

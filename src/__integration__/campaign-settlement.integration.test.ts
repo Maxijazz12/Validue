@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { settleLockedCampaignPayouts } from "@/lib/campaign-settlement";
+import type { SqlRunner } from "@/lib/postgres-types";
 import {
   getTestDb,
   closeTestDb,
@@ -90,7 +91,10 @@ describe("campaign payout settlement", () => {
       VALUES (${r2.id}::uuid, ${campaign.id}::uuid, ${founderId}::uuid, ${resp2Id}::uuid, 3.25, 0, 'pending')
     `;
 
-    const result = await settleLockedCampaignPayouts(sql, campaign.id);
+    const result = await settleLockedCampaignPayouts(
+      sql as unknown as SqlRunner,
+      campaign.id
+    );
     expect(result.lockedCount).toBe(2);
     expect(result.respondentCount).toBe(2);
 

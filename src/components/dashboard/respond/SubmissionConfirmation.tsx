@@ -36,12 +36,12 @@ export default function SubmissionConfirmation({
 
   return (
     <div className="flex items-center justify-center py-[48px]">
-      <div className="bg-white rounded-[24px] border border-border-light shadow-card p-[48px] relative overflow-hidden max-w-[480px] w-full text-left">
+      <div className="bg-white rounded-[28px] border border-border-light shadow-card p-[48px] relative overflow-hidden max-w-[480px] w-full text-left">
         <div className="absolute top-0 left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-success/40 to-transparent" />
 
         {/* Branded command checkmark */}
         <div
-          className="w-[48px] h-[48px] flex items-center justify-center mb-[24px] border border-black/10 rounded-xl bg-black/5"
+          className="w-[48px] h-[48px] flex items-center justify-center mb-[24px] border border-border-light rounded-[16px] bg-bg-muted"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
@@ -61,7 +61,7 @@ export default function SubmissionConfirmation({
 
         {/* V2 money state callout */}
         {hasReward && (
-          <div className="bg-accent border border-transparent rounded-[16px] p-[20px] mb-[24px] shadow-[0_4px_16px_rgba(28,25,23,0.1)] relative">
+          <div className="bg-accent border border-transparent rounded-[20px] p-[20px] mb-[24px] shadow-[0_4px_16px_rgba(28,25,23,0.1)] relative">
             <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-warning/40 to-transparent" />
             <div className="flex items-center gap-[8px] mb-[12px]">
               <div className="w-[6px] h-[6px] rounded-full bg-warning animate-pulse" />
@@ -76,7 +76,7 @@ export default function SubmissionConfirmation({
 
         {/* Stats summary */}
         {(questionCount || totalTimeMs) && (
-          <p className="font-mono text-[11px] uppercase tracking-wide text-text-primary font-medium mb-[24px] bg-black/5 inline-flex px-[8px] py-[4px] rounded-md">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-text-primary font-medium mb-[24px] bg-bg-muted inline-flex px-[8px] py-[4px] rounded-md">
             [ METRICS: {questionCount && `${questionCount} NODES`}
             {questionCount && totalTimeMs && ` | `}
             {totalTimeMs && `T-${formatTime(totalTimeMs)}`} ]
@@ -85,7 +85,7 @@ export default function SubmissionConfirmation({
 
         {/* Suggested next campaigns */}
         {suggestedCampaigns && suggestedCampaigns.length > 0 ? (
-          <div className="text-left mt-[24px] pt-[24px] border-t border-black/10">
+          <div className="text-left mt-[24px] pt-[24px] border-t border-border-light">
             <p className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-secondary mb-[16px]">
               {potentialEarnings > 0 ? (
                 <>YIELD ACCRUED. <span className="text-success-mid">MULTIPLY YIELD</span> VIA SUBSEQUENT ACTIVE NODES:</>
@@ -98,7 +98,7 @@ export default function SubmissionConfirmation({
                 <a
                   key={c.id}
                   href={`/dashboard/the-wall/${c.id}`}
-                  className="flex items-center gap-[12px] p-[16px] rounded-[16px] bg-white border border-black/10 hover:border-black/30 hover:shadow-card-sm transition-all duration-300 no-underline group"
+                  className="flex items-center gap-[12px] p-[16px] rounded-[20px] bg-white border border-border-light shadow-card hover:border-border-muted hover:shadow-card-hover transition-all duration-300 no-underline group"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-primary truncate group-hover:text-brand transition-colors mb-[4px]">
@@ -124,20 +124,20 @@ export default function SubmissionConfirmation({
               <Button href="/dashboard/the-wall" className="flex-1 py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide !bg-accent !text-white rounded-xl shadow-none hover:shadow-[0_4px_16px_rgba(28,25,23,0.15)] justify-center flex transition-all">
                 [ BROWSE_WALL ]
               </Button>
-              <Button href="/dashboard/my-responses" variant="outline" className="flex-1 py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-black/10 hover:bg-black/5 justify-center flex transition-all text-text-primary">
+              <Button href="/dashboard/my-responses" variant="outline" className="flex-1 py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-border-light hover:bg-bg-muted justify-center flex transition-all text-text-primary">
                 [ VIEW_LOGS ]
               </Button>
             </div>
           </div>
         ) : (
-          <div className="flex gap-[12px] max-sm:flex-col pt-[24px] mt-[24px] border-t border-black/10">
+          <div className="flex gap-[12px] max-sm:flex-col pt-[24px] mt-[24px] border-t border-border-light">
             <Button href="/dashboard/the-wall" className="flex-1 py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide !bg-accent !text-white rounded-xl shadow-none justify-center flex transition-all">
                [ NEXT_NODE ]
             </Button>
             <Button
               href="/dashboard/my-responses"
               variant="outline"
-              className="flex-1 py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-black/10 hover:bg-black/5 justify-center flex transition-all text-text-primary"
+              className="flex-1 py-[12px] font-mono text-[11px] font-medium uppercase tracking-wide border-border-light hover:bg-bg-muted justify-center flex transition-all text-text-primary"
             >
               [ VIEW_LOGS ]
             </Button>

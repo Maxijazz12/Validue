@@ -129,7 +129,7 @@ export default function ResponsesOverviewList({ campaigns }: { campaigns: Campai
                 key={c.id}
                 href={`/dashboard/ideas/${c.id}/responses`}
                 style={staggerDelay(index)}
-                className="glow-hover block bg-white border border-border-light shadow-card-interactive rounded-[24px] p-[24px] transition-all duration-400 no-underline"
+                className="glow-hover block bg-white border border-border-light shadow-card rounded-[20px] px-[14px] py-[20px] md:rounded-[28px] md:p-[28px] transition-all duration-400 no-underline"
               >
                 <div className="flex items-center justify-between gap-[12px] mb-[16px] max-md:flex-col max-md:items-start max-md:gap-[8px]">
                   <span className="text-[17px] font-medium tracking-tight text-text-primary">

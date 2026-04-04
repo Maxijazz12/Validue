@@ -6,10 +6,10 @@ import Link from "next/link";
 const tabs = ["All", "In Progress", "Submitted", "Ranked"] as const;
 type Tab = (typeof tabs)[number];
 
-const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
-  in_progress: { label: "Draft", bg: "bg-transparent border border-border-light", text: "text-text-primary" },
-  submitted: { label: "Submitted", bg: "bg-bg-muted", text: "text-text-secondary" },
-  ranked: { label: "Ranked", bg: "bg-success/15", text: "text-success" },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  in_progress: { label: "IN PROGRESS", className: "bg-brand/10 text-brand" },
+  submitted: { label: "SUBMITTED", className: "bg-bg-muted text-text-secondary" },
+  ranked: { label: "RANKED", className: "bg-success/15 text-success" },
 };
 
 const tabToStatus: Record<Tab, string | null> = {
@@ -35,6 +35,37 @@ export type ResponseItem = {
   } | null;
 };
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/* Twist: mini quality score ring for ranked responses */
+function ScoreRing({ score }: { score: number }) {
+  const size = 36;
+  const stroke = 3;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 70 ? "var(--color-success)" : score >= 40 ? "var(--color-brand)" : "var(--color-error, #ef4444)";
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--color-border-light, #e7e5e4)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+      </svg>
+      <span className="absolute text-[11px] font-semibold tracking-tight" style={{ color }}>{score}</span>
+    </div>
+  );
+}
+
 export default function MyResponsesFeed({ responses }: { responses: ResponseItem[] }) {
   const [activeTab, setActiveTab] = useState<Tab>("All");
 
@@ -42,8 +73,6 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
     const status = tabToStatus[activeTab];
     let result = responses;
     if (status) result = responses.filter((r) => r.status === status);
-    
-    // Sort so Ranked > Submitted > In Progress
     result.sort((a, b) => {
       if (a.status === "ranked" && b.status !== "ranked") return -1;
       if (b.status === "ranked" && a.status !== "ranked") return 1;
@@ -54,45 +83,54 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
 
   const rankedCount = responses.filter((r) => r.status === "ranked").length;
 
+  const staggerDelay = (index: number) => ({
+    opacity: 0,
+    animation: `cardEntranceV2 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) ${Math.min(index, 12) * 50}ms forwards`,
+  });
+
   if (responses.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-[100px] border border-dashed border-border-light rounded-[32px] bg-white/90 shadow-card-sm text-center relative overflow-hidden">
-        <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4">Database Empty</span>
+      <div className="flex flex-col items-center justify-center py-[100px] border border-dashed border-border-light rounded-[32px] bg-white/90 text-center">
+        <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase mb-4">No results</span>
         <h2 className="text-[20px] md:text-[24px] font-medium tracking-tight text-text-primary mb-[8px]">
-          No recorded activity
+          No recorded responses
         </h2>
         <p className="text-[14px] font-medium text-text-secondary max-w-[360px] mx-auto mb-[32px]">
-          Your expertise is requested on the grid.
+          Head to The Wall to find campaigns worth responding to.
         </p>
-        <Link 
+        <Link
           href="/dashboard/the-wall"
-          className="inline-flex items-center justify-center px-[32px] py-[12px] rounded-full text-[12px] font-medium uppercase tracking-wide bg-accent text-white transition-all duration-500 hover:bg-[#2A8AF6] hover:shadow-[0_0_24px_rgba(42,138,246,0.3)] cursor-pointer no-underline"
+          className="inline-flex items-center justify-center px-[32px] py-[12px] rounded-full text-[12px] font-medium uppercase tracking-wide bg-accent text-white transition-all duration-300 hover:shadow-md cursor-pointer no-underline"
         >
-          Initialize
+          Browse The Wall
         </Link>
       </div>
     );
   }
 
-  const staggerDelay = (index: number) => ({
-    animationDelay: `${Math.min(index, 12) * 50}ms`,
-    opacity: 0,
-    animation: "cardEntranceV2 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) forwards"
-  });
-
   return (
     <div className="relative z-10 w-full max-w-7xl mx-auto">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes cardEntranceV2 {
+          0% { opacity: 0; transform: translateY(24px) scale(0.96) rotateX(-4deg); }
+          100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
+        }
+        .glow-hover:hover {
+          box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px -4px rgba(0,0,0,0.08);
+          transform: translateY(-1px);
+        }
+      `}} />
 
-      {/* Pane Controller */}
+      {/* Filter Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-[20px] mb-[40px] p-[8px] bg-white rounded-full border border-border-light/50 shadow-card-sm">
         <div className="flex items-center gap-[6px] w-full md:w-auto p-[4px] overflow-x-auto hide-scrollbar">
           {tabs.map((tab) => {
-             const isActive = activeTab === tab;
-             return (
+            const isActive = activeTab === tab;
+            return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`text-[12px] font-medium uppercase tracking-wide py-[8px] px-[20px] rounded-full transition-all duration-300 cursor-pointer border-none flex items-center whitespace-nowrap ${
+                className={`text-[12px] font-medium uppercase tracking-wide py-[8px] px-[20px] rounded-full transition-all duration-300 cursor-pointer border-none whitespace-nowrap ${
                   isActive
                     ? "bg-accent text-white shadow-md"
                     : "bg-transparent text-text-muted hover:text-text-primary hover:bg-bg-muted"
@@ -100,20 +138,20 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
               >
                 {tab}
               </button>
-            )
+            );
           })}
         </div>
 
         <div className="hidden md:flex items-center gap-[12px] px-[16px]">
-           <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-text-muted">
-              {filtered.length} Indexed
-           </span>
-           {rankedCount > 0 && (
-             <span className="font-mono text-[11px] font-medium uppercase tracking-wide text-success flex items-center gap-1.5">
-               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-               {rankedCount} Verified
-             </span>
-           )}
+          <span className="text-[11px] font-medium tracking-tight text-text-muted">
+            {filtered.length} response{filtered.length !== 1 && "s"}
+          </span>
+          {rankedCount > 0 && (
+            <span className="text-[11px] font-medium tracking-tight text-success flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              {rankedCount} ranked
+            </span>
+          )}
         </div>
       </div>
 
@@ -125,69 +163,76 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
             const hasScore = response.status === "ranked" && response.quality_score !== null;
             const score = Number(response.quality_score) || 0;
             const isInProgress = response.status === "in_progress";
-            const isFeatureCard = response.status === "ranked";
+            const hasPayout = response.payout_amount != null && Number(response.payout_amount) > 0;
 
             return (
               <div
                 key={response.id}
                 style={staggerDelay(index)}
-                className={`glow-hover bento-card flex flex-col justify-between bg-white border border-border-light shadow-card transition-all duration-400 ${
-                  isFeatureCard
-                    ? "col-span-2 lg:col-span-2 min-h-[260px] rounded-[28px] p-[28px]"
-                    : "col-span-1 rounded-[20px] px-[14px] py-[20px] md:rounded-[28px] md:p-[28px] md:min-h-[260px]"
-                }`}
+                className="glow-hover relative flex flex-col justify-between bg-white border border-border-light shadow-card transition-all duration-400 col-span-1 rounded-[20px] px-[14px] py-[20px] md:rounded-[28px] md:p-[28px]"
               >
-                <div className={`flex flex-col ${isFeatureCard ? "gap-[16px]" : "gap-[10px] md:gap-[16px]"}`}>
-                  <div className="flex items-start justify-between">
-                    <span
-                      className={`px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight ${config.bg} ${config.text}`}
-                    >
+                {/* Content Top */}
+                <div className="flex flex-col gap-[10px] md:gap-[14px]">
+                  {/* Metadata Row */}
+                  <div className="flex items-center justify-between">
+                    <span className={`px-[8px] py-[3px] rounded-md text-[10px] font-semibold tracking-tight ${config.className}`}>
                       {config.label}
                     </span>
-
-                    {hasScore && (
-                      <span className="text-[14px] font-semibold tracking-tight" style={{ color: score >= 70 ? "var(--color-success)" : score >= 40 ? "var(--color-brand)" : "var(--color-error)" }}>
-                        {score}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <span className={`font-medium tracking-tight text-text-primary block leading-[1.2] ${
-                      isFeatureCard ? "text-[28px]" : "text-[15px] md:text-[20px]"
-                    }`}>
-                      {response.campaign?.title || "Unknown"}
+                    <span className="text-[11px] font-medium tracking-tight text-text-muted">
+                      {timeAgo(response.created_at)}
                     </span>
                   </div>
+
+                  {/* Campaign Title */}
+                  <h3 className="font-medium tracking-tight text-text-primary leading-[1.2] m-0 text-[15px] md:text-[20px]">
+                    {response.campaign?.title || "Unknown Campaign"}
+                  </h3>
+
+                  {/* Category tag */}
+                  {response.campaign?.category && (
+                    <div className="hidden md:flex">
+                      <span className="px-[8px] py-[3px] rounded-md text-[11px] font-medium tracking-tight bg-bg-muted text-text-secondary leading-none">
+                        {response.campaign.category}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className={`flex flex-col gap-[12px] ${isFeatureCard ? "pt-[24px]" : "pt-[16px] md:pt-[24px]"}`}>
-                  {response.payout_amount != null && Number(response.payout_amount) > 0 && (
-                    <span className="text-[13px] font-semibold tracking-tight text-success">
-                      +${Number(response.payout_amount).toFixed(2)}
-                    </span>
+                {/* Footer */}
+                <div className="mt-auto pt-[16px] md:pt-[24px]">
+                  {/* Score ring + payout row — the twist */}
+                  {(hasScore || hasPayout) && (
+                    <div className="flex items-center justify-between mb-[12px] md:mb-[16px]">
+                      {hasScore && <ScoreRing score={score} />}
+                      {hasPayout && (
+                        <span className="text-[13px] font-semibold tracking-tight text-success">
+                          +${Number(response.payout_amount).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
                   )}
 
+                  {/* AI Feedback snippet */}
                   {response.status === "ranked" && !!response.ai_feedback && (
-                    <div className={`bg-bg-muted/60 rounded-[12px] p-[12px] border border-border-light/40 mt-auto ${isFeatureCard ? "" : "hidden md:block"}`}>
-                      <p className="text-[12px] font-medium text-text-secondary leading-[1.5] line-clamp-2">
-                        <span className="font-bold text-text-primary mr-[6px]">Feedback:</span>
+                    <div className="bg-bg-muted/60 rounded-[12px] p-[10px] border border-border-light/40 mb-[12px] hidden md:block">
+                      <p className="text-[12px] font-medium text-text-secondary leading-[1.5] m-0" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
                         {response.ai_feedback as string}
                       </p>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-[12px] border-t border-border-light/40 mt-auto">
+                  {/* Action row */}
+                  <div className="flex items-center justify-end">
                     {isInProgress && response.campaign ? (
                       <Link
                         href={`/dashboard/the-wall/${response.campaign.id}`}
-                        className="font-mono text-[11px] uppercase tracking-wide font-medium text-text-primary hover:text-text-secondary hover:bg-bg-muted transition-all no-underline flex items-center gap-1.5 px-[12px] py-[6px] rounded-full bg-transparent ml-auto"
+                        className="uppercase tracking-wide font-semibold text-[11px] text-text-primary hover:text-success transition-colors duration-300 no-underline flex items-center gap-1.5"
                       >
-                        [ RESUME ]
+                        Resume
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                       </Link>
                     ) : (
-                      <span className="font-mono text-[11px] uppercase tracking-wide font-medium text-text-muted ml-auto">
+                      <span className="text-[11px] font-medium tracking-tight text-text-muted uppercase">
                         Completed
                       </span>
                     )}
@@ -198,8 +243,8 @@ export default function MyResponsesFeed({ responses }: { responses: ResponseItem
           })}
         </div>
       ) : (
-        <div className="py-[64px] border border-dashed border-border-light rounded-[28px] bg-white/90 text-center">
-          <p className="font-mono text-[11px] font-medium text-text-muted uppercase tracking-wide">No results</p>
+        <div className="flex flex-col items-center justify-center py-[64px] border border-dashed border-border-light rounded-[32px] bg-white/90">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-text-muted uppercase">No results</span>
         </div>
       )}
     </div>

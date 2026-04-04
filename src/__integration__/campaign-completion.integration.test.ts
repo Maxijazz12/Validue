@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
+import type { SqlRunner } from "@/lib/postgres-types";
 import {
   getTestDb,
   closeTestDb,
@@ -61,7 +62,7 @@ describe("campaign completion helper", () => {
     `;
 
     const result = await sql.begin((tx) =>
-      completeCampaignWithinTransaction(tx, {
+      completeCampaignWithinTransaction(tx as unknown as SqlRunner, {
         campaignId: campaign.id,
         requireTargetReached: true,
       })
@@ -112,7 +113,7 @@ describe("campaign completion helper", () => {
     `;
 
     const result = await sql.begin((tx) =>
-      completeCampaignWithinTransaction(tx, {
+      completeCampaignWithinTransaction(tx as unknown as SqlRunner, {
         campaignId: campaign.id,
         requireTargetReached: true,
       })
