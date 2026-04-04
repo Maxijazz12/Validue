@@ -21,6 +21,7 @@ const primaryNav: NavItem[] = [
 const secondaryNav: NavItem[] = [
   { label: "My Responses", href: "/dashboard/my-responses", icon: "clipboard" },
   { label: "Profile", href: "/dashboard/settings", icon: "profile" },
+  { label: "Support", href: "/dashboard/support", icon: "support" },
 ];
 
 /* ─── Icons — Linear-style: 20px, strokeWidth 1.5, no fills ─── */
@@ -71,6 +72,11 @@ const icons: Record<string, React.ReactNode> = {
   profile: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 0 0-16 0" />
+    </svg>
+  ),
+  support: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" /><line x1="4.93" y1="4.93" x2="9.17" y2="9.17" /><line x1="14.83" y1="14.83" x2="19.07" y2="19.07" /><line x1="14.83" y1="9.17" x2="19.07" y2="4.93" /><line x1="4.93" y1="19.07" x2="9.17" y2="14.83" />
     </svg>
   ),
   search: (

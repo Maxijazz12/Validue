@@ -8,7 +8,7 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline'", // Tailwind injects inline styles
   "img-src 'self' data: blob: ooamtvochbfkpvwhvged.supabase.co",
   "font-src 'self'",
-  "connect-src 'self' *.supabase.co *.ingest.sentry.io",
+  "connect-src 'self' *.supabase.co *.ingest.sentry.io us.i.posthog.com",
   "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",

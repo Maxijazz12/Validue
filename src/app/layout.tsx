@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, DM_Sans, Instrument_Serif } from "next/font/google";
+import { PostHogProvider } from "@/components/PostHogProvider";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -23,9 +24,25 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://validue.com"),
   title: "Validue — Pressure-test assumptions. Get a Decision Brief.",
   description:
     "Turn a raw startup idea into testable assumptions, collect behavioral evidence from matched respondents, and get a Decision Brief with verdicts, uncomfortable truths, and next steps.",
+  openGraph: {
+    title: "Validue — Pressure-test assumptions. Get a Decision Brief.",
+    description:
+      "Turn a raw startup idea into testable assumptions, collect behavioral evidence from matched respondents, and get a Decision Brief with verdicts, uncomfortable truths, and next steps.",
+    url: process.env.NEXT_PUBLIC_APP_URL || "https://validue.com",
+    siteName: "Validue",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Validue" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Validue — Pressure-test assumptions. Get a Decision Brief.",
+    description:
+      "Turn a raw startup idea into testable assumptions, collect behavioral evidence from matched respondents, and get a Decision Brief with verdicts, uncomfortable truths, and next steps.",
+  },
 };
 
 export default function RootLayout({
@@ -42,7 +59,7 @@ export default function RootLayout({
     >
       <head />
       <body className={`${dmSans.className} font-sans`} suppressHydrationWarning>
-        {children}
+        <PostHogProvider>{children}</PostHogProvider>
       </body>
     </html>
   );

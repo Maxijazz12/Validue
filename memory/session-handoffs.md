@@ -1,5 +1,62 @@
 # Session Handoffs
 
+## 2026-04-04 (late night) — LAUNCH-FIXES.md Full Sweep (Sections F, G, I, J, K, L, M, N)
+
+### What was done
+
+Completed all remaining sections of `LAUNCH-FIXES.md`. File is now empty (all sections done).
+
+**Section F — Middleware + Admin Protection**
+- Extended `src/proxy.ts` (Next.js 16 uses proxy.ts, not middleware.ts) to protect `/admin/*` routes — redirect to `/` if no session
+- Added `/api/cron/` to public routes whitelist
+- Updated `src/app/admin/layout.tsx` with server-side auth check as defense-in-depth
+
+**Section G — Server Action Rate Limiting** — Already fully implemented. No changes needed.
+
+**Section I — Unbounded Queries**
+- `src/lib/reputation.ts`: Added `LIMIT 10000` to 3 queries (allResponses, rankedResponses, payoutRows)
+- `src/app/dashboard/ideas/page.tsx`: Replaced matched-responses Supabase join-fetch with raw SQL `GROUP BY campaign_id`
+- `src/app/dashboard/ideas/[id]/responses/page.tsx`: Added `.limit(500)`
+- `src/app/dashboard/my-responses/page.tsx`: Added `.limit(500)`
+- `src/app/dashboard/responses/page.tsx`: Added `.limit(5000)` to aggregation query
+
+**Section J — Money Flow Bugs**
+- `account-actions.ts`: Added explicit check for `money_state IN ('locked', 'pending_qualification')` payouts before allowing account deletion
+- `supabase/migrations/056_locked_payout_deletion_guard.sql`: DB trigger prevents profile deletion when unsettled payouts exist
+- `cashout-actions.ts`: Added `SELECT ... FOR UPDATE` in cashout transaction to serialize concurrent requests
+
+**Section K — Credit Expiry + Refund Gaps**
+- Fix 1 (platform credit expiry): Already implemented in payment-actions.ts (lines 186-190 check `profileCreditExpiresAt > new Date()`)
+- Fix 2 (welcome credit reset on refund): Added `charge.refunded` handler to Stripe webhook — resets `welcome_credit_used = false` on full refund of campaign-funding charges
+
+**Section L — Confirmation Dialogs**
+- `CampaignStatusButtons.tsx`: Added two-click confirm to PauseCampaignButton and ResumeCampaignButton
+- `CashoutPanel.tsx`: Added two-click confirm to cashout button with amount shown
+- `QuestionStepper.tsx`: Added `confirmingSubmit` two-click confirm to `[ INITIATE_TRANSFER ]` button
+
+**Section M — Session Expiry Protection**
+- `QuestionStepper.tsx`: Auto-saves answers to localStorage (debounced 1s) with `draft-response-${responseId}-${questionId}` keys
+- Restores drafts on mount with "DRAFT_RESTORED" banner
+- Session health check before submit — shows "SESSION_EXPIRED" message instead of redirecting
+- Clears localStorage on successful submission
+- All localStorage calls wrapped in try/catch for private browsing
+
+**Section N — Reputation Race Condition** — Already implemented by another agent/linter (FOR UPDATE + Phase 1/2 restructure). No additional changes needed.
+
+### Tests/Build
+- 415/415 tests passing
+- ESLint: 0 errors (1 pre-existing warning)
+- Build: successful
+
+### Migrations pending application
+- `056_locked_payout_deletion_guard.sql` — trigger preventing profile deletion with locked payouts
+
+### Known gaps (carried forward)
+- `Database` type not wired into Supabase clients
+- Migrations 051-056 not yet applied to Supabase
+
+---
+
 ## Prior sessions (summarized)
 - 2026-03-30: Phase 2-4 marathon (audience segmentation, WTP probing, longitudinal validation)
 - 2026-03-31: Infrastructure + grounding check + evidence pipeline fixes
