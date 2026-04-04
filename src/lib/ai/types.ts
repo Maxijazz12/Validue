@@ -86,6 +86,8 @@ export interface CampaignDraft {
   rewardsTopAnswers?: boolean;
   /** Targeting strictness: broad (ranking only), balanced (any overlap), strict (all overlap) */
   targetingMode?: "broad" | "balanced" | "strict";
+  /** In strict mode, only these dimensions are hard gates (empty = all targeted required) */
+  hardFilterDimensions?: string[];
 }
 
 /* ─── Signal Strength (UI display) ─── */

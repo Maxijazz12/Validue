@@ -12,6 +12,7 @@ import { detectSegmentDisagreements } from "./segment-disagreements";
 import type { SegmentReport } from "./segment-disagreements";
 import { logGeneration } from "./logger";
 import { checkGrounding, applyGroundingCorrections } from "./grounding-check";
+import { DEFAULTS } from "@/lib/defaults";
 import sql from "@/lib/db";
 
 /* ─── Prior Round Types ─── */
@@ -174,6 +175,8 @@ export interface BriefResult {
   isSegmented?: boolean;
   /** Bucket counts for the full response pool */
   bucketCounts?: { core: number; adjacent: number; off_target: number };
+  /** Cache version — used to invalidate stale cached briefs */
+  cacheVersion?: number;
 }
 
 type SynthesizeBriefOptions = {
@@ -233,7 +236,8 @@ export async function loadFreshCachedBrief(
     if (
       metadata.cachedResult &&
       metadata.briefResponseCount != null &&
-      metadata.briefResponseCount === currentResponseCount
+      metadata.briefResponseCount === currentResponseCount &&
+      (metadata.cachedResult.cacheVersion ?? 0) >= DEFAULTS.BRIEF_CACHE_VERSION
     ) {
       return {
         result: {
@@ -288,7 +292,10 @@ export async function synthesizeBrief(
         WHERE campaign_id = ${campaignId} AND status IN ('submitted', 'ranked')
       `;
 
-      if (currentCount === metadata.briefResponseCount) {
+      if (
+        currentCount === metadata.briefResponseCount &&
+        (metadata.cachedResult!.cacheVersion ?? 0) >= DEFAULTS.BRIEF_CACHE_VERSION
+      ) {
         // Cache hit — return without calling AI
         logGeneration({
           event: "response.ranked",
@@ -374,7 +381,7 @@ async function synthesizeFresh(
       latencyMs: Date.now() - start,
     });
     const emptyCoverage = computeAllCoverage(new Map(), assumptions.length);
-    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage, priceSignal: null, consistencyReport: null, segmentReport: null, roundNumber, parentVerdicts };
+    return { brief: buildFallbackBrief(assumptions, 0), coverage: emptyCoverage, priceSignal: null, consistencyReport: null, segmentReport: null, roundNumber, parentVerdicts, cacheVersion: DEFAULTS.BRIEF_CACHE_VERSION };
   }
 
   // Compute coverage and segment analysis (deterministic)
@@ -413,6 +420,7 @@ async function synthesizeFresh(
       parentVerdicts,
       isSegmented,
       bucketCounts,
+      cacheVersion: DEFAULTS.BRIEF_CACHE_VERSION,
     };
     if (options.persist) {
       await persistCachedBrief(campaignId, result, methodology.responseCount);
@@ -453,7 +461,7 @@ async function synthesizeFresh(
           latencyMs: Date.now() - start,
         });
 
-        const result: BriefResult = { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts, isSegmented, bucketCounts };
+        const result: BriefResult = { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts, isSegmented, bucketCounts, cacheVersion: DEFAULTS.BRIEF_CACHE_VERSION };
 
         if (options.persist) {
           await persistSuccessfulBrief(campaignId, brief, result, methodology.responseCount);
@@ -488,6 +496,7 @@ async function synthesizeFresh(
     parentVerdicts,
     isSegmented,
     bucketCounts,
+    cacheVersion: DEFAULTS.BRIEF_CACHE_VERSION,
   };
   if (options.persist) {
     await persistCachedBrief(campaignId, result, methodology.responseCount);

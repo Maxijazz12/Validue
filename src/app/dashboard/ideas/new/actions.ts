@@ -282,7 +282,7 @@ export async function publishCampaign(
           target_interests, target_expertise, target_age_ranges, target_location,
           key_assumptions,
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
-          targeting_mode,
+          targeting_mode, hard_filter_dimensions,
           quality_scores, quality_score,
           baseline_reach_units, funded_reach_units, total_reach_units,
           effective_reach_units, campaign_strength,
@@ -297,7 +297,7 @@ export async function publishCampaign(
           ${persistedDraft.targetInterests}, ${persistedDraft.targetExpertise}, ${persistedDraft.targetAgeRanges}, ${persistedDraft.targetLocation},
           ${persistedDraft.keyAssumptions},
           ${persistedDraft.audienceOccupation}, ${persistedDraft.audienceIndustry}, ${persistedDraft.audienceExperienceLevel}, ${persistedDraft.audienceNicheQualifier},
-          ${isSubsidized ? "balanced" : persistedDraft.targetingMode},
+          ${isSubsidized ? "balanced" : persistedDraft.targetingMode}, ${isSubsidized ? [] : persistedDraft.hardFilterDimensions},
           ${persistedDraft.qualityScoresJson}::jsonb, ${qualityScore},
           ${reach.baselineRU}, ${reach.fundedRU}, ${reach.totalRU},
           ${reach.effectiveReach}, ${reach.campaignStrength},
@@ -444,7 +444,7 @@ export async function saveDraft(
           target_interests, target_expertise, target_age_ranges, target_location,
           key_assumptions,
           audience_occupation, audience_industry, audience_experience_level, audience_niche_qualifier,
-          targeting_mode,
+          targeting_mode, hard_filter_dimensions,
           quality_scores, quality_score
         ) VALUES (
           ${user.id}, ${persistedDraft.title}, ${persistedDraft.summary}, 'draft',
@@ -453,7 +453,7 @@ export async function saveDraft(
           ${persistedDraft.targetInterests}, ${persistedDraft.targetExpertise}, ${persistedDraft.targetAgeRanges}, ${persistedDraft.targetLocation},
           ${persistedDraft.keyAssumptions},
           ${persistedDraft.audienceOccupation}, ${persistedDraft.audienceIndustry}, ${persistedDraft.audienceExperienceLevel}, ${persistedDraft.audienceNicheQualifier},
-          ${persistedDraft.targetingMode},
+          ${persistedDraft.targetingMode}, ${persistedDraft.hardFilterDimensions},
           ${persistedDraft.qualityScoresJson}::jsonb, ${persistedDraft.qualityScore}
         )
         RETURNING id
@@ -535,6 +535,7 @@ export async function updateDraft(
           audience_experience_level = ${persistedDraft.audienceExperienceLevel},
           audience_niche_qualifier = ${persistedDraft.audienceNicheQualifier},
           targeting_mode = ${persistedDraft.targetingMode},
+          hard_filter_dimensions = ${persistedDraft.hardFilterDimensions},
           quality_scores = ${persistedDraft.qualityScoresJson}::jsonb,
           quality_score = ${persistedDraft.qualityScore},
           updated_at = NOW()

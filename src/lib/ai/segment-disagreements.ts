@@ -1,4 +1,5 @@
 import type { AssumptionEvidence } from "./assumption-evidence";
+import { DEFAULTS } from "@/lib/defaults";
 
 /* ─── Types ─── */
 
@@ -21,8 +22,8 @@ export interface SegmentReport {
 
 /* ─── Thresholds ─── */
 
-const HIGH_MATCH_THRESHOLD = 70;
-const LOW_MATCH_THRESHOLD = 30;
+const HIGH_MATCH_THRESHOLD = DEFAULTS.MATCH_BUCKET_CORE_THRESHOLD;
+const LOW_MATCH_THRESHOLD = DEFAULTS.MATCH_BUCKET_ADJACENT_THRESHOLD;
 const MIN_SEGMENT_SIZE = 2;
 
 /* ─── Helpers ─── */

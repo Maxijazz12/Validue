@@ -165,6 +165,8 @@ export type TargetingMode = "broad" | "balanced" | "strict";
  * Incomplete profiles always pass regardless of mode (we nudge completion separately).
  * Campaigns with no targeting set always pass regardless of mode.
  */
+export type TargetingDimension = "interests" | "expertise" | "age_range" | "industry" | "experience_level";
+
 export function meetsMinimumEligibility(
   campaign: Pick<
     WallCampaign,
@@ -175,7 +177,8 @@ export function meetsMinimumEligibility(
     | "audience_experience_level"
   >,
   profile: RespondentProfile,
-  mode: TargetingMode = "balanced"
+  mode: TargetingMode = "balanced",
+  hardFilterDimensions: TargetingDimension[] = []
 ): boolean {
   // Incomplete profiles always pass — we nudge completion separately
   if (!profile.profile_completed) return true;
@@ -232,8 +235,20 @@ export function meetsMinimumEligibility(
   switch (mode) {
     case "broad":
       return true;
-    case "strict":
+    case "strict": {
+      // If hard filters specified, only those dimensions are required;
+      // other dimensions remain soft (ranking only).
+      // If empty, ALL targeted dimensions are required.
+      if (hardFilterDimensions.length > 0) {
+        const hardGates = targeted.filter((d) =>
+          hardFilterDimensions.includes(d.name as TargetingDimension)
+        );
+        // If none of the hard filter dimensions are actually targeted, pass
+        if (hardGates.length === 0) return true;
+        return hardGates.every((d) => d.matches);
+      }
       return targeted.every((d) => d.matches);
+    }
     case "balanced":
     default:
       return targeted.some((d) => d.matches);

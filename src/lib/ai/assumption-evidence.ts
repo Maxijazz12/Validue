@@ -42,6 +42,7 @@ export async function getEvidenceByAssumption(
       r.quality_score,
       r.scoring_dimensions,
       r.respondent_id,
+      r.match_score_at_start,
       p.interests   AS respondent_interests,
       p.expertise   AS respondent_expertise,
       p.age_range   AS respondent_age_range,
@@ -84,8 +85,10 @@ export async function getEvidenceByAssumption(
       authenticity?: number;
     }) ?? {};
 
-    // Compute audience match using existing wall-ranking logic
-    const audienceMatch = computeMatchScore(
+    // Use stored match score from response start (WS3) when available,
+    // fall back to recomputing for pre-WS3 rows
+    const storedScore = row.match_score_at_start != null ? Number(row.match_score_at_start) : null;
+    const audienceMatch = storedScore ?? computeMatchScore(
       {
         target_interests: (row.target_interests as string[]) ?? [],
         target_expertise: (row.target_expertise as string[]) ?? [],

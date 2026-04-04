@@ -24,11 +24,23 @@ const TARGETING_MODE_DESCRIPTIONS: Record<TargetingMode, string> = {
   strict: "Respondents must match all targeting dimensions. Fewer but more relevant responses.",
 };
 
+type TargetingDimensionName = "interests" | "expertise" | "age_range" | "industry" | "experience_level";
+
+const DIMENSION_LABELS: Record<TargetingDimensionName, string> = {
+  interests: "Interests",
+  expertise: "Expertise",
+  age_range: "Age range",
+  industry: "Industry",
+  experience_level: "Experience level",
+};
+
 interface AudienceTargetingPanelProps {
   audience: DraftAudience;
   onChange: (audience: DraftAudience) => void;
   targetingMode: TargetingMode;
   onTargetingModeChange: (mode: TargetingMode) => void;
+  hardFilterDimensions: string[];
+  onHardFilterDimensionsChange: (dims: string[]) => void;
   scribbleText?: string;
   assumptions?: string[];
   questions?: DraftQuestion[];
@@ -39,6 +51,8 @@ export default function AudienceTargetingPanel({
   onChange,
   targetingMode,
   onTargetingModeChange,
+  hardFilterDimensions,
+  onHardFilterDimensionsChange,
   scribbleText,
   assumptions,
   questions,
@@ -133,6 +147,57 @@ export default function AudienceTargetingPanel({
         <p className="text-[12px] text-text-muted mt-[6px]">
           {TARGETING_MODE_DESCRIPTIONS[targetingMode]}
         </p>
+
+        {/* Hard filter dimension checkboxes — only shown in strict mode */}
+        {targetingMode === "strict" && (() => {
+          const activeDimensions: TargetingDimensionName[] = [];
+          if (audience.interests.length > 0) activeDimensions.push("interests");
+          if (audience.expertise.length > 0) activeDimensions.push("expertise");
+          if ((audience.ageRanges?.length ?? 0) > 0) activeDimensions.push("age_range");
+          if (audience.industry) activeDimensions.push("industry");
+          if (audience.experienceLevel) activeDimensions.push("experience_level");
+
+          if (activeDimensions.length < 2) return null;
+
+          return (
+            <div className="mt-[12px] p-[12px] rounded-lg bg-surface-secondary border border-border-light">
+              <p className="text-[12px] font-medium text-text-secondary mb-[8px]">
+                Required dimensions {hardFilterDimensions.length === 0 ? "(all)" : `(${hardFilterDimensions.length} of ${activeDimensions.length})`}
+              </p>
+              <p className="text-[11px] text-text-muted mb-[8px]">
+                Select specific dimensions to require, or leave all unchecked to require every dimension.
+              </p>
+              <div className="flex flex-wrap gap-[8px]">
+                {activeDimensions.map((dim) => {
+                  const checked = hardFilterDimensions.includes(dim);
+                  return (
+                    <label
+                      key={dim}
+                      className={`inline-flex items-center gap-[6px] px-[10px] py-[6px] rounded-lg text-[12px] cursor-pointer transition-all duration-200 border ${
+                        checked
+                          ? "bg-text-primary text-white border-text-primary"
+                          : "bg-white text-text-muted border-border-light hover:border-border-muted"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={checked}
+                        onChange={() => {
+                          const next = checked
+                            ? hardFilterDimensions.filter((d) => d !== dim)
+                            : [...hardFilterDimensions, dim];
+                          onHardFilterDimensionsChange(next);
+                        }}
+                      />
+                      {DIMENSION_LABELS[dim]}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="flex flex-col gap-[24px]">

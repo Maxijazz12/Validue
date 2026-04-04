@@ -422,6 +422,54 @@ describe("meetsMinimumEligibility", () => {
       expect(meetsMinimumEligibility(campaign, profile, "balanced")).toBe(true);
     });
   });
+
+  describe("hard filters (strict mode)", () => {
+    it("with hard filters, only checks those dimensions", () => {
+      // Profile matches industry but not interests
+      const profile = { ...noMatchProfile, industry: "technology" };
+      // Without hard filters: strict requires ALL → fail (interests don't match)
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "strict")).toBe(false);
+      // With hard filter on industry only → pass
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "strict", ["industry"])).toBe(true);
+    });
+
+    it("fails if hard filter dimension doesn't match", () => {
+      const profile = { ...partialMatchProfile }; // matches interests but not industry
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "strict", ["industry"])).toBe(false);
+    });
+
+    it("with multiple hard filters, all must match", () => {
+      // Matches interests but not industry
+      const profile = { ...partialMatchProfile };
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "strict", ["interests", "industry"])).toBe(false);
+      // Matches both
+      const fullProfile = { ...fullMatchProfile };
+      expect(meetsMinimumEligibility(targetedCampaign, fullProfile, "strict", ["interests", "industry"])).toBe(true);
+    });
+
+    it("hard filters on non-targeted dimensions pass through", () => {
+      // Campaign only targets interests, hard filter is on industry (not targeted)
+      const campaign = { ...untargetedCampaign, target_interests: ["SaaS"] };
+      const profile = { ...noMatchProfile }; // no interests match, no industry
+      expect(meetsMinimumEligibility(campaign, profile, "strict", ["industry"])).toBe(true);
+    });
+
+    it("hard filters ignored in balanced mode", () => {
+      // Profile matches interests but not industry
+      const profile = { ...partialMatchProfile };
+      // balanced mode ignores hard filters — any overlap passes
+      expect(meetsMinimumEligibility(targetedCampaign, profile, "balanced", ["industry"])).toBe(true);
+    });
+
+    it("hard filters ignored in broad mode", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, noMatchProfile, "broad", ["industry"])).toBe(true);
+    });
+
+    it("empty hard filters in strict = all dimensions required (existing behavior)", () => {
+      expect(meetsMinimumEligibility(targetedCampaign, partialMatchProfile, "strict", [])).toBe(false);
+      expect(meetsMinimumEligibility(targetedCampaign, fullMatchProfile, "strict", [])).toBe(true);
+    });
+  });
 });
 
 /* ─── classifyMatchBucket ─── */

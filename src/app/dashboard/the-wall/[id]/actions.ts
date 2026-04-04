@@ -14,7 +14,7 @@ import {
   type CampaignQuestion,
   type AssumptionCoverageCount,
 } from "@/lib/question-assignment";
-import { meetsMinimumEligibility, computeMatchScore, classifyMatchBucket, type RespondentProfile, type TargetingMode } from "@/lib/wall-ranking";
+import { meetsMinimumEligibility, computeMatchScore, classifyMatchBucket, type RespondentProfile, type TargetingMode, type TargetingDimension } from "@/lib/wall-ranking";
 import { hasRemainingReachBudget } from "@/lib/campaign-availability";
 import { completeCampaignWithinTransaction } from "@/lib/campaign-completion";
 
@@ -44,7 +44,7 @@ export async function startResponse(campaignId: string): Promise<{
   // Fetch campaign (include V2 + targeting fields for question assignment)
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, creator_id, status, current_responses, target_responses, expires_at, target_interests, target_expertise, target_age_ranges, tags, audience_industry, audience_experience_level, targeting_mode, reach_served, effective_reach_units, total_reach_units")
+    .select("id, creator_id, status, current_responses, target_responses, expires_at, target_interests, target_expertise, target_age_ranges, tags, audience_industry, audience_experience_level, targeting_mode, hard_filter_dimensions, reach_served, effective_reach_units, total_reach_units")
     .eq("id", campaignId)
     .single();
 
@@ -83,6 +83,7 @@ export async function startResponse(campaignId: string): Promise<{
   };
 
   const targetingMode = ((campaign.targeting_mode as string) ?? "balanced") as TargetingMode;
+  const hardFilterDimensions = ((campaign.hard_filter_dimensions as string[]) ?? []) as TargetingDimension[];
   if (
     !meetsMinimumEligibility(
       {
@@ -93,7 +94,8 @@ export async function startResponse(campaignId: string): Promise<{
         audience_experience_level: (campaign.audience_experience_level as string | null) ?? null,
       },
       respondentForEligibility,
-      targetingMode
+      targetingMode,
+      hardFilterDimensions
     )
   ) {
     const message = targetingMode === "strict"

@@ -583,6 +583,8 @@ export default function DraftReviewStep({
             onChange={(a: DraftAudience) => updateField("audience", a)}
             targetingMode={draft.targetingMode ?? "balanced"}
             onTargetingModeChange={(mode) => updateField("targetingMode", mode)}
+            hardFilterDimensions={draft.hardFilterDimensions ?? []}
+            onHardFilterDimensionsChange={(dims) => updateField("hardFilterDimensions", dims)}
             scribbleText={draft.summary}
             assumptions={draft.assumptions}
             questions={draft.questions}

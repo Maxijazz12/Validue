@@ -18,6 +18,9 @@ export const DEFAULTS = {
   /** Minimum match score to classify as 'adjacent' audience bucket (below this = 'off_target') */
   MATCH_BUCKET_ADJACENT_THRESHOLD: 40,
 
+  /** Brief cache version — increment when brief schema changes to invalidate stale caches */
+  BRIEF_CACHE_VERSION: 2,
+
   /** Momentum score when target_responses is 0 or missing */
   MOMENTUM_NO_TARGET: 50,
 

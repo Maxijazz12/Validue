@@ -29,6 +29,7 @@ export type StoredDraftCampaignRecord = {
   audience_experience_level: string | null;
   audience_niche_qualifier: string | null;
   targeting_mode: string | null;
+  hard_filter_dimensions: unknown;
   quality_scores: unknown;
   quality_score?: number | null;
 };
@@ -65,6 +66,7 @@ export type PersistedCampaignDraft = {
   audienceExperienceLevel: string | null;
   audienceNicheQualifier: string | null;
   targetingMode: "broad" | "balanced" | "strict";
+  hardFilterDimensions: string[];
   qualityScoresJson: string | null;
   qualityScores: CampaignDraft["qualityScores"] | null;
   qualityScore: number;
@@ -183,6 +185,7 @@ export function buildPersistedCampaignDraft(
     audienceExperienceLevel: draft.audience.experienceLevel || null,
     audienceNicheQualifier: draft.audience.nicheQualifier || null,
     targetingMode: normalizeTargetingMode(draft.targetingMode),
+    hardFilterDimensions: draft.hardFilterDimensions ?? [],
     qualityScoresJson: qualityScores ? JSON.stringify(qualityScores) : null,
     qualityScores,
     qualityScore: qualityScores?.overall ?? 0,
@@ -238,6 +241,7 @@ export function buildCopiedCampaignDraft(
     audienceExperienceLevel: campaign.audience_experience_level ?? null,
     audienceNicheQualifier: campaign.audience_niche_qualifier ?? null,
     targetingMode: normalizeTargetingMode(campaign.targeting_mode),
+    hardFilterDimensions: coerceStringArray(campaign.hard_filter_dimensions) ?? [],
     qualityScoresJson: qualityScores ? JSON.stringify(qualityScores) : null,
     qualityScores,
     qualityScore:
@@ -311,5 +315,6 @@ export function buildDraftFromStoredCampaign(
     bonusAvailable: persistedCampaign.bonusAvailable,
     rewardsTopAnswers: persistedCampaign.rewardsTopAnswers,
     targetingMode: persistedCampaign.targetingMode,
+    hardFilterDimensions: persistedCampaign.hardFilterDimensions,
   };
 }

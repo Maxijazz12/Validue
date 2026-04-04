@@ -192,6 +192,7 @@ export type Database = {
           target_location: string | null
           target_responses: number | null
           targeting_mode: string
+          hard_filter_dimensions: string[]
           title: string
           total_reach_units: number
           updated_at: string | null
@@ -251,6 +252,7 @@ export type Database = {
           target_location?: string | null
           target_responses?: number | null
           targeting_mode?: string
+          hard_filter_dimensions?: string[]
           title: string
           total_reach_units?: number
           updated_at?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           target_location?: string | null
           target_responses?: number | null
           targeting_mode?: string
+          hard_filter_dimensions?: string[]
           title?: string
           total_reach_units?: number
           updated_at?: string | null
