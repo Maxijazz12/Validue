@@ -142,6 +142,13 @@ async function callSynthesis(
     throw new Error(`Invalid brief structure: ${parsed.error.message}`);
   }
 
+  // Verify AI returned a verdict for every assumption
+  if (parsed.data.assumptionVerdicts.length !== assumptions.length) {
+    throw new Error(
+      `Verdict count mismatch: AI returned ${parsed.data.assumptionVerdicts.length} verdicts for ${assumptions.length} assumptions`
+    );
+  }
+
   return parsed.data;
 }
 
@@ -163,6 +170,84 @@ export interface BriefResult {
   parentVerdicts: PriorRoundVerdicts | null;
 }
 
+type SynthesizeBriefOptions = {
+  persist?: boolean;
+};
+
+type BriefCacheMetadata = {
+  cachedResult: BriefResult | null;
+  briefResponseCount: number | null;
+  roundNumber: number;
+  parentVerdicts: PriorRoundVerdicts | null;
+};
+
+async function loadBriefCacheMetadata(
+  campaignId: string
+): Promise<BriefCacheMetadata> {
+  const [cached] = await sql`
+    SELECT brief_cache, brief_response_count, parent_campaign_id, round_number
+    FROM campaigns WHERE id = ${campaignId}
+  `;
+
+  const roundNumber = Number(cached?.round_number ?? 1);
+  let parentVerdicts: PriorRoundVerdicts | null = null;
+  if (cached?.parent_campaign_id) {
+    const [parent] = await sql`
+      SELECT brief_verdicts FROM campaigns WHERE id = ${cached.parent_campaign_id}
+    `;
+    if (parent?.brief_verdicts) {
+      parentVerdicts = parent.brief_verdicts as PriorRoundVerdicts;
+    }
+  }
+
+  let cachedResult: BriefResult | null = null;
+  if (cached?.brief_cache) {
+    const raw = cached.brief_cache;
+    cachedResult = (typeof raw === "string" ? JSON.parse(raw) : raw) as BriefResult;
+  }
+
+  return {
+    cachedResult,
+    briefResponseCount:
+      cached?.brief_response_count != null
+        ? Number(cached.brief_response_count)
+        : null,
+    roundNumber,
+    parentVerdicts,
+  };
+}
+
+export async function loadFreshCachedBrief(
+  campaignId: string,
+  currentResponseCount: number
+): Promise<{ result: BriefResult | null; isStale: boolean }> {
+  try {
+    const metadata = await loadBriefCacheMetadata(campaignId);
+
+    if (
+      metadata.cachedResult &&
+      metadata.briefResponseCount != null &&
+      metadata.briefResponseCount === currentResponseCount
+    ) {
+      return {
+        result: {
+          ...metadata.cachedResult,
+          roundNumber: metadata.roundNumber,
+          parentVerdicts: metadata.parentVerdicts,
+        },
+        isStale: false,
+      };
+    }
+
+    return {
+      result: null,
+      isStale: metadata.cachedResult !== null,
+    };
+  } catch {
+    return { result: null, isStale: false };
+  }
+}
+
 /* ─── Main Entry Point ─── */
 
 /**
@@ -180,41 +265,25 @@ export async function synthesizeBrief(
   campaignId: string,
   campaignTitle: string,
   campaignDescription: string,
-  assumptions: string[]
+  assumptions: string[],
+  options: SynthesizeBriefOptions = {}
 ): Promise<BriefResult> {
   const start = Date.now();
 
   // ─── Check cache first ───
   // If we have a cached brief and the response count hasn't changed, return it.
   try {
-    const [cached] = await sql`
-      SELECT brief_cache, brief_response_count, parent_campaign_id, round_number
-      FROM campaigns WHERE id = ${campaignId}
-    `;
+    const metadata = await loadBriefCacheMetadata(campaignId);
 
-    const roundNumber = Number(cached?.round_number ?? 1);
-    let parentVerdicts: PriorRoundVerdicts | null = null;
-    if (cached?.parent_campaign_id) {
-      const [parent] = await sql`
-        SELECT brief_verdicts FROM campaigns WHERE id = ${cached.parent_campaign_id}
-      `;
-      if (parent?.brief_verdicts) {
-        parentVerdicts = parent.brief_verdicts as PriorRoundVerdicts;
-      }
-    }
-
-    if (cached?.brief_cache && cached.brief_response_count != null) {
+    if (metadata.cachedResult && metadata.briefResponseCount != null) {
       // Check current response count to decide if cache is stale
       const [{ count: currentCount }] = await sql`
         SELECT COUNT(*)::int as count FROM responses
         WHERE campaign_id = ${campaignId} AND status IN ('submitted', 'ranked')
       `;
 
-      if (currentCount === cached.brief_response_count) {
+      if (currentCount === metadata.briefResponseCount) {
         // Cache hit — return without calling AI
-        // Handle double-serialized cache (string instead of object) from earlier bug
-        const raw = cached.brief_cache;
-        const result = (typeof raw === "string" ? JSON.parse(raw) : raw) as BriefResult;
         logGeneration({
           event: "response.ranked",
           campaignId,
@@ -224,15 +293,37 @@ export async function synthesizeBrief(
           confidence: 1,
           latencyMs: Date.now() - start,
         });
-        return { ...result, roundNumber, parentVerdicts };
+        return {
+          ...metadata.cachedResult,
+          roundNumber: metadata.roundNumber,
+          parentVerdicts: metadata.parentVerdicts,
+        };
       }
     }
 
     // Cache miss — fall through to synthesis
-    return await synthesizeFresh(campaignId, campaignTitle, campaignDescription, assumptions, roundNumber, parentVerdicts, start);
+    return await synthesizeFresh(
+      campaignId,
+      campaignTitle,
+      campaignDescription,
+      assumptions,
+      metadata.roundNumber,
+      metadata.parentVerdicts,
+      start,
+      options
+    );
   } catch {
     // Cache check failed — synthesize fresh
-    return await synthesizeFresh(campaignId, campaignTitle, campaignDescription, assumptions, 1, null, start);
+    return await synthesizeFresh(
+      campaignId,
+      campaignTitle,
+      campaignDescription,
+      assumptions,
+      1,
+      null,
+      start,
+      options
+    );
   }
 }
 
@@ -248,7 +339,8 @@ async function synthesizeFresh(
   assumptions: string[],
   roundNumber: number,
   parentVerdicts: PriorRoundVerdicts | null,
-  start: number
+  start: number,
+  options: SynthesizeBriefOptions
 ): Promise<BriefResult> {
   // Gather evidence
   let evidenceByAssumption: Awaited<ReturnType<typeof getEvidenceByAssumption>>;
@@ -297,7 +389,19 @@ async function synthesizeFresh(
       confidence: 0,
       latencyMs: Date.now() - start,
     });
-    return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+    const result = {
+      brief: buildFallbackBrief(assumptions, methodology.responseCount),
+      coverage,
+      priceSignal,
+      consistencyReport,
+      segmentReport,
+      roundNumber,
+      parentVerdicts,
+    };
+    if (options.persist) {
+      await persistCachedBrief(campaignId, result, methodology.responseCount);
+    }
+    return result;
   }
 
   // Attempt AI synthesis — single call + deterministic grounding corrections
@@ -332,13 +436,11 @@ async function synthesizeFresh(
           latencyMs: Date.now() - start,
         });
 
-        // Persist verdict summary (write-once)
-        persistVerdicts(campaignId, brief);
-
         const result: BriefResult = { brief, coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
 
-        // Cache the result
-        cacheBrief(campaignId, result, methodology.responseCount);
+        if (options.persist) {
+          await persistSuccessfulBrief(campaignId, brief, result, methodology.responseCount);
+        }
 
         return result;
       } catch (err) {
@@ -359,7 +461,47 @@ async function synthesizeFresh(
     latencyMs: Date.now() - start,
   });
 
-  return { brief: buildFallbackBrief(assumptions, methodology.responseCount), coverage, priceSignal, consistencyReport, segmentReport, roundNumber, parentVerdicts };
+  const result = {
+    brief: buildFallbackBrief(assumptions, methodology.responseCount),
+    coverage,
+    priceSignal,
+    consistencyReport,
+    segmentReport,
+    roundNumber,
+    parentVerdicts,
+  };
+  if (options.persist) {
+    await persistCachedBrief(campaignId, result, methodology.responseCount);
+  }
+  return result;
+}
+
+async function persistSuccessfulBrief(
+  campaignId: string,
+  brief: DecisionBrief,
+  result: BriefResult,
+  responseCount: number
+): Promise<void> {
+  try {
+    await Promise.all([
+      persistVerdicts(campaignId, brief),
+      cacheBrief(campaignId, result, responseCount),
+    ]);
+  } catch (err) {
+    console.error("[brief] Persisting successful brief failed:", err);
+  }
+}
+
+async function persistCachedBrief(
+  campaignId: string,
+  result: BriefResult,
+  responseCount: number
+): Promise<void> {
+  try {
+    await cacheBrief(campaignId, result, responseCount);
+  } catch (err) {
+    console.error("[brief] Cache write failed:", err);
+  }
 }
 
 /* ─── Brief Cache Persistence ─── */
@@ -367,18 +509,20 @@ async function synthesizeFresh(
 /**
  * Cache the full BriefResult in the campaigns row.
  * Stores the response count so we know when to invalidate.
- * Fire-and-forget — never blocks brief rendering.
+ * Called from explicit mutation paths to persist a generated brief.
  */
-function cacheBrief(campaignId: string, result: BriefResult, responseCount: number): void {
-  sql`
+async function cacheBrief(
+  campaignId: string,
+  result: BriefResult,
+  responseCount: number
+): Promise<void> {
+  await sql`
     UPDATE campaigns
     SET brief_cache = ${JSON.stringify(result)},
         brief_cached_at = NOW(),
         brief_response_count = ${responseCount}
     WHERE id = ${campaignId}
-  `.catch(() => {
-    // Non-critical — caching failure should never break brief rendering
-  });
+  `;
 }
 
 /* ─── Verdict Persistence ─── */
@@ -386,9 +530,12 @@ function cacheBrief(campaignId: string, result: BriefResult, responseCount: numb
 /**
  * Persist a lightweight verdict summary to the campaign row.
  * Write-once: only writes if brief_verdicts is currently NULL.
- * Fire-and-forget — never blocks brief rendering.
+ * Called from explicit mutation paths after a successful synthesis.
  */
-function persistVerdicts(campaignId: string, brief: DecisionBrief): void {
+async function persistVerdicts(
+  campaignId: string,
+  brief: DecisionBrief
+): Promise<void> {
   const summary: PriorRoundVerdicts = {
     recommendation: brief.recommendation,
     verdicts: brief.assumptionVerdicts.map((v) => ({
@@ -398,10 +545,8 @@ function persistVerdicts(campaignId: string, brief: DecisionBrief): void {
     })),
   };
 
-  sql`
+  await sql`
     UPDATE campaigns SET brief_verdicts = ${JSON.stringify(summary)}
     WHERE id = ${campaignId} AND brief_verdicts IS NULL
-  `.catch(() => {
-    // Non-critical — verdict caching failure should never break brief rendering
-  });
+  `;
 }

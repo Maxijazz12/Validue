@@ -14,7 +14,7 @@ const verdictColors: Record<AssumptionVerdict["verdict"], string> = {
   CONFIRMED: "bg-success/10 text-success border-success/20",
   CHALLENGED: "bg-brand/10 text-brand border-brand/20",
   REFUTED: "bg-error/10 text-error border-error/20",
-  INSUFFICIENT_DATA: "bg-[#94A3B8]/10 text-slate border-[#94A3B8]/20",
+  INSUFFICIENT_DATA: "bg-[#94A3B8]/10 text-text-muted border-[#94A3B8]/20",
 };
 
 const verdictLabels: Record<AssumptionVerdict["verdict"], string> = {
@@ -142,6 +142,58 @@ export function BriefFundingGateState({
           >
             Fund campaign
           </Link>
+          <Link
+            href={`/dashboard/ideas/${id}/responses`}
+            className="inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-transparent border border-border-light text-text-secondary hover:text-text-primary hover:border-accent transition-all duration-300 no-underline"
+          >
+            View raw responses
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function BriefRefreshState({
+  id,
+  count,
+  stale,
+  action,
+}: {
+  id: string;
+  count: number;
+  stale: boolean;
+  action: () => Promise<void>;
+}) {
+  return (
+    <div className="max-w-[720px] mx-auto px-4 py-12">
+      <BackToCampaignLink id={id} />
+
+      <div className="rounded-[28px] bg-white border border-border-light shadow-card p-[32px]">
+        <div className="text-center mb-6">
+          <span className="font-mono text-[11px] font-medium tracking-wide text-brand uppercase block mb-[12px]">
+            Brief {stale ? "Needs Refresh" : "Ready To Generate"}
+          </span>
+          <h2 className="text-[20px] font-medium tracking-tight text-text-primary mb-[8px]">
+            {stale ? "Your responses changed since the last brief" : "Generate your Decision Brief"}
+          </h2>
+          <p className="text-[14px] text-text-secondary max-w-[460px] mx-auto leading-relaxed">
+            You currently have {count} response{count === 1 ? "" : "s"} ready.
+            {stale
+              ? " Refresh the brief to pull in the latest evidence and verdicts."
+              : " Generate the brief when you're ready to synthesize the current responses into verdicts and next steps."}
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 mt-8">
+          <form action={action}>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-accent text-white transition-all duration-500 hover:bg-accent-dark hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.4)] border-0 cursor-pointer"
+            >
+              {stale ? "Refresh brief" : "Generate brief"}
+            </button>
+          </form>
           <Link
             href={`/dashboard/ideas/${id}/responses`}
             className="inline-flex items-center justify-center px-[28px] py-[14px] rounded-full text-[14px] font-semibold tracking-wide bg-transparent border border-border-light text-text-secondary hover:text-text-primary hover:border-accent transition-all duration-300 no-underline"
@@ -357,7 +409,7 @@ export function BriefPageContent({
                       className="border-l-2 border-border-light pl-3 text-[13px] text-text-secondary italic leading-relaxed"
                     >
                       &ldquo;{quote.text}&rdquo;
-                      <span className="block text-[11px] text-slate mt-0.5 not-italic">
+                      <span className="block text-[11px] text-text-muted mt-0.5 not-italic">
                         — {quote.respondentLabel}
                       </span>
                     </blockquote>
@@ -384,9 +436,9 @@ export function BriefPageContent({
           <div className="rounded-[24px] bg-white border border-border-light shadow-card p-[24px]">
             {parentVerdicts.recommendation !== brief.recommendation && (
               <div className="rounded-xl bg-bg-muted border border-border-light px-4 py-3 mb-4 text-[14px]">
-                <span className="text-slate">Recommendation: </span>
+                <span className="text-text-muted">Recommendation: </span>
                 <span className="font-semibold text-text-secondary">{parentVerdicts.recommendation}</span>
-                <span className="mx-2 text-slate">&rarr;</span>
+                <span className="mx-2 text-text-muted">&rarr;</span>
                 <span className={`font-semibold ${recommendationColors[brief.recommendation]}`}>{brief.recommendation}</span>
               </div>
             )}
@@ -489,7 +541,7 @@ export function BriefPageContent({
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="text-[13px] text-text-secondary">{tier}</span>
-                          <span className="text-[12px] text-slate font-medium">{respondentCount}</span>
+                          <span className="text-[12px] text-text-muted font-medium">{respondentCount}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-border-light">
                           <div
@@ -530,7 +582,7 @@ export function BriefPageContent({
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="text-[13px] text-text-secondary">{tier}</span>
-                          <span className="text-[12px] text-slate font-medium">{respondentCount}</span>
+                          <span className="text-[12px] text-text-muted font-medium">{respondentCount}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-border-light">
                           <div
@@ -566,7 +618,7 @@ export function BriefPageContent({
               </div>
             )}
 
-            <p className="text-[11px] text-slate mt-3">
+            <p className="text-[11px] text-text-muted mt-3">
               Based on {priceSignal.respondentCount} respondent{priceSignal.respondentCount === 1 ? "" : "s"} who answered baseline price questions.
             </p>
           </div>
@@ -681,7 +733,7 @@ export function BriefPageContent({
                     {step.effort}
                   </span>
                 </div>
-                <div className="flex gap-3 text-[12px] text-slate">
+                <div className="flex gap-3 text-[12px] text-text-muted">
                   <span>{step.timeline}</span>
                 </div>
                 <p className="text-[13px] text-text-secondary">{step.whatItTests}</p>

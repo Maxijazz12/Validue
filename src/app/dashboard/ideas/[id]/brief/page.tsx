@@ -1,12 +1,5 @@
 import { redirect } from "next/navigation";
-import { synthesizeBrief } from "@/lib/ai/synthesize-brief";
-import type { BriefResult } from "@/lib/ai/synthesize-brief";
-import type { DecisionBrief } from "@/lib/ai/brief-schemas";
-import type { AssumptionCoverage } from "@/lib/ai/assumption-evidence";
-import type { PriceSignal } from "@/lib/ai/extract-price-signal";
-import type { ConsistencyReport } from "@/lib/ai/detect-consistency-gaps";
-import type { SegmentReport } from "@/lib/ai/segment-disagreements";
-import type { PriorRoundVerdicts } from "@/lib/ai/synthesize-brief";
+import { loadFreshCachedBrief } from "@/lib/ai/synthesize-brief";
 import { createClient } from "@/lib/supabase/server";
 import { getSubscription } from "@/lib/plan-guard";
 import { DEFAULTS } from "@/lib/defaults";
@@ -14,8 +7,10 @@ import sql from "@/lib/db";
 import {
   BriefFundingGateState,
   BriefInsufficientDataState,
+  BriefRefreshState,
   BriefPageContent,
 } from "./BriefPageContent";
+import { refreshBrief } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,27 +22,15 @@ type CampaignRow = {
   description: string;
   key_assumptions: string[] | null;
   creator_id: string;
-  current_responses: number | null;
   status: string;
   reward_amount: number | null;
-};
-
-type BriefState = {
-  brief: DecisionBrief;
-  coverage: AssumptionCoverage[];
-  priceSignal: PriceSignal | null;
-  consistencyReport: ConsistencyReport | null;
-  segmentReport: SegmentReport | null;
-  roundNumber: number;
-  parentVerdicts: PriorRoundVerdicts | null;
-  synthesisError: boolean;
 };
 
 async function loadCampaignForBrief(id: string, userId: string): Promise<CampaignRow | null> {
   const supabase = await createClient();
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, title, description, key_assumptions, creator_id, current_responses, status, reward_amount")
+    .select("id, title, description, key_assumptions, creator_id, status, reward_amount")
     .eq("id", id)
     .eq("creator_id", userId)
     .single();
@@ -61,64 +44,6 @@ async function countSubmittedResponses(campaignId: string): Promise<number> {
     WHERE campaign_id = ${campaignId} AND status IN ('submitted', 'ranked')
   `;
   return count;
-}
-
-async function buildBriefState(campaign: CampaignRow): Promise<BriefState> {
-  const assumptions = campaign.key_assumptions ?? [];
-
-  try {
-    const result: BriefResult = await synthesizeBrief(
-      campaign.id,
-      campaign.title,
-      campaign.description,
-      assumptions
-    );
-
-    return {
-      brief: result.brief,
-      coverage: result.coverage,
-      priceSignal: result.priceSignal,
-      consistencyReport: result.consistencyReport,
-      segmentReport: result.segmentReport,
-      roundNumber: result.roundNumber,
-      parentVerdicts: result.parentVerdicts,
-      synthesisError: false,
-    };
-  } catch {
-    return {
-      brief: {
-        recommendation: "PAUSE",
-        confidence: "LOW",
-        confidenceRationale: "Brief generation encountered an error. Please try again.",
-        uncomfortableTruth: "We couldn't generate your brief right now. This is a temporary issue — try refreshing the page.",
-        signalSummary: "Synthesis failed. Your responses are safe and you can retry.",
-        assumptionVerdicts: assumptions.map((assumption, index) => ({
-          assumption,
-          assumptionIndex: index,
-          verdict: "INSUFFICIENT_DATA" as const,
-          confidence: "LOW" as const,
-          evidenceSummary: "Synthesis unavailable — please retry.",
-          supportingCount: 0,
-          contradictingCount: 0,
-          totalResponses: 0,
-          quotes: [],
-        })),
-        strongestSignals: ["Retry brief generation to see your results."],
-        nextSteps: [
-          { action: "Refresh this page to retry brief generation", effort: "Low", timeline: "Now", whatItTests: "Whether the AI service is back online" },
-          { action: "Review raw responses while waiting", effort: "Low", timeline: "Now", whatItTests: "Manual pattern identification" },
-        ],
-        cheapestTest: "Refresh this page to retry. If the issue persists, check back in a few minutes.",
-      },
-      coverage: [],
-      priceSignal: null,
-      consistencyReport: null,
-      segmentReport: null,
-      roundNumber: 1,
-      parentVerdicts: null,
-      synthesisError: true,
-    };
-  }
 }
 
 export default async function BriefPage({
@@ -149,6 +74,7 @@ export default async function BriefPage({
   const rewardAmount = Number(campaign.reward_amount) || 0;
   const subscription = await getSubscription(user.id);
   const hasBriefAccess = rewardAmount >= BRIEF_FUNDING_GATE || subscription.tier !== "free";
+  const refreshBriefAction = refreshBrief.bind(null, id);
 
   if (!hasBriefAccess) {
     return (
@@ -161,7 +87,17 @@ export default async function BriefPage({
     );
   }
 
-  const briefState = await buildBriefState(campaign);
+  const cachedBrief = await loadFreshCachedBrief(id, count);
+  if (!cachedBrief.result) {
+    return (
+      <BriefRefreshState
+        id={id}
+        count={count}
+        stale={cachedBrief.isStale}
+        action={refreshBriefAction}
+      />
+    );
+  }
 
   return (
     <BriefPageContent
@@ -172,14 +108,14 @@ export default async function BriefPage({
         description: campaign.description,
         status: campaign.status,
       }}
-      brief={briefState.brief}
-      coverage={briefState.coverage}
-      priceSignal={briefState.priceSignal}
-      consistencyReport={briefState.consistencyReport}
-      segmentReport={briefState.segmentReport}
-      roundNumber={briefState.roundNumber}
-      parentVerdicts={briefState.parentVerdicts}
-      synthesisError={briefState.synthesisError}
+      brief={cachedBrief.result.brief}
+      coverage={cachedBrief.result.coverage}
+      priceSignal={cachedBrief.result.priceSignal}
+      consistencyReport={cachedBrief.result.consistencyReport}
+      segmentReport={cachedBrief.result.segmentReport}
+      roundNumber={cachedBrief.result.roundNumber}
+      parentVerdicts={cachedBrief.result.parentVerdicts}
+      synthesisError={false}
     />
   );
 }
